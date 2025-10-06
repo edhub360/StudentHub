@@ -38,7 +38,8 @@ import {
   Volume2,
   GitBranch,
   Download,
-  Share2
+  Share2,
+  CreditCard
 } from 'lucide-react';
 import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
@@ -50,6 +51,7 @@ import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
+import SubscriptionWrapper from './Components/SubscriptionPage';
 
 interface NavigationItem {
   id: string;
@@ -111,6 +113,7 @@ interface ChatMessage {
       { id: 'notes', label: 'Notes', icon: BookOpen },
       { id: 'progress', label: 'Progress', icon: BarChart3 },
       { id: 'upload', label: 'Screenshot Solve', icon: Upload },
+      { id: 'subscription', label: 'Subscription', icon: CreditCard },
     ];
 
   const flashCards: FlashCard[] = [
@@ -1707,6 +1710,8 @@ const renderContent = () => {
           handleDrop={handleDrop}
           handleImageUpload={handleImageUpload}
         />);
+            case "subscription":
+      return <SubscriptionWrapper />;
     default: 
       // here just return HomeScreen instead of undefined function
       return <HomeScreen setActiveTab={setActiveTab} />;
