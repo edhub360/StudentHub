@@ -53,6 +53,7 @@ import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
 import SubscriptionWrapper from './Components/SubscriptionPage';
 
+
 interface NavigationItem {
   id: string;
   label: string;
@@ -1712,6 +1713,7 @@ const renderContent = () => {
         />);
             case "subscription":
       return <SubscriptionWrapper />;
+
     default: 
       // here just return HomeScreen instead of undefined function
       return <HomeScreen setActiveTab={setActiveTab} />;
