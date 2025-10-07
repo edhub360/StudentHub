@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { FcGoogle } from 'react-icons/fc';
+import { FaFacebook } from 'react-icons/fa';
 import Logo from '../images/logo.edhub.png';
 
 interface LoginProps {
@@ -10,13 +12,26 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // Normal email/password login
   const handleLogin = () => {
     if (email === 'alex@gmail.com' && password === '123456') {
       setIsLoggedIn(true);
-      localStorage.setItem('isLoggedIn', 'true'); // refresh safe
+      localStorage.setItem('isLoggedIn', 'true');
     } else {
       setError('Invalid email or password');
     }
+  };
+
+  // Google login
+  const handleGoogleLogin = () => {
+    console.log('Google login clicked');
+    // TODO: Add Google OAuth logic here
+  };
+
+  // Facebook login
+  const handleFacebookLogin = () => {
+    console.log('Facebook login clicked');
+    // TODO: Add Facebook OAuth logic here
   };
 
   return (
@@ -31,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
           <p className="text-gray-500 mt-1">Login to continue your journey</p>
         </div>
 
-        {/* Inputs */}
+        {/* Email/Password Inputs */}
         <input
           type="email"
           placeholder="Email"
@@ -52,9 +67,33 @@ const Login: React.FC<LoginProps> = ({ setIsLoggedIn }) => {
         {/* Login Button */}
         <button
           onClick={handleLogin}
-          className="w-full py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-teal-600 transition-all"
+          className="w-full py-3 mb-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-teal-600 transition-all"
         >
           Login
+        </button>
+
+        {/* Divider */}
+        <div className="flex items-center my-4">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="mx-3 text-gray-500 text-sm">or</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        {/* Social Login Buttons */}
+        <button
+          onClick={handleGoogleLogin}
+          className="w-full flex items-center justify-center gap-3 mb-3 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition"
+        >
+          <FcGoogle size={22} />
+          <span className="font-medium text-gray-700">Login with Google</span>
+        </button>
+
+        <button
+          onClick={handleFacebookLogin}
+          className="w-full flex items-center justify-center gap-3 bg-[#1877F2] text-white py-3 rounded-lg hover:bg-[#166fe5] transition"
+        >
+          <FaFacebook size={22} />
+          <span className="font-medium">Login with Facebook</span>
         </button>
       </div>
     </div>
