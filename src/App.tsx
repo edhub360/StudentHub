@@ -91,6 +91,159 @@ interface ChatMessage {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeNotebook, setActiveNotebook] = useState<string | null>(null);
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
+
+  // ============================================
+  // API INTEGRATION - State & Functions
+  // ============================================
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [websiteUrl, setWebsiteUrl] = useState<string>('');
+  const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const API_BASE_URL = 'http://localhost:8000/api';
+  const CURRENT_USER_ID = 'user123';
+
+  const createNotebook = async (notebookTitle: string, userId: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/notebooks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: notebookTitle, user_id: userId }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to create notebook');
+    }
+    return response.json();
+  };
+
+  const uploadFileSource = async (notebookId: string, file: File, metadata: object = {}): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('notebook_id', notebookId);
+    formData.append('metadata', JSON.stringify(metadata));
+    const response = await fetch(`${API_BASE_URL}/sources/`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Failed to upload file: ${file.name}`);
+    }
+    return response.json();
+  };
+
+  const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url: string, metadata: object = {}): Promise<any> => {
+    const requestBody: any = { notebook_id: notebookId, type: type, metadata: metadata };
+    if (type === 'website') requestBody.website_url = url;
+    else if (type === 'youtube') requestBody.youtube_url = url;
+    const response = await fetch(`${API_BASE_URL}/sources/url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Failed to add ${type} URL`);
+    }
+    return response.json();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) setSelectedFiles([...selectedFiles, ...Array.from(files)]);
+  };
+
+  const removeSelectedFile = (indexToRemove: number) => {
+    setSelectedFiles(selectedFiles.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newFiles = Array.from(files).filter(file => {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        return ['pdf', 'docx', 'pptx', 'txt'].includes(ext || '');
+      });
+      setSelectedFiles([...selectedFiles, ...newFiles]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleCreateNotebook = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!title.trim()) {
+        setError('Please enter a notebook title');
+        setLoading(false);
+        return;
+      }
+      if (selectedFiles.length === 0 && !websiteUrl.trim() && !youtubeUrl.trim()) {
+        setError('Please add at least one source (file, website, or YouTube URL)');
+        setLoading(false);
+        return;
+      }
+      console.log('Creating notebook...');
+      const notebook = await createNotebook(title.trim(), CURRENT_USER_ID);
+      console.log('Notebook created:', notebook);
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          try {
+            await uploadFileSource(notebook.id, file, { description });
+          } catch (fileError) {
+            console.error(`Error uploading ${file.name}:`, fileError);
+          }
+        }
+      }
+      if (websiteUrl.trim()) {
+        try {
+          await addUrlSource(notebook.id, 'website', websiteUrl.trim(), { description });
+        } catch (urlError) {
+          console.error('Error adding website URL:', urlError);
+        }
+      }
+      if (youtubeUrl.trim()) {
+        try {
+          await addUrlSource(notebook.id, 'youtube', youtubeUrl.trim(), { description });
+        } catch (urlError) {
+          console.error('Error adding YouTube URL:', urlError);
+        }
+      }
+      console.log('Notebook creation complete!');
+      resetForm();
+      setShowCreateNotebook(false);
+      setActiveNotebook(notebook.id);
+    } catch (err) {
+      console.error('Error creating notebook:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create notebook. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setSelectedFiles([]);
+    setWebsiteUrl('');
+    setYoutubeUrl('');
+    setError(null);
+  };
+
+  const handleCancelCreate = () => {
+    resetForm();
+    setShowCreateNotebook(false);
+  };
+
     const [currentFlashCard, setCurrentFlashCard] = useState(0);
     const [showFlashCardBack, setShowFlashCardBack] = useState(false);
     const [quizStarted, setQuizStarted] = useState(false);
@@ -479,104 +632,103 @@ interface ChatMessage {
     const renderCreateNotebook = () => (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowCreateNotebook(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <button onClick={handleCancelCreate} disabled={loading} className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Create New Notebook</h2>
             </div>
           </div>
-
           <div className="p-6">
-            {/* Notebook Details */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3">
+                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
             <div className="mb-8">
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notebook Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Physics - Quantum Mechanics"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notebook Title <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="e.g., Physics - Quantum Mechanics" value={title} onChange={(e) => setTitle(e.target.value)} disabled={loading} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
               </div>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
-                <textarea
-                  placeholder="Brief description of what this notebook covers..."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
+                <textarea placeholder="Brief description of what this notebook covers..." rows={3} value={description} onChange={(e) => setDescription(e.target.value)} disabled={loading} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
               </div>
             </div>
-
-            {/* Add Sources */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Sources</h3>
-              
-              {/* Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors mb-6">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors mb-6" onDrop={handleFileDrop} onDragOver={handleDragOver}>
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">Upload Files</h4>
                 <p className="text-gray-600 mb-4">Drag and drop files or click to browse</p>
-                <p className="text-sm text-gray-500">Supports PDF, DOCX, PPTX, TXT files</p>
-                <button className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  Choose Files
-                </button>
+                <p className="text-sm text-gray-500 mb-4">Supports PDF, DOCX, PPTX, TXT files</p>
+                <input type="file" multiple accept=".pdf,.docx,.pptx,.txt" onChange={handleFileChange} disabled={loading} className="hidden" id="file-upload" />
+                <label htmlFor="file-upload" className={`inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>Choose Files</label>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-6 text-left bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Selected Files ({selectedFiles.length}):</p>
+                    <ul className="space-y-2">
+                      {selectedFiles.map((file, index) => (
+                        <li key={index} className="text-sm text-gray-600 flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="truncate">{file.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3 ml-2">
+                            <span className="text-gray-400 text-xs whitespace-nowrap">{(file.size / 1024).toFixed(2)} KB</span>
+                            <button onClick={() => removeSelectedFile(index)} disabled={loading} className="text-red-500 hover:text-red-700 disabled:opacity-50">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-
-              {/* URL Input */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="url"
-                      placeholder="https://example.com/article"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <input type="url" placeholder="https://example.com/article" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label>
                   <div className="relative">
                     <Play className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="url"
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <input type="url" placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowCreateNotebook(false)}
-                className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowCreateNotebook(false);
-                  setActiveNotebook('new');
-                }}
-                className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200"
-              >
-                Create Notebook
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button onClick={handleCancelCreate} disabled={loading} className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+              <button onClick={handleCreateNotebook} disabled={loading} className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {loading && (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {loading ? 'Creating...' : 'Create Notebook'}
               </button>
             </div>
           </div>
         </div>
       </div>
     );
+
+
 
     const renderNotebookWorkspace = () => (
       <div className="flex h-full">
@@ -758,893 +910,6 @@ interface ChatMessage {
       </div>
     );
 
-  // const renderSidebar = () => (
-  //   <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 transition-all duration-300 z-40 ${
-  //     sidebarCollapsed ? 'w-16' : 'w-64'
-  //   } ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-  //     {/* Logo Section */}
-  //     <div className="p-4 border-b border-gray-200">
-  //       <div className="flex items-center gap-3">
-  //         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-teal-500 rounded-xl flex items-center justify-center flex-shrink-0">
-  //           <BookOpen className="w-6 h-6 text-white" />
-  //         </div>
-  //         {!sidebarCollapsed && (
-  //           <div className="min-w-0">
-  //             <h1 className="text-lg font-bold text-gray-900 truncate">Edhub360</h1>
-  //             <p className="text-xs text-gray-500 truncate">Education without limits.</p>
-  //           </div>
-  //         )}
-  //       </div>
-  //     </div>
-
-  //     {/* Navigation */}
-  //     <nav className="flex-1 p-4">
-  //       <div className="space-y-2">
-  //         {navigation.map((item) => {
-  //           const IconComponent = item.icon;
-  //           const isActive = activeTab === item.id;
-            
-  //           return (
-  //             <button
-  //               key={item.id}
-  //               onClick={() => {
-  //                 setActiveTab(item.id);
-  //                 setMobileMenuOpen(false);
-  //               }}
-  //               className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-  //                 isActive 
-  //                   ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg' 
-  //                   : 'text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm'
-  //               }`}
-  //               title={sidebarCollapsed ? item.label : undefined}
-  //             >
-  //               <IconComponent className="w-5 h-5 flex-shrink-0" />
-  //               {!sidebarCollapsed && (
-  //                 <span className="font-medium truncate">{item.label}</span>
-  //               )}
-  //             </button>
-  //           );
-  //         })}
-  //       </div>
-  //     </nav>
-
-  //     {/* Collapse Button */}
-  //     <div className="p-4 border-t border-gray-200 hidden lg:block">
-  //       <button
-  //         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-  //         className="w-full flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors"
-  //       >
-  //         {sidebarCollapsed ? (
-  //           <ChevronRightIcon className="w-5 h-5" />
-  //         ) : (
-  //           <ChevronLeft className="w-5 h-5" />
-  //         )}
-  //       </button>
-  //     </div>
-  //   </div>
-  // );
-
-  // const renderHeader = () => (
-  //   <header className={`bg-white shadow-sm border-b border-gray-100 transition-all duration-300 ${
-  //     sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-  //   }`}>
-  //     <div className="flex items-center justify-between px-4 py-3">
-  //       {/* Mobile Menu Button */}
-  //       <button
-  //         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-  //         className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-  //       >
-  //         <Menu className="w-5 h-5" />
-  //       </button>
-
-  //       {/* Page Title - Hidden on mobile when menu is open */}
-  //       <div className={`flex-1 ${mobileMenuOpen ? 'hidden' : 'block'} lg:block`}>
-  //         <h2 className="text-xl font-semibold text-gray-900 capitalize">
-  //           {activeTab === 'home' ? 'Dashboard' : activeTab.replace(/([A-Z])/g, ' $1').trim()}
-  //         </h2>
-  //       </div>
-
-  //       {/* Right Side Actions */}
-  //       <div className="flex items-center gap-2">
-  //         <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg relative">
-  //           <Bell className="w-5 h-5" />
-  //           <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-  //         </button>
-  //         <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
-  //           <Settings className="w-5 h-5" />
-  //         </button>
-  //         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center ml-2">
-  //           <User className="w-4 h-4 text-white" />
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </header>
-  // );
-
-  // const renderHomeScreen = () => (
-  //   <div className="p-6 space-y-6">
-  //     {/* Welcome Section */}
-  //     <div className="bg-gradient-to-r from-blue-500 to-teal-500 rounded-2xl p-6 text-white">
-  //       <div className="flex items-center justify-between">
-  //         <div>
-  //           <h2 className="text-2xl font-bold mb-2">Welcome back, Alex!</h2>
-  //           <p className="text-blue-100">Ready to continue your learning journey?</p>
-  //         </div>
-  //         <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-  //           <Zap className="w-8 h-8" />
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     {/* Quick Stats */}
-  //     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-  //       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-  //         <div className="flex items-center gap-2 mb-2">
-  //           <Trophy className="w-5 h-5 text-yellow-500" />
-  //           <span className="text-sm font-medium text-gray-700">Study Streak</span>
-  //         </div>
-  //         <p className="text-2xl font-bold text-gray-900">7 days</p>
-  //         <p className="text-xs text-gray-500">Keep it up!</p>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-  //         <div className="flex items-center gap-2 mb-2">
-  //           <Target className="w-5 h-5 text-green-500" />
-  //           <span className="text-sm font-medium text-gray-700">Today's Goal</span>
-  //         </div>
-  //         <p className="text-2xl font-bold text-gray-900">75%</p>
-  //         <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-  //           <div className="bg-green-500 h-2 rounded-full w-3/4"></div>
-  //         </div>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-  //         <div className="flex items-center gap-2 mb-2">
-  //           <Clock className="w-5 h-5 text-blue-500" />
-  //           <span className="text-sm font-medium text-gray-700">Study Time</span>
-  //         </div>
-  //         <p className="text-2xl font-bold text-gray-900">2.5h</p>
-  //         <p className="text-xs text-gray-500">Today</p>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-  //         <div className="flex items-center gap-2 mb-2">
-  //           <Award className="w-5 h-5 text-purple-500" />
-  //           <span className="text-sm font-medium text-gray-700">Badges</span>
-  //         </div>
-  //         <p className="text-2xl font-bold text-gray-900">12</p>
-  //         <p className="text-xs text-gray-500">Earned</p>
-  //       </div>
-  //     </div>
-
-  //     {/* Recent Activity & Quick Actions */}
-  //     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  //       {/* Recent Activity */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-  //         <div className="p-4 border-b border-gray-100">
-  //           <h3 className="font-semibold text-gray-900">Recent Activity</h3>
-  //         </div>
-  //         <div className="p-4 space-y-3">
-  //           <div className="flex items-center gap-3">
-  //             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-  //               <FileText className="w-4 h-4 text-blue-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="text-sm font-medium text-gray-900">Completed Calculus flashcards</p>
-  //               <p className="text-xs text-gray-500">2 hours ago</p>
-  //             </div>
-  //           </div>
-  //           <div className="flex items-center gap-3">
-  //             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-  //               <Brain className="w-4 h-4 text-green-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="text-sm font-medium text-gray-900">Biology quiz - 85% score</p>
-  //               <p className="text-xs text-gray-500">Yesterday</p>
-  //             </div>
-  //           </div>
-  //           <div className="flex items-center gap-3">
-  //             <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-  //               <MessageCircle className="w-4 h-4 text-purple-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="text-sm font-medium text-gray-900">AI Chat session on Physics</p>
-  //               <p className="text-xs text-gray-500">2 days ago</p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       {/* Quick Actions */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-  //         <div className="p-4 border-b border-gray-100">
-  //           <h3 className="font-semibold text-gray-900">Quick Actions</h3>
-  //         </div>
-  //         <div className="p-4 grid grid-cols-2 gap-3">
-  //           <button 
-  //             onClick={() => setActiveTab('chat')}
-  //             className="p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors group"
-  //           >
-  //             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-  //               <MessageCircle className="w-4 h-4 text-white" />
-  //             </div>
-  //             <p className="font-medium text-gray-900 text-sm">Ask AI</p>
-  //             <p className="text-xs text-gray-500">Get instant help</p>
-  //           </button>
-  //           <button 
-  //             onClick={() => setActiveTab('upload')}
-  //             className="p-4 bg-teal-50 hover:bg-teal-100 rounded-xl transition-colors group"
-  //           >
-  //             <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-  //               <Camera className="w-4 h-4 text-white" />
-  //             </div>
-  //             <p className="font-medium text-gray-900 text-sm">Scan & Solve</p>
-  //             <p className="text-xs text-gray-500">Photo questions</p>
-  //           </button>
-  //           <button 
-  //             onClick={() => setActiveTab('flashcards')}
-  //             className="p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors group"
-  //           >
-  //             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-  //               <FileText className="w-4 h-4 text-white" />
-  //             </div>
-  //             <p className="font-medium text-gray-900 text-sm">Flashcards</p>
-  //             <p className="text-xs text-gray-500">Review concepts</p>
-  //           </button>
-  //           <button 
-  //             onClick={() => setActiveTab('quiz')}
-  //             className="p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors group"
-  //           >
-  //             <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-  //               <Brain className="w-4 h-4 text-white" />
-  //             </div>
-  //             <p className="font-medium text-gray-900 text-sm">Take Quiz</p>
-  //             <p className="text-xs text-gray-500">Test knowledge</p>
-  //           </button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
-  // const renderChatScreen = () => (
-  //   <div className="flex flex-col h-full">
-  //     {/* Chat Header */}
-  //     <div className="p-6 border-b border-gray-100 bg-white">
-  //       <div className="flex items-center gap-3">
-  //         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-  //           <Zap className="w-6 h-6 text-white" />
-  //         </div>
-  //         <div>
-  //           <h2 className="font-semibold text-gray-900">AI Study Assistant</h2>
-  //           <p className="text-sm text-gray-500">Powered by Gemini • Always ready to help</p>
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     {/* Messages */}
-  //     <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-  //       {chatMessages.length === 0 ? (
-  //         <div className="text-center py-12">
-  //           <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-  //             <MessageCircle className="w-10 h-10 text-blue-500" />
-  //           </div>
-  //           <h3 className="font-semibold text-gray-900 mb-2">Start a conversation</h3>
-  //           <p className="text-gray-500 mb-6">Ask me anything about your studies!</p>
-  //           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-md mx-auto">
-  //             <button className="p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
-  //               <p className="font-medium text-blue-900 text-sm">Explain photosynthesis</p>
-  //             </button>
-  //             <button className="p-3 bg-teal-50 hover:bg-teal-100 rounded-lg text-left transition-colors">
-  //               <p className="font-medium text-teal-900 text-sm">Solve math problems</p>
-  //             </button>
-  //             <button className="p-3 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition-colors">
-  //               <p className="font-medium text-purple-900 text-sm">History questions</p>
-  //             </button>
-  //             <button className="p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors">
-  //               <p className="font-medium text-green-900 text-sm">Study tips</p>
-  //             </button>
-  //           </div>
-  //         </div>
-  //       ) : (
-  //         chatMessages.map((message) => (
-  //           <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-  //             <div className={`max-w-md px-4 py-3 rounded-2xl ${
-  //               message.isUser 
-  //                 ? 'bg-gradient-to-r from-blue-500 to-teal-500 text-white' 
-  //                 : 'bg-gray-100 text-gray-900'
-  //             }`}>
-  //               <p className="text-sm">{message.text}</p>
-  //               <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
-  //                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-  //               </p>
-  //             </div>
-  //           </div>
-  //         ))
-  //       )}
-  //     </div>
-
-  //     {/* Chat Input */}
-  //     <div className="p-6 border-t border-gray-100 bg-white">
-  //       <div className="flex items-center gap-3">
-  //         <input
-  //           type="text"
-  //           value={chatInput}
-  //           onChange={(e) => setChatInput(e.target.value)}
-  //           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-  //           placeholder="Ask your question..."
-  //           className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-  //         />
-  //         <button
-  //           onClick={handleSendMessage}
-  //           className="w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-500 rounded-xl flex items-center justify-center text-white hover:shadow-lg transition-all"
-  //         >
-  //           <Send className="w-5 h-5" />
-  //         </button>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
-  // const renderFlashCardsScreen = () => (
-  //   <div className="p-6 space-y-6">
-  //     <div className="text-center">
-  //       <h2 className="text-2xl font-bold text-gray-900 mb-2">Flashcards</h2>
-  //       <p className="text-gray-600">Test your knowledge with AI-generated cards</p>
-  //     </div>
-
-  //     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 min-h-80">
-  //       <div className="text-center mb-6">
-  //         <span className="text-sm font-medium text-blue-600 bg-blue-100 px-4 py-2 rounded-full">
-  //           {flashCards[currentFlashCard].subject}
-  //         </span>
-  //       </div>
-
-  //       <div className="flex items-center justify-center min-h-40 mb-8">
-  //         <div className="text-center max-w-md">
-  //           <p className="text-xl font-medium text-gray-900 mb-6 leading-relaxed">
-  //             {showFlashCardBack ? flashCards[currentFlashCard].back : flashCards[currentFlashCard].front}
-  //           </p>
-  //           {!showFlashCardBack && (
-  //             <button
-  //               onClick={() => setShowFlashCardBack(true)}
-  //               className="px-6 py-2 text-blue-600 hover:text-blue-700 font-medium border border-blue-200 hover:border-blue-300 rounded-lg transition-colors"
-  //             >
-  //               Show Answer
-  //             </button>
-  //           )}
-  //         </div>
-  //       </div>
-
-  //       <div className="flex items-center justify-between">
-  //         <div className="text-sm text-gray-500">
-  //           Card {currentFlashCard + 1} of {flashCards.length}
-  //         </div>
-  //         <div className="flex gap-3">
-  //           <button
-  //             onClick={() => setShowFlashCardBack(false)}
-  //             className="px-4 py-2 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-  //           >
-  //             <RotateCcw className="w-4 h-4" />
-  //           </button>
-  //           <button
-  //             onClick={nextFlashCard}
-  //             className="px-8 py-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg hover:shadow-lg transition-all"
-  //           >
-  //             Next Card
-  //           </button>
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-4">Your Progress</h3>
-  //         <div className="space-y-4">
-  //           <div className="flex justify-between text-sm">
-  //             <span className="text-gray-600">Mastered Cards</span>
-  //             <span className="font-medium">{flashCards.filter(card => card.mastered).length}/{flashCards.length}</span>
-  //           </div>
-  //           <div className="w-full bg-gray-200 rounded-full h-3">
-  //             <div 
-  //               className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full transition-all duration-300"
-  //               style={{ width: `${(flashCards.filter(card => card.mastered).length / flashCards.length) * 100}%` }}
-  //             ></div>
-  //           </div>
-  //           <div className="grid grid-cols-3 gap-4 mt-6">
-  //             <div className="text-center">
-  //               <p className="text-2xl font-bold text-green-600">2</p>
-  //               <p className="text-xs text-gray-500">Mastered</p>
-  //             </div>
-  //             <div className="text-center">
-  //               <p className="text-2xl font-bold text-yellow-600">1</p>
-  //               <p className="text-xs text-gray-500">Learning</p>
-  //             </div>
-  //             <div className="text-center">
-  //               <p className="text-2xl font-bold text-gray-400">0</p>
-  //               <p className="text-xs text-gray-500">New</p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-4">Study Sets</h3>
-  //         <div className="space-y-3">
-  //           <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-  //             <div>
-  //               <p className="font-medium text-gray-900">Mathematics</p>
-  //               <p className="text-sm text-gray-600">15 cards</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //           <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-  //             <div>
-  //               <p className="font-medium text-gray-900">Biology</p>
-  //               <p className="text-sm text-gray-600">23 cards</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //           <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-  //             <div>
-  //               <p className="font-medium text-gray-900">History</p>
-  //               <p className="text-sm text-gray-600">18 cards</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
-    // const renderQuizScreen = () => (
-    //   <div className="p-6 space-y-6">
-    //     {!quizStarted ? (
-    //       <div className="space-y-6">
-    //         <div className="text-center">
-    //           <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Mode</h2>
-    //           <p className="text-gray-600">Test your knowledge with adaptive questions</p>
-    //         </div>
-
-    //         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-    //           <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
-    //             <Brain className="w-10 h-10 text-white" />
-    //           </div>
-    //           <h3 className="text-xl font-semibold text-gray-900 mb-3">Ready to test yourself?</h3>
-    //           <p className="text-gray-600 mb-8">This quiz contains {quizQuestions.length} questions covering various topics.</p>
-    //           <button
-    //             onClick={startQuiz}
-    //             className="px-10 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-    //           >
-    //             Start Quiz
-    //           </button>
-    //         </div>
-
-    //         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    //           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-    //             <h3 className="font-semibold text-gray-900 mb-4">Recent Scores</h3>
-    //             <div className="space-y-3">
-    //               <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-    //                 <span className="font-medium text-gray-900">Mathematics</span>
-    //                 <span className="font-bold text-green-600">92%</span>
-    //               </div>
-    //               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-    //                 <span className="font-medium text-gray-900">Science</span>
-    //                 <span className="font-bold text-blue-600">85%</span>
-    //               </div>
-    //               <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
-    //                 <span className="font-medium text-gray-900">History</span>
-    //                 <span className="font-bold text-yellow-600">78%</span>
-    //               </div>
-    //             </div>
-    //           </div>
-
-    //           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-    //             <h3 className="font-semibold text-gray-900 mb-4">Quiz Statistics</h3>
-    //             <div className="space-y-4">
-    //               <div className="flex justify-between">
-    //                 <span className="text-gray-600">Total Quizzes</span>
-    //                 <span className="font-semibold">47</span>
-    //               </div>
-    //               <div className="flex justify-between">
-    //                 <span className="text-gray-600">Average Score</span>
-    //                 <span className="font-semibold">85%</span>
-    //               </div>
-    //               <div className="flex justify-between">
-    //                 <span className="text-gray-600">Best Subject</span>
-    //                 <span className="font-semibold">Mathematics</span>
-    //               </div>
-    //               <div className="flex justify-between">
-    //                 <span className="text-gray-600">Improvement</span>
-    //                 <span className="font-semibold text-green-600">+12%</span>
-    //               </div>
-    //             </div>
-    //           </div>
-    //         </div>
-    //       </div>
-    //     ) : (
-    //       <div className="space-y-6">
-    //         <div className="flex items-center justify-between">
-    //           <h2 className="text-2xl font-bold text-gray-900">Question {currentQuestion + 1}</h2>
-    //           <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-    //             {currentQuestion + 1} of {quizQuestions.length}
-    //           </div>
-    //         </div>
-
-    //         <div className="w-full bg-gray-200 rounded-full h-3">
-    //           <div 
-    //             className="bg-gradient-to-r from-blue-500 to-teal-500 h-3 rounded-full transition-all duration-300"
-    //             style={{ width: `${((currentQuestion + 1) / quizQuestions.length) * 100}%` }}
-    //           ></div>
-    //         </div>
-
-    //         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-    //           <h3 className="text-xl font-semibold text-gray-900 mb-8">
-    //             {quizQuestions[currentQuestion].question}
-    //           </h3>
-
-    //           <div className="space-y-4">
-    //             {quizQuestions[currentQuestion].options.map((option, index) => (
-    //               <button
-    //                 key={index}
-    //                 onClick={() => answerQuizQuestion(index)}
-    //                 disabled={selectedAnswer !== null}
-    //                 className={`w-full p-5 text-left rounded-xl border-2 transition-all ${
-    //                   selectedAnswer === null
-    //                     ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-    //                     : selectedAnswer === index
-    //                     ? index === quizQuestions[currentQuestion].correct
-    //                       ? 'border-green-500 bg-green-50 text-green-700'
-    //                       : 'border-red-500 bg-red-50 text-red-700'
-    //                     : index === quizQuestions[currentQuestion].correct
-    //                     ? 'border-green-500 bg-green-50 text-green-700'
-    //                     : 'border-gray-200 text-gray-400'
-    //                 }`}
-    //               >
-    //                 <div className="flex items-center justify-between">
-    //                   <span className="font-medium">{option}</span>
-    //                   {selectedAnswer !== null && (
-    //                     <div>
-    //                       {index === quizQuestions[currentQuestion].correct ? (
-    //                         <Check className="w-6 h-6 text-green-600" />
-    //                       ) : selectedAnswer === index ? (
-    //                         <X className="w-6 h-6 text-red-600" />
-    //                       ) : null}
-    //                     </div>
-    //                   )}
-    //                 </div>
-    //               </button>
-    //             ))}
-    //           </div>
-
-    //           {selectedAnswer !== null && (
-    //             <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-    //               <p className="text-blue-800 font-medium mb-2">Explanation:</p>
-    //               <p className="text-blue-700">{quizQuestions[currentQuestion].explanation}</p>
-    //             </div>
-    //           )}
-    //         </div>
-    //       </div>
-    //     )}
-    //   </div>
-    // );
-
-  // const renderProgressScreen = () => (
-  //   <div className="p-6 space-y-6">
-  //     <div className="text-center">
-  //       <h2 className="text-2xl font-bold text-gray-900 mb-2">Progress Tracker</h2>
-  //       <p className="text-gray-600">Monitor your learning journey and achievements</p>
-  //     </div>
-
-  //     {/* Overall Stats */}
-  //     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-  //       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm text-center">
-  //         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-  //           <Clock className="w-6 h-6 text-blue-600" />
-  //         </div>
-  //         <p className="text-3xl font-bold text-gray-900">47h</p>
-  //         <p className="text-sm text-gray-600">Total Study Time</p>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm text-center">
-  //         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-  //           <Award className="w-6 h-6 text-green-600" />
-  //         </div>
-  //         <p className="text-3xl font-bold text-gray-900">12</p>
-  //         <p className="text-sm text-gray-600">Badges Earned</p>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm text-center">
-  //         <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-  //           <TrendingUp className="w-6 h-6 text-purple-600" />
-  //         </div>
-  //         <p className="text-3xl font-bold text-gray-900">85%</p>
-  //         <p className="text-sm text-gray-600">Average Score</p>
-  //       </div>
-  //       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm text-center">
-  //         <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-  //           <Trophy className="w-6 h-6 text-yellow-600" />
-  //         </div>
-  //         <p className="text-3xl font-bold text-gray-900">7</p>
-  //         <p className="text-sm text-gray-600">Day Streak</p>
-  //       </div>
-  //     </div>
-
-  //     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  //       {/* Weekly Progress */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-6">Weekly Activity</h3>
-  //         <div className="space-y-4">
-  //           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => (
-  //             <div key={day} className="flex items-center gap-4">
-  //               <span className="text-sm font-medium text-gray-600 w-20">{day.slice(0, 3)}</span>
-  //               <div className="flex-1 bg-gray-200 rounded-full h-3">
-  //                 <div 
-  //                   className="bg-gradient-to-r from-blue-500 to-teal-500 h-3 rounded-full transition-all duration-300"
-  //                   style={{ width: `${Math.random() * 80 + 20}%` }}
-  //                 ></div>
-  //               </div>
-  //               <span className="text-sm text-gray-500 w-8">{Math.floor(Math.random() * 3) + 1}h</span>
-  //             </div>
-  //           ))}
-  //         </div>
-  //       </div>
-
-  //       {/* Subject Progress */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-6">Subject Mastery</h3>
-  //         <div className="space-y-6">
-  //           <div>
-  //             <div className="flex justify-between items-center mb-2">
-  //               <span className="font-medium text-gray-700">Mathematics</span>
-  //               <span className="text-sm text-gray-600">85%</span>
-  //             </div>
-  //             <div className="w-full bg-gray-200 rounded-full h-3">
-  //               <div className="bg-blue-500 h-3 rounded-full w-4/5"></div>
-  //             </div>
-  //           </div>
-  //           <div>
-  //             <div className="flex justify-between items-center mb-2">
-  //               <span className="font-medium text-gray-700">Biology</span>
-  //               <span className="text-sm text-gray-600">72%</span>
-  //             </div>
-  //             <div className="w-full bg-gray-200 rounded-full h-3">
-  //               <div className="bg-green-500 h-3 rounded-full w-3/4"></div>
-  //             </div>
-  //           </div>
-  //           <div>
-  //             <div className="flex justify-between items-center mb-2">
-  //               <span className="font-medium text-gray-700">Physics</span>
-  //               <span className="text-sm text-gray-600">63%</span>
-  //             </div>
-  //             <div className="w-full bg-gray-200 rounded-full h-3">
-  //               <div className="bg-purple-500 h-3 rounded-full w-3/5"></div>
-  //             </div>
-  //           </div>
-  //           <div>
-  //             <div className="flex justify-between items-center mb-2">
-  //               <span className="font-medium text-gray-700">History</span>
-  //               <span className="text-sm text-gray-600">78%</span>
-  //             </div>
-  //             <div className="w-full bg-gray-200 rounded-full h-3">
-  //               <div className="bg-yellow-500 h-3 rounded-full w-4/5"></div>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     {/* Achievements */}
-  //     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //       <h3 className="font-semibold text-gray-900 mb-6">Recent Achievements</h3>
-  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //         <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-xl">
-  //           <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
-  //             <Trophy className="w-6 h-6 text-white" />
-  //           </div>
-  //           <div>
-  //             <p className="font-semibold text-gray-900">Study Streak Champion</p>
-  //             <p className="text-sm text-gray-600">7 days in a row!</p>
-  //           </div>
-  //         </div>
-  //         <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-xl">
-  //           <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-  //             <Brain className="w-6 h-6 text-white" />
-  //           </div>
-  //           <div>
-  //             <p className="font-semibold text-gray-900">Quiz Master</p>
-  //             <p className="text-sm text-gray-600">Perfect score on Math quiz</p>
-  //           </div>
-  //         </div>
-  //         <div className="flex items-center gap-4 p-4 bg-green-50 rounded-xl">
-  //           <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-  //             <FileText className="w-6 h-6 text-white" />
-  //           </div>
-  //           <div>
-  //             <p className="font-semibold text-gray-900">Flashcard Expert</p>
-  //             <p className="text-sm text-gray-600">100 cards mastered</p>
-  //           </div>
-  //         </div>
-  //         <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-xl">
-  //           <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-  //             <Target className="w-6 h-6 text-white" />
-  //           </div>
-  //           <div>
-  //             <p className="font-semibold text-gray-900">Goal Achiever</p>
-  //             <p className="text-sm text-gray-600">Weekly target reached</p>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
-  // const renderUploadScreen = () => (
-  //   <div className="p-6 space-y-6">
-  //     <div className="text-center">
-  //       <h2 className="text-2xl font-bold text-gray-900 mb-2">Screenshot to Solve</h2>
-  //       <p className="text-gray-600">Upload an image and get AI-powered solutions instantly</p>
-  //     </div>
-
-  //     {/* Upload Area */}
-  //     <div 
-  //       className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-200 ${
-  //         dragActive 
-  //           ? 'border-blue-500 bg-blue-50' 
-  //           : uploadedImage 
-  //           ? 'border-green-500 bg-green-50' 
-  //           : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-  //       }`}
-  //       onDrop={handleDrop}
-  //       onDragOver={(e) => e.preventDefault()}
-  //       onDragEnter={() => setDragActive(true)}
-  //       onDragLeave={() => setDragActive(false)}
-  //     >
-  //       {uploadedImage ? (
-  //         <div className="space-y-6">
-  //           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-  //             <Check className="w-10 h-10 text-green-600" />
-  //           </div>
-  //           <img 
-  //             src={uploadedImage} 
-  //             alt="Uploaded" 
-  //             className="max-w-full max-h-80 mx-auto rounded-xl shadow-lg"
-  //           />
-  //           <div className="space-y-3">
-  //             <button className="px-8 py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
-  //               Analyze Image
-  //             </button>
-  //             <button 
-  //               onClick={() => setUploadedImage(null)}
-  //               className="block mx-auto text-sm text-gray-500 hover:text-gray-700 transition-colors"
-  //             >
-  //               Upload different image
-  //             </button>
-  //           </div>
-  //         </div>
-  //       ) : (
-  //         <div className="space-y-6">
-  //           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-  //             <ImageIcon className="w-10 h-10 text-gray-400" />
-  //           </div>
-  //           <div>
-  //             <p className="text-xl font-semibold text-gray-700 mb-2">
-  //               {dragActive ? 'Drop your image here' : 'Upload your question image'}
-  //             </p>
-  //             <p className="text-gray-500">
-  //               Drag and drop or click to select • Supports JPG, PNG, PDF
-  //             </p>
-  //           </div>
-  //           <input
-  //             type="file"
-  //             accept="image/*"
-  //             onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
-  //             className="hidden"
-  //             id="image-upload"
-  //           />
-  //           <label
-  //             htmlFor="image-upload"
-  //             className="inline-block px-8 py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all cursor-pointer"
-  //           >
-  //             Choose Image
-  //           </label>
-  //         </div>
-  //       )}
-  //     </div>
-
-  //     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  //       {/* How it works */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-6">How it works</h3>
-  //         <div className="space-y-4">
-  //           <div className="flex items-start gap-4">
-  //             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-  //               <Camera className="w-5 h-5 text-blue-600" />
-  //             </div>
-  //             <div>
-  //               <p className="font-medium text-gray-900 mb-1">1. Upload</p>
-  //               <p className="text-sm text-gray-600">Take a photo or upload an image of your question</p>
-  //             </div>
-  //           </div>
-  //           <div className="flex items-start gap-4">
-  //             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-  //               <Search className="w-5 h-5 text-purple-600" />
-  //             </div>
-  //             <div>
-  //               <p className="font-medium text-gray-900 mb-1">2. Analyze</p>
-  //               <p className="text-sm text-gray-600">AI analyzes the image and identifies the problem</p>
-  //             </div>
-  //           </div>
-  //           <div className="flex items-start gap-4">
-  //             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-  //               <Zap className="w-5 h-5 text-green-600" />
-  //             </div>
-  //             <div>
-  //               <p className="font-medium text-gray-900 mb-1">3. Solve</p>
-  //               <p className="text-sm text-gray-600">Get step-by-step solutions and explanations</p>
-  //             </div>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       {/* Recent Uploads */}
-  //       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-  //         <h3 className="font-semibold text-gray-900 mb-6">Recent Uploads</h3>
-  //         <div className="space-y-3">
-  //           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-  //             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-  //               <ImageIcon className="w-5 h-5 text-blue-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="font-medium text-gray-900">Algebra equation</p>
-  //               <p className="text-sm text-gray-500">Solved 2 hours ago</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-  //             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-  //               <ImageIcon className="w-5 h-5 text-green-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="font-medium text-gray-900">Chemistry formula</p>
-  //               <p className="text-sm text-gray-500">Solved yesterday</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-  //             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-  //               <ImageIcon className="w-5 h-5 text-purple-600" />
-  //             </div>
-  //             <div className="flex-1">
-  //               <p className="font-medium text-gray-900">Physics problem</p>
-  //               <p className="text-sm text-gray-500">Solved 3 days ago</p>
-  //             </div>
-  //             <ChevronRight className="w-4 h-4 text-gray-400" />
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-
-  //     {/* Tips */}
-  //     <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6">
-  //       <h3 className="font-semibold text-gray-900 mb-4">Tips for better results</h3>
-  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-  //         <div className="flex items-start gap-2">
-  //           <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-  //           <span className="text-gray-700">Ensure text is clear and readable</span>
-  //         </div>
-  //         <div className="flex items-start gap-2">
-  //           <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-  //           <span className="text-gray-700">Include the complete question</span>
-  //         </div>
-  //         <div className="flex items-start gap-2">
-  //           <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-  //           <span className="text-gray-700">Good lighting and focus</span>
-  //         </div>
-  //         <div className="flex items-start gap-2">
-  //           <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-  //           <span className="text-gray-700">Avoid shadows and glare</span>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 
 const renderContent = () => {
   switch (activeTab) {
