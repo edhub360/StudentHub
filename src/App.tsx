@@ -50,6 +50,7 @@ import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
+import Register from './Components/Register';
 
 interface NavigationItem {
   id: string;
@@ -83,12 +84,19 @@ interface ChatMessage {
 
   const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState('home');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    // LocalStorage check, refresh handle panna
-    return localStorage.getItem('isLoggedIn') === 'true';
-  });
+
+
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isLoggedIn') === 'true';
+  });
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.clear();
+  };
+
     const [activeNotebook, setActiveNotebook] = useState<string | null>(null);
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
     const [currentFlashCard, setCurrentFlashCard] = useState(0);
@@ -101,6 +109,8 @@ interface ChatMessage {
     const [chatInput, setChatInput] = useState('');
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [dragActive, setDragActive] = useState(false);
+    const [showRegister, setShowRegister] = useState(false);
+
 
     const navigation: NavigationItem[] = [
       { id: 'home', label: 'Dashboard', icon: Home },
@@ -1712,17 +1722,34 @@ const renderContent = () => {
       return <HomeScreen setActiveTab={setActiveTab} />;
   }
 };
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem('isLoggedIn');
-  };
+
+
   if (!isLoggedIn) {
     return <Login setIsLoggedIn={(val) => {
       setIsLoggedIn(val);
       localStorage.setItem('isLoggedIn', 'true'); // refresh handle panna
-    }} />;
+    } } onSwitchToRegister={function (): void {
+      throw new Error('Function not implemented.');
+    } } />;
   }
 
+
+  
+  // Authentication check
+  if (!isLoggedIn) {
+    if (showRegister) {
+      return <Register onSwitchToLogin={() => setShowRegister(false)} />;
+    }
+    return (
+      <Login 
+        setIsLoggedIn={(val) => {
+          setIsLoggedIn(val);
+          localStorage.setItem('isLoggedIn', 'true');
+        }} 
+        onSwitchToRegister={() => setShowRegister(true)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
