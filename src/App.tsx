@@ -38,7 +38,8 @@ import {
   Volume2,
   GitBranch,
   Download,
-  Share2
+  Share2,
+  CreditCard
 } from 'lucide-react';
 import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
@@ -51,6 +52,8 @@ import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
 import Register from './Components/Register';
+import SubscriptionWrapper from './Components/SubscriptionPage';
+
 
 interface NavigationItem {
   id: string;
