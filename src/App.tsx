@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Home, 
   MessageCircle, 
@@ -54,6 +55,7 @@ import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/SubscriptionPage';
 
+const API_BASE_URL = "http://localhost:8000";
 
 interface NavigationItem {
   id: string;
@@ -90,20 +92,26 @@ interface ChatMessage {
   };
 }
 
+interface UserStatus {
+  has_seen_subscription: boolean;
+  has_active_subscription: boolean;
+  subscription: any;
+}
+
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('home');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // ✅ Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
   });
-  const [showRegister, setShowRegister] = useState(false); // ← ADDED THIS LINE
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.clear();
-  };
-
+  const [showRegister, setShowRegister] = useState(false);
+  const [userId, setUserId] = useState<string | null>(localStorage.getItem('user_id'));
+  const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
+const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
+  const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
+  // ✅ Existing App States (unchanged)
+  const [activeTab, setActiveTab] = useState('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNotebook, setActiveNotebook] = useState<string | null>(null);
   const [showCreateNotebook, setShowCreateNotebook] = useState(false);
   const [currentFlashCard, setCurrentFlashCard] = useState(0);
@@ -116,7 +124,62 @@ const App: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [courseSearchQuery, setCourseSearchQuery] = useState('');
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
+useEffect(() => {
+  if (!isLoggedIn || !userId) return;
+
+  const hasSeenBefore = localStorage.getItem('has_seen_subscription') === 'true';
+  
+  if (!hasSeenBefore) {
+    setShowSubscriptionPage(true);
+    setUserStatus({
+      has_seen_subscription: false,
+      has_active_subscription: false,
+      subscription: null
+    });
+  } else {
+    setShowSubscriptionPage(false);
+    setUserStatus({
+      has_seen_subscription: true,
+      has_active_subscription: true,
+      subscription: { plan_id: 'trial', status: 'active' }
+    });
+  }
+}, [isLoggedIn, userId]);
+
+
+
+  // ✅ Handle Login Success
+  const handleLoginSuccess = (token: string, newUserId: string) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user_id', newUserId);
+    localStorage.setItem('isLoggedIn', 'true');
+    setIsLoggedIn(true);
+    setUserId(newUserId);
+  };
+
+  // ✅ Handle Logout
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.clear();
+    setUserStatus(null);
+    setShowSubscriptionPage(false);
+  };
+
+  // ✅ Handle Subscription Completion
+  const handleSubscriptionComplete = () => {
+    setShowSubscriptionPage(false);
+    // Refresh user status
+    if (userId) {
+      axios.get(`${API_BASE_URL}/api/subscription/user-status/${userId}`)
+        .then(({ data }) => setUserStatus(data))
+        .catch(err => console.error("Error refreshing status:", err));
+    }
+  };
+
+  // ✅ Existing Data & Functions (unchanged)
   const navigation: NavigationItem[] = [
     { id: 'home', label: 'Dashboard', icon: Home },
     { id: 'chat', label: 'AI Chat', icon: MessageCircle },
@@ -302,9 +365,6 @@ const App: React.FC = () => {
     { id: '4', name: 'MIT OpenCourseWare - Calculus', type: 'web', url: 'ocw.mit.edu/...' }
   ];
 
-  const [courseSearchQuery, setCourseSearchQuery] = useState('');
-  const [showRecommendations, setShowRecommendations] = useState(false);
-
   const handleCourseSearch = (query: string) => {
     setCourseSearchQuery(query);
     const hasMatch = edhubCourses.some(course => 
@@ -398,6 +458,7 @@ const App: React.FC = () => {
     setActiveNotebook(null);
   };
 
+  // ✅ FULL Notebook Render Functions
   const renderNotesContent = () => {
     if (activeNotebook) {
       return renderNotebookWorkspace();
@@ -581,6 +642,7 @@ const App: React.FC = () => {
 
   const renderNotebookWorkspace = () => (
     <div className="flex h-full">
+      {/* Left Sidebar - Sources */}
       <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -630,6 +692,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Right Main Content - Chat/Workspace */}
       <div className="flex-1 flex flex-col">
         <div className="bg-white border-b border-gray-200 p-4">
           <div className="flex items-center justify-between">
@@ -663,6 +726,7 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
             <div className="max-w-4xl mx-auto space-y-6">
+              {/* Welcome Message */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
@@ -693,6 +757,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* User Question */}
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
@@ -704,6 +769,7 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* AI Response */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                 <div className="flex items-start gap-4">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
@@ -729,6 +795,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          {/* Chat Input */}
           <div className="border-t border-gray-200 p-4 bg-white">
             <div className="max-w-4xl mx-auto">
               <div className="relative">
@@ -814,10 +881,38 @@ const App: React.FC = () => {
     }
   };
 
-  // ✅ SINGLE Authentication check - REMOVED DUPLICATE
+  // ✅ Loading State - While Checking Subscription
+  if (isLoggedIn && isCheckingSubscription) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Show Subscription Page (First-Time or No Active Subscription)
+  if (isLoggedIn && showSubscriptionPage && userId) {
+    return (
+      <SubscriptionWrapper 
+        isFirstTime={!userStatus?.has_seen_subscription}
+        userId={userId}
+        onComplete={handleSubscriptionComplete}
+      />
+    );
+  }
+
+  // ✅ Show Login/Register (Not Logged In)
   if (!isLoggedIn) {
     if (showRegister) {
-      return <Register onSwitchToLogin={() => setShowRegister(false)} />;
+      return (
+        <Register 
+          onSwitchToLogin={() => setShowRegister(false)}
+          onRegisterSuccess={handleLoginSuccess}
+        />
+      );
     }
     return (
       <Login 
@@ -826,10 +921,12 @@ const App: React.FC = () => {
           localStorage.setItem('isLoggedIn', 'true');
         }} 
         onSwitchToRegister={() => setShowRegister(true)}
+        onLoginSuccess={handleLoginSuccess}
       />
     );
   }
 
+  // ✅ Main App (Logged In + Has Subscription)
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar

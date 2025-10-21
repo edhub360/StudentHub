@@ -1,23 +1,12 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import Logo from '../images/logo.edhub.png';
-
-interface RegisterResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  user: {
-    email: string;
-    name: string;
-    user_id: string;
-  };
-}
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
+  onRegisterSuccess?: (token: string, userId: string) => void;  // ← ADD THIS
 }
 
-const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
+const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,9 +15,8 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-  const handleRegister = async () => {
+  const handleRegister = () => {
+    // Validation
     if (!name || !email || !password || !confirmPassword) {
       setError('All fields are required');
       return;
@@ -47,33 +35,30 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     setError('');
     setLoading(true);
 
-    try {
-      const response = await axios.post<RegisterResponse>(
-        `${API_BASE_URL}/auth/register`,
-        { 
-          email: email.trim(),
-          password: password,
-          name: name.trim()
-        }
-      );
-
-      setSuccess('Registration successful! Redirecting to login...');
+    // ✅ DEMO MODE: Fake registration
+    setTimeout(() => {
+      // Generate fake credentials
+      const fakeToken = 'demo_token_' + Date.now();
+      const fakeUserId = 'user_' + Math.random().toString(36).substr(2, 9);
       
-      // Redirect to login after 2 seconds
+      // Save to localStorage
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('token', fakeToken);
+      localStorage.setItem('user_id', fakeUserId);
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userName', name);
+      
+      setSuccess('Account created successfully! Redirecting...');
+      
+      // ✅ Call callback - triggers subscription page
       setTimeout(() => {
-        onSwitchToLogin();
-      }, 2000);
-    } catch (err: any) {
-      if (err.response) {
-        setError(err.response.data?.detail || 'Registration failed');
-      } else if (err.request) {
-        setError('Cannot connect to server');
-      } else {
-        setError('Registration failed');
-      }
-    } finally {
+        if (onRegisterSuccess) {
+          onRegisterSuccess(fakeToken, fakeUserId);
+        }
+      }, 1000);
+      
       setLoading(false);
-    }
+    }, 1000);
   };
 
   return (
