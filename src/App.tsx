@@ -53,7 +53,7 @@ import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
 import Register from './Components/Register';
-import SubscriptionWrapper from './Components/SubscriptionPage';
+import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -151,14 +151,38 @@ useEffect(() => {
 
 
 
-  // ✅ Handle Login Success
-  const handleLoginSuccess = (token: string, newUserId: string) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user_id', newUserId);
-    localStorage.setItem('isLoggedIn', 'true');
-    setIsLoggedIn(true);
-    setUserId(newUserId);
-  };
+// ✅ Handle Login Success - WITH BACKEND SUBSCRIPTION CHECK
+const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: boolean) => {
+  console.log('✅ Login success:', { userId: newUserId, hasSubscription });
+  
+  localStorage.setItem('token', token);
+  localStorage.setItem('user_id', newUserId);
+  localStorage.setItem('isLoggedIn', 'true');
+  setIsLoggedIn(true);
+  setUserId(newUserId);
+
+  // ✅ CHECK BACKEND RESPONSE
+  if (hasSubscription) {
+    // Already has subscription → Go to dashboard
+    console.log('✅ Has subscription - Going to dashboard');
+    setShowSubscriptionPage(false);
+    setUserStatus({
+      has_seen_subscription: true,
+      has_active_subscription: true,
+      subscription: { plan_id: 'free', status: 'active' }
+    });
+  } else {
+    // No subscription → Show subscription page
+    console.log('📋 No subscription - Showing subscription page');
+    setShowSubscriptionPage(true);
+    setUserStatus({
+      has_seen_subscription: false,
+      has_active_subscription: false,
+      subscription: null
+    });
+  }
+};
+
 
   // ✅ Handle Logout
   const handleLogout = () => {

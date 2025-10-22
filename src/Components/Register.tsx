@@ -3,8 +3,10 @@ import Logo from '../images/logo.edhub.png';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
-  onRegisterSuccess?: (token: string, userId: string) => void;  // ← ADD THIS
+  onRegisterSuccess?: (token: string, userId: string, hasSubscription: boolean) => void;
 }
+
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess }) => {
   const [name, setName] = useState('');
@@ -15,7 +17,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     // Validation
     if (!name || !email || !password || !confirmPassword) {
       setError('All fields are required');
@@ -35,42 +37,62 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
     setError('');
     setLoading(true);
 
-    // ✅ DEMO MODE: Fake registration
-    setTimeout(() => {
-      // Generate fake credentials
-      const fakeToken = 'demo_token_' + Date.now();
-      const fakeUserId = 'user_' + Math.random().toString(36).substr(2, 9);
-      
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Registration failed');
+      }
+
+      const data = await response.json();
+
       // Save to localStorage
       localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('token', fakeToken);
-      localStorage.setItem('user_id', fakeUserId);
-      localStorage.setItem('userEmail', email);
-      localStorage.setItem('userName', name);
-      
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('user_id', data.user.user_id);
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('userName', data.user.name || '');
+
       setSuccess('Account created successfully! Redirecting...');
-      
-      // ✅ Call callback - triggers subscription page
+
       setTimeout(() => {
         if (onRegisterSuccess) {
-          onRegisterSuccess(fakeToken, fakeUserId);
+          onRegisterSuccess(
+            data.access_token,
+            data.user.user_id,
+            data.user.has_active_subscription
+          );
         }
       }, 1000);
-      
+
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white rounded-2xl shadow-xl w-96 p-8">
-        <div className="text-center mb-6">
-          <div className="w-20 h-20 mx-auto rounded-full overflow-hidden mb-4">
-            <img src={Logo} alt="Logo" className="w-full h-full object-cover" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-800">Create Account</h2>
-          <p className="text-gray-500 mt-1">Sign up to get started</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md border border-gray-200">
+        <div className="flex justify-center mb-6">
+          <img src={Logo} alt="EdHub Logo" className="h-16 w-auto" />
         </div>
+        <h2 className="text-3xl font-bold text-center mb-2 text-gray-800">Create Account</h2>
+        <p className="text-center text-gray-500 mb-6">Sign up to get started</p>
 
         <input
           type="text"
@@ -78,7 +100,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
           value={name}
           onChange={e => setName(e.target.value)}
           disabled={loading}
-          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
         />
 
         <input
@@ -87,16 +109,16 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
           value={email}
           onChange={e => setEmail(e.target.value)}
           disabled={loading}
-          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
         />
 
         <input
           type="password"
-          placeholder="Password (min 6 characters)"
+          placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           disabled={loading}
-          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
         />
 
         <input
@@ -106,38 +128,39 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
           onChange={e => setConfirmPassword(e.target.value)}
           onKeyPress={e => e.key === 'Enter' && !loading && handleRegister()}
           disabled={loading}
-          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+          className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
         />
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm text-center">{error}</p>
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">
+            {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600 text-sm text-center">{success}</p>
+          <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg mb-4 text-center text-sm">
+            {success}
           </div>
         )}
 
         <button
           onClick={handleRegister}
           disabled={loading}
-          className="w-full py-3 mb-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-sm"
         >
           {loading ? 'Creating Account...' : 'Sign Up'}
         </button>
 
-        <div className="text-center text-sm text-gray-600">
+        <p className="text-center mt-6 text-gray-600 text-sm">
           Already have an account?{' '}
           <button
             onClick={onSwitchToLogin}
-            className="text-blue-500 hover:underline font-semibold"
+            className="text-blue-600 hover:text-blue-700 font-semibold hover:underline"
+            disabled={loading}
           >
             Login
           </button>
-        </div>
+        </p>
       </div>
     </div>
   );
