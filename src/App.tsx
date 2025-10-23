@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { 
   Home, 
   MessageCircle, 
@@ -83,6 +83,7 @@ interface ChatMessage {
 
   const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState('home');
+const [notebooks, setNotebooks] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     // LocalStorage check, refresh handle panna
     return localStorage.getItem('isLoggedIn') === 'true';
@@ -103,53 +104,99 @@ interface ChatMessage {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+
   const API_BASE_URL = 'http://localhost:8000/api';
   const CURRENT_USER_ID = 'user123';
 
-  const createNotebook = async (notebookTitle: string, userId: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/notebooks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: notebookTitle, user_id: userId }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Failed to create notebook');
-    }
-    return response.json();
-  };
+const createNotebook = async (notebookTitle: string, userId: string) => {
+  const response = await fetch(`${API_BASE_URL}/notebooks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: notebookTitle, user_id: userId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create notebook');
+  }
+  return response.json();
+};
 
-  const uploadFileSource = async (notebookId: string, file: File, metadata: object = {}): Promise<any> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('notebook_id', notebookId);
-    formData.append('metadata', JSON.stringify(metadata));
-    const response = await fetch(`${API_BASE_URL}/sources/`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to upload file: ${file.name}`);
+const getNotebooks = async (userId: string): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/notebooks?user_id=${userId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch notebooks');
+  }
+  return response.json();
+};
+useEffect(() => {
+  const fetchData = async () => {
+    if (activeTab !== 'notes' || !CURRENT_USER_ID) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getNotebooks(CURRENT_USER_ID);
+      setNotebooks(data);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error loading notebooks');
+      }
+    } finally {
+      setLoading(false);
     }
-    return response.json();
   };
+  fetchData();
+}, [activeTab]);
 
-  const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url: string, metadata: object = {}): Promise<any> => {
-    const requestBody: any = { notebook_id: notebookId, type: type, metadata: metadata };
-    if (type === 'website') requestBody.website_url = url;
-    else if (type === 'youtube') requestBody.youtube_url = url;
-    const response = await fetch(`${API_BASE_URL}/sources/url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to add ${type} URL`);
-    }
-    return response.json();
-  };
+
+
+
+const uploadFileSource = async (notebookId: string, file: File, metadata: object = {}) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('notebook_id', notebookId);
+  formData.append('metadata', JSON.stringify(metadata));
+  formData.append('type', 'file'); // must specify source type
+
+  const response = await fetch(`${API_BASE_URL}/sources/`, {
+    method: 'POST',
+    headers: {
+      'x-user-id': CURRENT_USER_ID, // required header
+      // Don't set Content-Type here; browser will set for FormData
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to upload file: ${file.name}`);
+  }
+  return response.json();
+};
+
+
+const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url: string, metadata: object = {}) => {
+  const requestBody: any = { notebook_id: notebookId, type, metadata };
+  if (type === 'website') requestBody.website_url = url;
+  else if (type === 'youtube') requestBody.youtube_url = url;
+
+  const response = await fetch(`${API_BASE_URL}/sources/url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-id': CURRENT_USER_ID,  // required header
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to add ${type} URL`);
+  }
+  return response.json();
+};
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -399,41 +446,7 @@ interface ChatMessage {
     }
   ];
 
-    // Sample notebooks data
-    const notebooks = [
-      {
-        id: '1',
-        title: 'Calculus I - Derivatives',
-        description: 'Complete notes and practice problems for differential calculus',
-        lastUpdated: '2 hours ago',
-        sourceCount: 8,
-        thumbnail: '📊'
-      },
-      {
-        id: '2',
-        title: 'World History - Renaissance',
-        description: 'Art, politics, and cultural changes during the Renaissance period',
-        lastUpdated: '1 day ago',
-        sourceCount: 12,
-        thumbnail: '🏛️'
-      },
-      {
-        id: '3',
-        title: 'Chemistry - Organic Compounds',
-        description: 'Molecular structures, reactions, and synthesis pathways',
-        lastUpdated: '3 days ago',
-        sourceCount: 6,
-        thumbnail: '🧪'
-      },
-      {
-        id: '4',
-        title: 'Literature Analysis - Shakespeare',
-        description: 'Character analysis and themes in Hamlet and Macbeth',
-        lastUpdated: '1 week ago',
-        sourceCount: 15,
-        thumbnail: '📚'
-      }
-    ];
+
 
     // Sample sources for active notebook
     const notebookSources = [
@@ -552,36 +565,53 @@ interface ChatMessage {
       return renderNotesHome();
     };
 
-    const renderNotesHome = () => (
-      <div className="p-6 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Notebooks</h1>
-            <p className="text-gray-600">Organize your study materials with AI-powered insights</p>
-          </div>
+  const renderNotesHome = () => (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Notebooks</h1>
+          <p className="text-gray-600">Organize your study materials with AI-powered insights</p>
+        </div>
+        <button
+          onClick={() => setShowCreateNotebook(true)}
+          className="mt-4 sm:mt-0 bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Create New Notebook
+        </button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="mb-8">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search notebooks or ask for course recommendations..."
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      {/* Notebooks Grid */}
+      {loading ? (
+        <p>Loading notebooks...</p>
+      ) : error ? (
+        <p className="text-red-600">{error}</p>
+      ) : notebooks.length === 0 ? (
+        <div className="text-center py-16">
+          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No notebooks yet</h3>
+          <p className="text-gray-600 mb-6">Create your first notebook to get started with AI-powered studying</p>
           <button
             onClick={() => setShowCreateNotebook(true)}
-            className="mt-4 sm:mt-0 bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200"
           >
-            <Plus className="w-5 h-5" />
-            Create New Notebook
+            Create Notebook
           </button>
         </div>
-
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search notebooks or ask for course recommendations..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Notebooks Grid */}
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {notebooks.map((notebook) => (
             <div
@@ -611,23 +641,9 @@ interface ChatMessage {
             </div>
           ))}
         </div>
-
-        {/* Empty State */}
-        {notebooks.length === 0 && (
-          <div className="text-center py-16">
-            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No notebooks yet</h3>
-            <p className="text-gray-600 mb-6">Create your first notebook to get started with AI-powered studying</p>
-            <button
-              onClick={() => setShowCreateNotebook(true)}
-              className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200"
-            >
-              Create Notebook
-            </button>
-          </div>
-        )}
-      </div>
-    );
+      )}
+    </div>
+  );
 
     const renderCreateNotebook = () => (
       <div className="p-6 max-w-4xl mx-auto">
