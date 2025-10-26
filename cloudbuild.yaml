@@ -6,7 +6,7 @@
     - id: 'Build React App'
       name: 'gcr.io/cloud-builders/npm'
       args: ['run', 'build']
-      #dir: '.' # Assuming your React app is in the root directory
+      dir: '.' # Assuming your React app is in the root directory
       #env:
       #  - 'NODE_ENV=production' # Ensure a production build
     # 1. Build Docker Image for Studhub Frontend
