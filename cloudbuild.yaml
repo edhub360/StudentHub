@@ -12,7 +12,7 @@
 
     # 1. Build and push Studhub Frontend
     - name: 'gcr.io/cloud-builders/docker'
-      args: ['build', '-t', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}', './']
+      args: ['build', '-t', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}', './src']
     - name: 'gcr.io/cloud-builders/docker'
       args: ['push', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}']
       # Optional: If you want to deploy to Google Cloud Storage
