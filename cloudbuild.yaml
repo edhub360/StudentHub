@@ -9,11 +9,15 @@
       dir: '.' # Assuming your React app is in the root directory
       #env:
       #  - 'NODE_ENV=production' # Ensure a production build
+  artifacts:
+    #- repository: 'https://LOCATION-npm.pkg.dev/PROJECT-ID/REPOSITORY_NAME'
+    - repository: 'https://us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo'
+      packagePath: '.'
     # 1. Build Docker Image for Studhub Frontend
-    - name: 'gcr.io/cloud-builders/docker'
-      args: ['build', '-t', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}', '.']
-    - name: 'gcr.io/cloud-builders/docker'
-      args: ['push', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}']
+    #- name: 'gcr.io/cloud-builders/docker'
+    #  args: ['build', '-t', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}', '.']
+    #- name: 'gcr.io/cloud-builders/docker'
+    #  args: ['push', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}']
       # Optional: If you want to deploy to Google Cloud Storage
   options: # logging: CLOUD_LOGGING_ONLY # This is commented out.
     defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
