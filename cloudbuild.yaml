@@ -10,6 +10,10 @@
         - 'NODE_ENV=production' # Ensure a production build
 
     # Optional: If you want to deploy to Google Cloud Storage
+
+  options: # logging: CLOUD_LOGGING_ONLY # This is commented out.
+    defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+  
     - name: 'gcr.io/cloud-builders/gsutil'
       args: ['rsync', '-r', 'build', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
       dir: '.'
