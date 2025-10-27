@@ -8,7 +8,7 @@
       args: ['run', 'build']
       dir: '.' # Assuming your React app is in the root directory
     - name: 'gcr.io/cloud-builders/gsutil'
-      args: ['rsync', '-r', 'build/', 'gs://arctic-sentry-467317-s7-vertex-ai/']
+      args: ['rsync', '-r', 'build/*', 'gs://arctic-sentry-467317-s7-vertex-ai/']
       #arctic-sentry-467317-s7-studenthub-frontend']
   options: 
     logging: CLOUD_LOGGING_ONLY # This is commented out.
