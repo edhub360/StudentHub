@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRightIcon } from "lucide-react";
+import Logo from '../images/logo.edhub.png';
 
 interface NavigationItem {
   id: string;
@@ -38,7 +39,7 @@ export default function Sidebar({
         <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
         {/* Custom Logo */}
         <img
-            src="src/images/logo.edhub.png" // adjust path
+            src={Logo} // adjust path
             alt="Logo"
             className="w-16 h-16 object-contain"
         />
