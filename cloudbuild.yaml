@@ -5,6 +5,8 @@
       #dir: '.' # Assuming your React app is in the root directory
     - id: 'Build React App'
       name: 'gcr.io/cloud-builders/npm'
+      env:
+        - 'VITE_API_BASE_URL=https://notebook-service-91248372939.us-central1.run.app'
       args: ['run', 'build']
       dir: '.' # Assuming your React app is in the root directory
     - name: 'gcr.io/cloud-builders/gsutil'
