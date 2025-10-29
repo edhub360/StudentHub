@@ -177,17 +177,19 @@ const uploadFileSource = async (notebookId: string, file: File, metadata: object
 
 
 const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url: string, metadata: object = {}) => {
-  const requestBody: any = { notebook_id: notebookId, type, metadata };
+  const formData = new FormData();
+  formData.append("notebook_id", notebookId);
+  formData.append("type", type);
+  formData.append("metadata", JSON.stringify(metadata));
   if (type === 'website') requestBody.website_url = url;
   else if (type === 'youtube') requestBody.youtube_url = url;
 
-  const response = await fetch(`${API_BASE_URL}/sources/url`, {
+  const response = await fetch(`${API_BASE_URL}/sources/`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-user-id': CURRENT_USER_ID,  // required header
+      'x-user-id': CURRENT_USER_ID  // required header
     },
-    body: JSON.stringify(requestBody),
+    body: formData,
   });
 
   if (!response.ok) {
