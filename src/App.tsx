@@ -109,7 +109,7 @@ const [notebooks, setNotebooks] = useState<any[]>([]);
   const CURRENT_USER_ID = 'user123';
 
 const createNotebook = async (notebookTitle: string, userId: string) => {
-  const response = await fetch(`${API_BASE_URL}/notebooks`, {
+  const response = await fetch(`${API_BASE_URL}/notebooks/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: notebookTitle, user_id: userId }),
