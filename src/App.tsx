@@ -122,7 +122,7 @@ const createNotebook = async (notebookTitle: string, userId: string) => {
 };
 
 const getNotebooks = async (userId: string): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}/notebooks?user_id=${userId}`);
+  const response = await fetch(`${API_BASE_URL}/notebooks/?user_id=${userId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch notebooks');
   }
