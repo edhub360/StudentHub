@@ -55,7 +55,7 @@ import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
   id: string;
