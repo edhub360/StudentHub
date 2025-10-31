@@ -1,10 +1,21 @@
 // ChatScreen.tsx
-import React from "react";
-import { Zap, MessageCircle, Send } from "lucide-react"; // adjust icons import
-// import types if needed
+import React, { useRef, useState } from "react";
+import { Zap, MessageCircle, Send, Paperclip, FileText, X } from "lucide-react";
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  files?: Array<{
+    name: string;
+    size: number;
+    type: string;
+  }>;
+}
 
 interface ChatScreenProps {
-  chatMessages: { id: string; text: string; isUser: boolean; timestamp: Date }[];
+  chatMessages: ChatMessage[];
   chatInput: string;
   setChatInput: React.Dispatch<React.SetStateAction<string>>;
   handleSendMessage: () => void;
@@ -16,6 +27,35 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
   setChatInput,
   handleSendMessage,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Handle multiple file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  // Remove specific file
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Trigger file input
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
@@ -60,14 +100,40 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
           chatMessages.map((message) => (
             <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-md px-4 py-3 rounded-2xl ${
+                className={`max-w-md ${
                   message.isUser ? "bg-gradient-to-r from-blue-500 to-teal-500 text-white" : "bg-gray-100 text-gray-900"
-                }`}
+                } rounded-2xl overflow-hidden`}
               >
-                <p className="text-sm">{message.text}</p>
-                <p className={`text-xs mt-1 ${message.isUser ? "text-blue-100" : "text-gray-500"}`}>
-                  {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
+                {/* Multiple Files Preview (if attached) */}
+                {message.files && message.files.length > 0 && (
+                  <div className={`p-3 border-b ${message.isUser ? 'border-blue-400' : 'border-gray-200'} space-y-2`}>
+                    {message.files.map((file, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          message.isUser ? 'bg-blue-400' : 'bg-gray-200'
+                        }`}>
+                          <FileText className={`w-5 h-5 ${message.isUser ? 'text-white' : 'text-gray-600'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${message.isUser ? 'text-white' : 'text-gray-900'}`}>
+                            {file.name}
+                          </p>
+                          <p className={`text-xs ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
+                            {formatFileSize(file.size)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Message Text */}
+                <div className="px-4 py-3">
+                  <p className="text-sm">{message.text}</p>
+                  <p className={`text-xs mt-1 ${message.isUser ? "text-blue-100" : "text-gray-500"}`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
               </div>
             </div>
           ))
@@ -76,6 +142,31 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
 
       {/* Chat Input */}
       <div className="p-6 border-t border-gray-100 bg-white">
+        {/* Multiple Files Preview (before sending) */}
+        {attachedFiles.length > 0 && (
+          <div className="mb-3 max-h-40 overflow-y-auto space-y-2">
+            {attachedFiles.map((file, index) => (
+              <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                    <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                  </div>
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           <input
             type="text"
@@ -85,6 +176,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
             placeholder="Ask your question..."
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          
+          {/* Hidden file input - MOVED TO RIGHT */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          
+          {/* File upload button - RIGHT SIDE */}
+          <button
+            onClick={triggerFileInput}
+            className="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-50 hover:border-blue-400 hover:text-blue-600 transition-all"
+            title="Attach files"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
+          {/* Send button */}
           <button
             onClick={handleSendMessage}
             className="w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-500 rounded-xl flex items-center justify-center text-white hover:shadow-lg transition-all"
@@ -98,3 +210,4 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
 };
 
 export default ChatScreen;
+  

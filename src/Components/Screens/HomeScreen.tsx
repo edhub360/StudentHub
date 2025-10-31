@@ -1,4 +1,3 @@
-import { Zap } from 'lucide-react';
 import QuickStats from './QuickStats';
 import RecentActivity from "./RecentActivity"
 import QuickActions from './QuickActions';
@@ -17,9 +16,7 @@ const HomeScreen = ({ setActiveTab }: HomeScreenProps) => {
             <h2 className="text-2xl font-bold mb-2">Welcome back, Alex!</h2>
             <p className="text-blue-100">Ready to continue your learning journey?</p>
           </div>
-          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-            <Zap className="w-8 h-8" />
-          </div>
+          {/* Lightning icon removed */}
         </div>  
       </div>
 
