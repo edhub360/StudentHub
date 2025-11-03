@@ -6,7 +6,7 @@
     - id: 'Build React App'
       name: 'gcr.io/cloud-builders/npm'
       env:
-        - 'VITE_AICHAT_API_URL=https://ai-chat-service-91248372939.us-central1.run.app
+        - 'VITE_AICHAT_API_URL=https://ai-chat-service-91248372939.us-central1.run.app'
         - 'VITE_NOTES_API_URL =https://notebook-service-91248372939.us-central1.run.app/api'
         - 'VITE_API_BASE_URL=https://login-service-91248372939.us-central1.run.app'
       args: ['run', 'build']
