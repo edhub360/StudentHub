@@ -236,6 +236,7 @@ const createNotebook = async (notebookTitle: string, userId: string) => {
 };
 
 const getNotebooks = async (userId: string): Promise<any[]> => {
+  console.log("VITE_NOTES_API_URL in frontend:", import.meta.env.VITE_NOTES_API_URL);
   const response = await fetch(`${NOTES_API_URL}/notebooks/?user_id=${userId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch notebooks');
