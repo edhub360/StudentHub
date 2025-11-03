@@ -1,5 +1,8 @@
-// src/api.ts
+// src/services/chatapi.ts
 export async function sendChatMessage(query: string) {
+  // Add this debug log as the first line inside the function
+  console.log('API URL:', import.meta.env.VITE_AICHAT_API_URL);
+
   try {
     const response = await fetch(`${import.meta.env.VITE_AICHAT_API_URL}/chat`, {
       method: "POST",
