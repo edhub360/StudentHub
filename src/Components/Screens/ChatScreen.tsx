@@ -1,7 +1,7 @@
 // ChatScreen.tsx
 import React, { useRef, useState } from "react";
 import { Zap, MessageCircle, Send, Paperclip, FileText, X } from "lucide-react";
-import { sendChatMessage } from '..services/chatapi'; // Adjust path as needed
+import { sendChatMessage } from '../../services/chatapi'; // Adjust path as needed
 
 interface ChatMessage {
   id: string;
