@@ -106,8 +106,9 @@ const App: React.FC = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [userId, setUserId] = useState<string | null>(localStorage.getItem('user_id'));
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
-const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
+  const [IsLoading, setIsLoading] = useState(false);
   // ✅ Existing App States (unchanged)
   const [activeTab, setActiveTab] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -405,25 +406,42 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
       )
     : edhubCourses;
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
-
+  
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: chatInput,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-
-    const aiResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      text: "I'd be happy to help you with that! As your AI study assistant, I can explain concepts, solve problems, and provide detailed explanations. What specific topic would you like to explore?",
-      isUser: false,
-      timestamp: new Date()
-    };
-
-    setChatMessages([...chatMessages, userMessage, aiResponse]);
-    setChatInput('');
+  
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setIsLoading(true); // 🔑 start loading
+  
+    try {
+      const data = await sendChatMessage(chatInput);
+  
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: data.answer,
+        isUser: false,
+        timestamp: new Date(),
+      };
+  
+      setChatMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        text: "Error fetching response. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false); // 🔑 stop loading
+    }
   };
 
   const handleImageUpload = (file: File) => {
