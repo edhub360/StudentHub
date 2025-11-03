@@ -54,6 +54,7 @@ import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
+import { sendChatMessage } from './services/chatapi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
