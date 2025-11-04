@@ -54,6 +54,7 @@ import ProgressScreen from './Components/Screens/ProgressScreen';
 import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
+import { sendChatMessage } from './services/chatapi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -99,6 +100,8 @@ interface UserStatus {
 }
 
 const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [notebooks, setNotebooks] = useState<any[]>([]);
   // ✅ Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
@@ -106,10 +109,11 @@ const App: React.FC = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [userId, setUserId] = useState<string | null>(localStorage.getItem('user_id'));
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
-const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
+  const [IsLoading, setIsLoading] = useState(false);
   // ✅ Existing App States (unchanged)
-  const [activeTab, setActiveTab] = useState('home');
+  //const [activeTab, setActiveTab] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNotebook, setActiveNotebook] = useState<string | null>(null);
@@ -201,6 +205,210 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
         .then(({ data }) => setUserStatus(data))
         .catch(err => console.error("Error refreshing status:", err));
     }
+  };
+
+  // ============================================
+  // API INTEGRATION - State & Functions
+  // ============================================
+const [title, setTitle] = useState<string>('');
+const [description, setDescription] = useState<string>('');
+const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+const [websiteUrl, setWebsiteUrl] = useState<string>('');
+const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+const [loading, setLoading] = useState<boolean>(false);
+const [error, setError] = useState<string | null>(null);
+
+
+const NOTES_API_URL = import.meta.env.VITE_NOTES_API_URL;
+const CURRENT_USER_ID = 'user123';
+
+const createNotebook = async (notebookTitle: string, userId: string) => {
+  const response = await fetch(`${NOTES_API_URL}/notebooks/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: notebookTitle, user_id: userId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create notebook');
+  }
+  return response.json();
+};
+
+const getNotebooks = async (userId: string): Promise<any[]> => {
+  console.log("VITE_NOTES_API_URL in frontend:", import.meta.env.VITE_NOTES_API_URL);
+  const response = await fetch(`${NOTES_API_URL}/notebooks/?user_id=${userId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch notebooks');
+  }
+  return response.json();
+};
+useEffect(() => {
+  const fetchData = async () => {
+    if (activeTab !== 'notes' || !CURRENT_USER_ID) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getNotebooks(CURRENT_USER_ID);
+      setNotebooks(data);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error loading notebooks');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [activeTab]);
+
+
+
+
+const uploadFileSource = async (notebookId: string, file: File, metadata: object = {}) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('notebook_id', notebookId);
+  formData.append('metadata', JSON.stringify(metadata));
+  formData.append('type', 'file'); // must specify source type
+
+  const response = await fetch(`${NOTES_API_URL}/sources/`, {
+    method: 'POST',
+    headers: {
+      'x-user-id': CURRENT_USER_ID, // required header
+      // Don't set Content-Type here; browser will set for FormData
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to upload file: ${file.name}`);
+  }
+  return response.json();
+};
+
+
+const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url: string, metadata: object = {}) => {
+  const formData = new FormData();
+  formData.append("notebook_id", notebookId);
+  formData.append("type", type);
+  formData.append("metadata", JSON.stringify(metadata));
+  if (type === "website") {
+    formData.append("website_url", url);
+  } else if (type === "youtube") {
+    formData.append("youtube_url", url);
+  }
+
+  const response = await fetch(`${NOTES_API_URL}/sources/`, {
+    method: 'POST',
+    headers: {
+      'x-user-id': CURRENT_USER_ID  // required header
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to add ${type} URL`);
+  }
+  return response.json();
+};
+
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) setSelectedFiles([...selectedFiles, ...Array.from(files)]);
+  };
+
+  const removeSelectedFile = (indexToRemove: number) => {
+    setSelectedFiles(selectedFiles.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newFiles = Array.from(files).filter(file => {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        return ['pdf', 'docx', 'pptx', 'txt'].includes(ext || '');
+      });
+      setSelectedFiles([...selectedFiles, ...newFiles]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleCreateNotebook = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!title.trim()) {
+        setError('Please enter a notebook title');
+        setLoading(false);
+        return;
+      }
+      if (selectedFiles.length === 0 && !websiteUrl.trim() && !youtubeUrl.trim()) {
+        setError('Please add at least one source (file, website, or YouTube URL)');
+        setLoading(false);
+        return;
+      }
+      console.log('Creating notebook...');
+      const notebook = await createNotebook(title.trim(), CURRENT_USER_ID);
+      console.log('Notebook created:', notebook);
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          try {
+            await uploadFileSource(notebook.id, file, { description });
+          } catch (fileError) {
+            console.error(`Error uploading ${file.name}:`, fileError);
+          }
+        }
+      }
+      if (websiteUrl.trim()) {
+        try {
+          await addUrlSource(notebook.id, 'website', websiteUrl.trim(), { description });
+        } catch (urlError) {
+          console.error('Error adding website URL:', urlError);
+        }
+      }
+      if (youtubeUrl.trim()) {
+        try {
+          await addUrlSource(notebook.id, 'youtube', youtubeUrl.trim(), { description });
+        } catch (urlError) {
+          console.error('Error adding YouTube URL:', urlError);
+        }
+      }
+      console.log('Notebook creation complete!');
+      resetForm();
+      setShowCreateNotebook(false);
+      setActiveNotebook(notebook.id);
+    } catch (err) {
+      console.error('Error creating notebook:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create notebook. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setSelectedFiles([]);
+    setWebsiteUrl('');
+    setYoutubeUrl('');
+    setError(null);
+  };
+
+  const handleCancelCreate = () => {
+    resetForm();
+    setShowCreateNotebook(false);
   };
 
   // ✅ Existing Data & Functions (unchanged)
@@ -347,40 +555,6 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
     }
   ];
 
-  const notebooks = [
-    {
-      id: '1',
-      title: 'Calculus I - Derivatives',
-      description: 'Complete notes and practice problems for differential calculus',
-      lastUpdated: '2 hours ago',
-      sourceCount: 8,
-      thumbnail: '📊'
-    },
-    {
-      id: '2',
-      title: 'World History - Renaissance',
-      description: 'Art, politics, and cultural changes during the Renaissance period',
-      lastUpdated: '1 day ago',
-      sourceCount: 12,
-      thumbnail: '🏛️'
-    },
-    {
-      id: '3',
-      title: 'Chemistry - Organic Compounds',
-      description: 'Molecular structures, reactions, and synthesis pathways',
-      lastUpdated: '3 days ago',
-      sourceCount: 6,
-      thumbnail: '🧪'
-    },
-    {
-      id: '4',
-      title: 'Literature Analysis - Shakespeare',
-      description: 'Character analysis and themes in Hamlet and Macbeth',
-      lastUpdated: '1 week ago',
-      sourceCount: 15,
-      thumbnail: '📚'
-    }
-  ];
 
   const notebookSources = [
     { id: '1', name: 'Calculus Textbook Ch. 3-5.pdf', type: 'pdf', size: '2.4 MB' },
@@ -405,25 +579,55 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
       )
     : edhubCourses;
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
-
+  const handleSendMessage = async () => {
+    console.log("handleSendMessage triggered; input:", chatInput);
+    if (!chatInput.trim()) {
+      console.warn("Chat input is empty; not sending.");
+      return;
+    }
+  
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: chatInput,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
+  
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setIsLoading(true); // 🔑 start loading
+  
+    try {
+      console.log("Calling sendChatMessage with input:", chatInput);
+      const data = await sendChatMessage(chatInput);
+      
+      console.log("API responded with:", data);
 
-    const aiResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      text: "I'd be happy to help you with that! As your AI study assistant, I can explain concepts, solve problems, and provide detailed explanations. What specific topic would you like to explore?",
-      isUser: false,
-      timestamp: new Date()
-    };
+      if (!data.answer) {
+        throw new Error("No answer field in response");
+      }
 
-    setChatMessages([...chatMessages, userMessage, aiResponse]);
-    setChatInput('');
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: data.answer,
+        isUser: false,
+        timestamp: new Date(),
+      };
+  
+      setChatMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error in handleSendMessage:", error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        text: "Error fetching response. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false); // 🔑 stop loading
+      console.log("handleSendMessage finished");
+    }
   };
 
   const handleImageUpload = (file: File) => {
@@ -497,6 +701,7 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
 
   const renderNotesHome = () => (
     <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Notebooks</h1>
@@ -511,6 +716,7 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
         </button>
       </div>
 
+      {/* Search and Filters */}
       <div className="mb-8">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -522,37 +728,12 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {notebooks.map((notebook) => (
-          <div
-            key={notebook.id}
-            onClick={() => handleNotebookSelect(notebook.id)}
-            className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-100 hover:border-blue-200 group"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-4xl">{notebook.thumbnail}</div>
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <FileText className="w-4 h-4" />
-                  <span>{notebook.sourceCount}</span>
-                </div>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                {notebook.title}
-              </h3>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {notebook.description}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{notebook.lastUpdated}</span>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {notebooks.length === 0 && (
+      {/* Notebooks Grid */}
+      {loading ? (
+        <p>Loading notebooks...</p>
+      ) : error ? (
+        <p className="text-red-600">{error}</p>
+      ) : notebooks.length === 0 ? (
         <div className="text-center py-16">
           <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No notebooks yet</h3>
@@ -564,280 +745,320 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
             Create Notebook
           </button>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {notebooks.map((notebook) => (
+            <div
+              key={notebook.id}
+              onClick={() => handleNotebookSelect(notebook.id)}
+              className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-100 hover:border-blue-200 group"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-4xl">{notebook.thumbnail}</div>
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <FileText className="w-4 h-4" />
+                    <span>{notebook.sourceCount}</span>
+                  </div>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  {notebook.title}
+                </h3>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  {notebook.description}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">{notebook.lastUpdated}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 
-  const renderCreateNotebook = () => (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowCreateNotebook(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <h2 className="text-2xl font-bold text-gray-900">Create New Notebook</h2>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="mb-8">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notebook Title</label>
-              <input
-                type="text"
-                placeholder="e.g., Physics - Quantum Mechanics"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
-              <textarea
-                placeholder="Brief description of what this notebook covers..."
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              />
+    const renderCreateNotebook = () => (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <button onClick={handleCancelCreate} disabled={loading} className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">Create New Notebook</h2>
             </div>
           </div>
-
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Sources</h3>
-            
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors mb-6">
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Upload Files</h4>
-              <p className="text-gray-600 mb-4">Drag and drop files or click to browse</p>
-              <p className="text-sm text-gray-500">Supports PDF, DOCX, PPTX, TXT files</p>
-              <button className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Choose Files
+          <div className="p-6">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3">
+                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+            <div className="mb-8">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notebook Title <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="e.g., Physics - Quantum Mechanics" value={title} onChange={(e) => setTitle(e.target.value)} disabled={loading} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                <textarea placeholder="Brief description of what this notebook covers..." rows={3} value={description} onChange={(e) => setDescription(e.target.value)} disabled={loading} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed" />
+              </div>
+            </div>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Sources</h3>
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors mb-6" onDrop={handleFileDrop} onDragOver={handleDragOver}>
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 mb-2">Upload Files</h4>
+                <p className="text-gray-600 mb-4">Drag and drop files or click to browse</p>
+                <p className="text-sm text-gray-500 mb-4">Supports PDF, DOCX, PPTX, TXT files</p>
+                <input type="file" multiple accept=".pdf,.docx,.pptx,.txt" onChange={handleFileChange} disabled={loading} className="hidden" id="file-upload" />
+                <label htmlFor="file-upload" className={`inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>Choose Files</label>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-6 text-left bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Selected Files ({selectedFiles.length}):</p>
+                    <ul className="space-y-2">
+                      {selectedFiles.map((file, index) => (
+                        <li key={index} className="text-sm text-gray-600 flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="truncate">{file.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3 ml-2">
+                            <span className="text-gray-400 text-xs whitespace-nowrap">{(file.size / 1024).toFixed(2)} KB</span>
+                            <button onClick={() => removeSelectedFile(index)} disabled={loading} className="text-red-500 hover:text-red-700 disabled:opacity-50">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="url" placeholder="https://example.com/article" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label>
+                  <div className="relative">
+                    <Play className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="url" placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} disabled={loading} className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button onClick={handleCancelCreate} disabled={loading} className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+              <button onClick={handleCreateNotebook} disabled={loading} className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {loading && (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {loading ? 'Creating...' : 'Create Notebook'}
               </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="url"
-                    placeholder="https://example.com/article"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label>
-                <div className="relative">
-                  <Play className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="url"
-                    placeholder="https://youtube.com/watch?v=..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setShowCreateNotebook(false)}
-              className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                setShowCreateNotebook(false);
-                setActiveNotebook('new');
-              }}
-              className="bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-teal-700 transition-all duration-200"
-            >
-              Create Notebook
-            </button>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
-  const renderNotebookWorkspace = () => (
-    <div className="flex h-full">
-      {/* Left Sidebar - Sources */}
-      <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={handleBackToNotes}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Back to Notebooks</span>
+
+
+    const renderNotebookWorkspace = () => (
+      <div className="flex h-full">
+        {/* Sources Panel */}
+        <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+          {/* Sources Header */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={handleBackToNotes}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm">Back to Notebooks</span>
+              </button>
+            </div>
+            <h2 className="font-semibold text-gray-900 mb-1">Calculus I - Derivatives</h2>
+            <p className="text-sm text-gray-600">8 sources • Last updated 2 hours ago</p>
+          </div>
+
+          {/* Add Sources Button */}
+          <div className="p-4 border-b border-gray-200">
+            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add Sources
             </button>
           </div>
-          <h2 className="font-semibold text-gray-900 mb-1">Calculus I - Derivatives</h2>
-          <p className="text-sm text-gray-600">8 sources • Last updated 2 hours ago</p>
+
+          {/* Sources List */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-3">
+              {notebookSources.map((source) => (
+                <div key={source.id} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-200 transition-colors group">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      {source.type === 'pdf' && <FileText className="w-5 h-5 text-red-500" />}
+                      {source.type === 'doc' && <FileText className="w-5 h-5 text-blue-500" />}
+                      {source.type === 'youtube' && <Play className="w-5 h-5 text-red-600" />}
+                      {source.type === 'web' && <Globe className="w-5 h-5 text-green-500" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">{source.name}</h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {source.size || source.url}
+                      </p>
+                    </div>
+                    <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded">
+                      <X className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="p-4 border-b border-gray-200">
-          <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Sources
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-3">
-            {notebookSources.map((source) => (
-              <div key={source.id} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-200 transition-colors group">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    {source.type === 'pdf' && <FileText className="w-5 h-5 text-red-500" />}
-                    {source.type === 'doc' && <FileText className="w-5 h-5 text-blue-500" />}
-                    {source.type === 'youtube' && <Play className="w-5 h-5 text-red-600" />}
-                    {source.type === 'web' && <Globe className="w-5 h-5 text-green-500" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-gray-900 truncate">{source.name}</h4>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {source.size || source.url}
-                    </p>
-                  </div>
-                  <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded">
-                    <X className="w-4 h-4 text-gray-400" />
+        {/* Main Workspace */}
+        <div className="flex-1 flex flex-col">
+          {/* Workspace Header */}
+          <div className="bg-white border-b border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h3 className="font-semibold text-gray-900">Notebook Assistant</h3>
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm">
+                    <Volume2 className="w-4 h-4" />
+                    Audio Overview
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm">
+                    <GitBranch className="w-4 h-4" />
+                    Mindmap
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right Main Content - Chat/Workspace */}
-      <div className="flex-1 flex flex-col">
-        <div className="bg-white border-b border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="font-semibold text-gray-900">Notebook Assistant</h3>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm">
-                  <Volume2 className="w-4 h-4" />
-                  Audio Overview
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Download className="w-5 h-5 text-gray-600" />
                 </button>
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm">
-                  <GitBranch className="w-4 h-4" />
-                  Mindmap
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Share2 className="w-5 h-5 text-gray-600" />
+                </button>
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Settings className="w-5 h-5 text-gray-600" />
                 </button>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Download className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Share2 className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Settings className="w-5 h-5 text-gray-600" />
-              </button>
             </div>
           </div>
-        </div>
 
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-            <div className="max-w-4xl mx-auto space-y-6">
-              {/* Welcome Message */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
-                    <Brain className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-2">Welcome to your Calculus notebook!</h4>
-                    <p className="text-gray-600 mb-4">I've analyzed your 8 sources and I'm ready to help you study. Here are some things I can do:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <button className="text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                        <div className="font-medium text-blue-900">📝 Generate Summary</div>
-                        <div className="text-sm text-blue-700">Create a comprehensive overview</div>
-                      </button>
-                      <button className="text-left p-3 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors">
-                        <div className="font-medium text-teal-900">🃏 Create Flashcards</div>
-                        <div className="text-sm text-teal-700">Generate study cards from content</div>
-                      </button>
-                      <button className="text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                        <div className="font-medium text-purple-900">🎧 Audio Overview</div>
-                        <div className="text-sm text-purple-700">Listen to a spoken summary</div>
-                      </button>
-                      <button className="text-left p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                        <div className="font-medium text-green-900">🗺️ Create Mindmap</div>
-                        <div className="text-sm text-green-700">Visualize key concepts</div>
-                      </button>
+          {/* Chat Interface */}
+          <div className="flex-1 flex flex-col">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Welcome Message */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-white" />
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* User Question */}
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-gray-900">Can you explain the chain rule for derivatives?</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Response */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
-                    <Brain className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-900 mb-4">Based on your uploaded materials, here's an explanation of the chain rule:</p>
-                      <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                        <p className="font-medium text-blue-900 mb-2">Chain Rule Formula:</p>
-                        <p className="font-mono text-blue-800">d/dx[f(g(x))] = f'(g(x)) × g'(x)</p>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-2">Welcome to your Calculus notebook!</h4>
+                      <p className="text-gray-600 mb-4">I've analyzed your 8 sources and I'm ready to help you study. Here are some things I can do:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button className="text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                          <div className="font-medium text-blue-900">📝 Generate Summary</div>
+                          <div className="text-sm text-blue-700">Create a comprehensive overview</div>
+                        </button>
+                        <button className="text-left p-3 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors">
+                          <div className="font-medium text-teal-900">🃏 Create Flashcards</div>
+                          <div className="text-sm text-teal-700">Generate study cards from content</div>
+                        </button>
+                        <button className="text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                          <div className="font-medium text-purple-900">🎧 Audio Overview</div>
+                          <div className="text-sm text-purple-700">Listen to a spoken summary</div>
+                        </button>
+                        <button className="text-left p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                          <div className="font-medium text-green-900">🗺️ Create Mindmap</div>
+                          <div className="text-sm text-green-700">Visualize key concepts</div>
+                        </button>
                       </div>
-                      <p className="text-gray-700">The chain rule is used when you have a composite function - a function inside another function. You differentiate the outer function first, then multiply by the derivative of the inner function.</p>
                     </div>
-                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                      <span className="text-xs text-gray-500">Sources:</span>
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Calculus Textbook Ch. 3-5.pdf</span>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Derivative Rules Summary.docx</span>
+                  </div>
+                </div>
+
+                {/* Sample Conversation */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-900">Can you explain the chain rule for derivatives?</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-teal-600 rounded-full flex items-center justify-center">
+                      <Brain className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-900 mb-4">Based on your uploaded materials, here's an explanation of the chain rule:</p>
+                        <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                          <p className="font-medium text-blue-900 mb-2">Chain Rule Formula:</p>
+                          <p className="font-mono text-blue-800">d/dx[f(g(x))] = f'(g(x)) × g'(x)</p>
+                        </div>
+                        <p className="text-gray-700">The chain rule is used when you have a composite function - a function inside another function. You differentiate the outer function first, then multiply by the derivative of the inner function.</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                        <span className="text-xs text-gray-500">Sources:</span>
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">Calculus Textbook Ch. 3-5.pdf</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Derivative Rules Summary.docx</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Chat Input */}
-          <div className="border-t border-gray-200 p-4 bg-white">
-            <div className="max-w-4xl mx-auto">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Ask anything about your study materials..."
-                  className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  <Send className="w-4 h-4" />
-                </button>
+            {/* Chat Input */}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <div className="max-w-4xl mx-auto">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Ask anything about your study materials..."
+                    className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
   const renderContent = () => {
     switch (activeTab) {
