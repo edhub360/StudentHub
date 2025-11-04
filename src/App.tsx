@@ -210,17 +210,17 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
   // ============================================
   // API INTEGRATION - State & Functions
   // ============================================
-  const [title, setTitle] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [websiteUrl, setWebsiteUrl] = useState<string>('');
-  const [youtubeUrl, setYoutubeUrl] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const [title, setTitle] = useState<string>('');
+const [description, setDescription] = useState<string>('');
+const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+const [websiteUrl, setWebsiteUrl] = useState<string>('');
+const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+const [loading, setLoading] = useState<boolean>(false);
+const [error, setError] = useState<string | null>(null);
 
 
-  const NOTES_API_URL = import.meta.env.VITE_NOTES_API_URL;
-  const CURRENT_USER_ID = 'user123';
+const NOTES_API_URL = import.meta.env.VITE_NOTES_API_URL;
+const CURRENT_USER_ID = 'user123';
 
 const createNotebook = async (notebookTitle: string, userId: string) => {
   const response = await fetch(`${NOTES_API_URL}/notebooks/`, {
