@@ -2,10 +2,10 @@ name: Build and Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [Develop]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
