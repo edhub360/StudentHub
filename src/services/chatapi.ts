@@ -1,12 +1,16 @@
 // src/services/chatapi.ts
 export async function sendChatMessage(query: string) {
+  const token = localStorage.getItem("access_token");
   // Add this debug log as the first line inside the function
   console.log('API URL:', import.meta.env.VITE_AICHAT_API_URL);
   console.log('Payload:', { query, mode: "general", top_k: 3 });
   try {
     const response = await fetch(`${import.meta.env.VITE_AICHAT_API_URL}/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` })
+      },
       body: JSON.stringify({
         query,       // ✅ matches backend ChatRequest.query
         mode: "general", // or "rag" if you want RAG
