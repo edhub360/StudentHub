@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
+import Footer from "./Components/Footer";
 import HomeScreen from './Components/Screens/HomeScreen';
 import CoursesScreen from './Components/Screens/CoursesScreen';
 import ChatScreen from './Components/Screens/ChatScreen';
@@ -1205,6 +1206,7 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
         <main className="flex-1 overflow-y-auto">
           {renderContent()}
         </main>
+        <Footer sidebarCollapsed={sidebarCollapsed} />
       </div>
     </div>
   );
