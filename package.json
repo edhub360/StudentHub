@@ -2,7 +2,7 @@
   "name": "vite-react-typescript-starter",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://edhub360.github.io/StudentHub",
+  "homepage": "https://app.edhub360.com",
   "type": "module",
   "scripts": {
     "dev": "vite",
