@@ -1085,16 +1085,8 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
           />
         );
       case 'quiz':
-        return (
-          <QuizScreen
-            quizStarted={quizStarted}
-            quizQuestions={quizQuestions}
-            currentQuestion={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            startQuiz={startQuiz}
-            answerQuizQuestion={answerQuizQuestion}
-          />
-        );
+        return <QuizScreen />;
+        
       case 'courses': 
         return (
           <CoursesScreen
