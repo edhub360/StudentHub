@@ -1,24 +1,26 @@
+// src/components/quiz/QuizPlayer.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Quiz, QuizResult } from '../../types/quiz.types';
+import { QuizDetail, ProcessedQuestion, QuizResult, UserAnswer } from '../../types/quiz.types';
 import { QuizButton } from './QuizButton';
 import { QuizCard } from './QuizCard';
 import { QUESTION_TIMER_SECONDS } from '../../constants/quiz.constants';
 
 interface QuizPlayerProps {
-  quiz: Quiz;
-  onComplete: (result: QuizResult) => void;
+  quiz: QuizDetail;  // Changed from Quiz
+  questions: ProcessedQuestion[];  // ADDED - processed questions with shuffled options
+  onComplete: (result: QuizResult, userAnswers: UserAnswer[]) => void;  // ADDED userAnswers
   onExit: () => void;
 }
 
-export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit }) => {
+export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, questions, onComplete, onExit }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIMER_SECONDS);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [startTime] = useState(Date.now());
+  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);  // NEW: Track user answers
 
-  const questions = quiz.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
   const handleNext = useCallback(() => {
@@ -35,9 +37,9 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit
         scorePercentage: (score / questions.length) * 100,
         timeSpentSeconds,
       };
-      onComplete(result);
+      onComplete(result, userAnswers);  // Pass userAnswers to parent
     }
-  }, [currentQuestionIndex, questions.length, score, startTime, onComplete]);
+  }, [currentQuestionIndex, questions.length, score, startTime, userAnswers, onComplete]);
 
   useEffect(() => {
     if (timeLeft <= 0 && !isAnswered) {
@@ -58,7 +60,18 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit
     setSelectedOption(optionIndex);
     setIsAnswered(true);
 
-    if (optionIndex === currentQuestion.correct) {
+    const isCorrect = optionIndex === currentQuestion.correctIndex;  // Changed from currentQuestion.correct
+    const selectedAnswer = currentQuestion.options[optionIndex];
+
+    // Track this answer
+    const answer: UserAnswer = {
+      question_id: currentQuestion.question_id,
+      user_answer: selectedAnswer,
+      is_correct: isCorrect,
+    };
+    setUserAnswers((prev) => [...prev, answer]);
+
+    if (isCorrect) {
       setScore((prev) => prev + 1);
     }
   };
@@ -68,11 +81,11 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit
       return 'bg-gray-50 hover:bg-cyan-50 border-2 border-gray-200 hover:border-cyan-300 cursor-pointer';
     }
 
-    if (index === currentQuestion.correct) {
+    if (index === currentQuestion.correctIndex) {  // Changed from currentQuestion.correct
       return 'bg-green-100 border-2 border-green-500';
     }
 
-    if (index === selectedOption && index !== currentQuestion.correct) {
+    if (index === selectedOption && index !== currentQuestion.correctIndex) {  // Changed
       return 'bg-red-100 border-2 border-red-500';
     }
 
@@ -145,10 +158,10 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit
                   {String.fromCharCode(65 + index)}
                 </span>
                 <span className="font-medium text-gray-800">{option}</span>
-                {isAnswered && index === currentQuestion.correct && (
+                {isAnswered && index === currentQuestion.correctIndex && (
                   <span className="ml-auto text-green-600 font-bold">✓</span>
                 )}
-                {isAnswered && index === selectedOption && index !== currentQuestion.correct && (
+                {isAnswered && index === selectedOption && index !== currentQuestion.correctIndex && (
                   <span className="ml-auto text-red-600 font-bold">✗</span>
                 )}
               </div>
@@ -156,7 +169,7 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onComplete, onExit
           ))}
         </div>
 
-        {isAnswered && selectedOption !== currentQuestion.correct && currentQuestion.explanation && (
+        {isAnswered && selectedOption !== currentQuestion.correctIndex && currentQuestion.explanation && (
           <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
             <p className="font-semibold text-blue-900 mb-1">Explanation:</p>
             <p className="text-blue-800 text-sm">{currentQuestion.explanation}</p>

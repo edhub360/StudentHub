@@ -1,3 +1,4 @@
+// src/components/quiz/QuizScoreScreen.tsx
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { QuizResult } from '../../types/quiz.types';
@@ -6,11 +7,17 @@ import { QuizButton } from './QuizButton';
 
 interface ScoreScreenProps {
   result: QuizResult;
+  quizTitle: string;  // ADDED
   onRetry: () => void;
   onHome: () => void;
 }
 
-export const QuizScoreScreen: React.FC<ScoreScreenProps> = ({ result, onRetry, onHome }) => {
+export const QuizScoreScreen: React.FC<ScoreScreenProps> = ({ 
+  result, 
+  quizTitle,  // ADDED
+  onRetry, 
+  onHome 
+}) => {
   const data = [
     { name: 'Correct', value: result.correctAnswers },
     { name: 'Incorrect', value: result.totalQuestions - result.correctAnswers },
@@ -29,8 +36,11 @@ export const QuizScoreScreen: React.FC<ScoreScreenProps> = ({ result, onRetry, o
     <div className="max-w-2xl mx-auto">
       <QuizCard>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-2">Quiz Complete!</h2>
-          <p className="text-xl text-gray-600 font-normal">{getMessage(result.scorePercentage)}</p>
+          <h2 className="text-3xl font-semibold text-gray-800 mb-2">
+            {quizTitle}  {/* ADDED - Show quiz title */}
+          </h2>
+          <p className="text-xl text-gray-600 font-normal mb-1">Quiz Complete!</p>
+          <p className="text-2xl text-cyan-600 font-bold">{getMessage(result.scorePercentage)}</p>
         </div>
 
         <div className="mb-8">

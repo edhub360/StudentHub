@@ -1,14 +1,13 @@
+//src/components/quiz/QuizList.tsx
 import React from 'react';
-import { Quiz } from '../../types/quiz.types';
+import { QuizListItem } from '../../types/quiz.types';
 import { QuizCard } from './QuizCard';
 import { QuizButton } from './QuizButton';
 
-
 interface QuizListProps {
-  quizzes: Quiz[];
-  onStartQuiz: (quiz: Quiz) => void;
+  quizzes: QuizListItem[];  // Changed from Quiz[]
+  onStartQuiz: (quizId: string) => void;  // Changed from (quiz: Quiz) => void
 }
-
 
 export const QuizList: React.FC<QuizListProps> = ({ quizzes, onStartQuiz }) => {
   return (
@@ -24,9 +23,7 @@ export const QuizList: React.FC<QuizListProps> = ({ quizzes, onStartQuiz }) => {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {quizzes.map((quiz) => {
-            const questionCount = quiz.questions?.length || 0;
-            const hasScore = typeof quiz.score === 'number';
-
+            const questionCount = quiz.total_questions || 0;  // Changed from quiz.questions?.length
 
             return (
               <QuizCard key={quiz.quiz_id} className="hover:shadow-2xl transition-shadow duration-200">
@@ -42,23 +39,29 @@ export const QuizList: React.FC<QuizListProps> = ({ quizzes, onStartQuiz }) => {
                       <span className="flex items-center gap-1">
                         <span className="font-medium">{questionCount}</span> Questions
                       </span>
-                      {hasScore && (
+                      {/* NEW: Show subject tag and difficulty */}
+                      <span className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {quiz.subject_tag}
+                      </span>
+                      <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded">
+                        {quiz.difficulty_level}
+                      </span>
+                      {quiz.estimated_time && (
                         <span className="flex items-center gap-1">
-                          <span className="font-medium text-emerald-600">{quiz.score}%</span> Last Score
+                          ⏱️ <span className="font-medium">{quiz.estimated_time}</span> min
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-
                 <QuizButton
-                  onClick={() => onStartQuiz(quiz)}
+                  onClick={() => onStartQuiz(quiz.quiz_id)}  // Pass quiz_id instead of full quiz
                   variant="primary"
                   className="w-full"
                   disabled={questionCount === 0}
                 >
-                  {hasScore ? 'Retake Quiz' : 'Start Quiz'} →
+                  Start Quiz →
                 </QuizButton>
               </QuizCard>
             );

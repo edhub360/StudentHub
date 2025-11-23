@@ -1,41 +1,50 @@
+// src/components/screens/QuizScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { Quiz, QuizResult, ViewState } from '../../types/quiz.types';
-import { fetchQuizzes } from '../../services/quizapi';
+import { 
+  QuizListItem, 
+  QuizDetail, 
+  ProcessedQuestion,
+  QuizResult, 
+  ViewState,
+  UserAnswer 
+} from '../../types/quiz.types';
+import { 
+  fetchQuizzes, 
+  fetchQuizDetail, 
+  processQuestions,
+  submitQuizAttempt 
+} from '../../services/quizapi';
 import { TEST_USER_ID, GRADIENT_BG } from '../../constants/quiz.constants';
 import { QuizList } from '../Quiz/QuizList';
 import { QuizPlayer } from '../Quiz/QuizPlayer';
 import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
 
-
 const QuizScreen: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LOADING);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
+  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
+  const [activeQuiz, setActiveQuiz] = useState<QuizDetail | null>(null);
+  const [processedQuestions, setProcessedQuestions] = useState<ProcessedQuestion[]>([]);
   const [lastResult, setLastResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
-
 
   useEffect(() => {
     loadQuizzes();
   }, []);
 
-
   const loadQuizzes = async () => {
     setView(ViewState.LOADING);
     setError(null);
     try {
-      // Using the TEST_USER_ID from constants to simulate logged-in user context
-      const data = await fetchQuizzes(TEST_USER_ID);
+      // NEW: No user_id needed - fetches global quizzes
+      const data = await fetchQuizzes();
       
-      // Check if we are receiving the mock data by ID convention (simple check for demo purposes)
-      // Ensure data is an array before checking properties
+      // Check if we are receiving the mock data
       if (Array.isArray(data) && data.length > 0 && data[0].quiz_id.startsWith('mock-')) {
         setIsDemoMode(true);
       } else {
         setIsDemoMode(false);
       }
-
 
       setQuizzes(data || []);
       setView(ViewState.LIST);
@@ -46,36 +55,79 @@ const QuizScreen: React.FC = () => {
     }
   };
 
+  const handleStartQuiz = async (quizId: string) => {
+    setView(ViewState.LOADING);
+    try {
+      // NEW: Fetch quiz with questions from backend
+      const quiz = await fetchQuizDetail(quizId);
+      
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
 
-  const handleStartQuiz = (quiz: Quiz) => {
-    if (!quiz.questions || quiz.questions.length === 0) {
-      setError('This quiz has no questions available.');
-      return;
+      if (!quiz.questions || quiz.questions.length === 0) {
+        setError('This quiz has no questions available.');
+        setView(ViewState.ERROR);
+        return;
+      }
+
+      setActiveQuiz(quiz);
+      
+      // NEW: Process questions (shuffle options, normalize format)
+      const processed = processQuestions(quiz.questions);
+      setProcessedQuestions(processed);
+      
+      setView(ViewState.PLAYING);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load quiz. Please try again.');
+      setView(ViewState.ERROR);
     }
-    setActiveQuiz(quiz);
-    setView(ViewState.PLAYING);
   };
 
+  const handleQuizComplete = async (
+    result: QuizResult,
+    userAnswers: UserAnswer[]
+  ) => {
+    if (!activeQuiz) return;
 
-  const handleQuizComplete = (result: QuizResult) => {
+    // NEW: Submit quiz attempt to backend
+    try {
+      await submitQuizAttempt({
+        user_id: TEST_USER_ID,
+        quiz_id: activeQuiz.quiz_id,
+        score: result.correctAnswers,
+        total_questions: result.totalQuestions,
+        score_percentage: result.scorePercentage,
+        time_taken: result.timeSpentSeconds,
+        answers: userAnswers,
+      });
+      console.log('✅ Quiz attempt submitted successfully');
+    } catch (err) {
+      console.error('⚠️ Failed to submit quiz attempt:', err);
+      // Continue to show results even if submission fails
+    }
+
     setLastResult(result);
     setView(ViewState.RESULT);
   };
 
-
-  const handleRetry = () => {
+  const handleRetry = async () => {
     if (activeQuiz) {
+      // Re-shuffle questions for retry
+      const processed = processQuestions(activeQuiz.questions);
+      setProcessedQuestions(processed);
+      setLastResult(null);
       setView(ViewState.PLAYING);
     }
   };
 
-
   const handleBackToList = () => {
     setActiveQuiz(null);
+    setProcessedQuestions([]);
     setLastResult(null);
     loadQuizzes();
   };
-
 
   return (
     <div className={`min-h-screen ${GRADIENT_BG} py-8 px-4`}>
@@ -87,7 +139,6 @@ const QuizScreen: React.FC = () => {
           </div>
         )}
 
-
         {view === ViewState.LOADING && (
           <div className="flex items-center justify-center h-64">
             <div className="text-center text-gray-700">
@@ -96,7 +147,6 @@ const QuizScreen: React.FC = () => {
             </div>
           </div>
         )}
-
 
         {view === ViewState.ERROR && (
           <div className="max-w-2xl mx-auto">
@@ -114,24 +164,23 @@ const QuizScreen: React.FC = () => {
           </div>
         )}
 
-
         {view === ViewState.LIST && (
           <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
         )}
 
-
-        {view === ViewState.PLAYING && activeQuiz && (
+        {view === ViewState.PLAYING && activeQuiz && processedQuestions.length > 0 && (
           <QuizPlayer
             quiz={activeQuiz}
+            questions={processedQuestions}
             onComplete={handleQuizComplete}
             onExit={handleBackToList}
           />
         )}
 
-
-        {view === ViewState.RESULT && lastResult && (
+        {view === ViewState.RESULT && lastResult && activeQuiz && (
           <QuizScoreScreen
             result={lastResult}
+            quizTitle={activeQuiz.title}
             onRetry={handleRetry}
             onHome={handleBackToList}
           />
@@ -140,6 +189,5 @@ const QuizScreen: React.FC = () => {
     </div>
   );
 };
-
 
 export default QuizScreen;

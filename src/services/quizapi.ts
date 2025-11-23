@@ -1,5 +1,18 @@
+// src/services/quizapi.ts
 import axios, { AxiosError } from 'axios';
-import { Quiz, QuizQuestionItem, User } from '../types/quiz.types';
+import {
+  QuizListItem,
+  QuizDetail,
+  QuizQuestion,
+  ProcessedQuestion,
+  QuizAttemptPayload,
+  QuizAttemptResponse,
+  UserQuizHistory,
+  QuizStatistics,
+  User,
+  Quiz,
+  QuizQuestionItem
+} from '../types/quiz.types';
 import { API_BASE_URL } from '../constants/quiz.constants';
 
 const apiClient = axios.create({
@@ -11,48 +24,64 @@ const apiClient = axios.create({
 });
 
 // Mock data for demo/offline mode
-const MOCK_QUIZZES: Quiz[] = [
+const MOCK_QUIZZES: QuizListItem[] = [
   {
     quiz_id: 'mock-quiz-001',
-    user_id: 'demo-user',
-    score: 85,
-    time_taken: 120,
-    questions: [
-      {
-        question: "What is the primary purpose of the useEffect hook in React?",
-        options: [
-          "To handle component styling",
-          "To manage side effects like data fetching",
-          "To create global state",
-          "To optimize rendering performance"
-        ],
-        correct: 1,
-        explanation: "useEffect is specifically designed to handle side effects (fetching data, subscriptions, manual DOM changes) in functional components."
-      },
-      {
-        question: "Which CSS utility class would you use in Tailwind to make text bold?",
-        options: ["font-heavy", "font-bold", "text-bold", "bold"],
-        correct: 1,
-        explanation: "Tailwind CSS uses 'font-bold' to apply bold font weight."
-      },
-      {
-        question: "What does API stand for?",
-        options: [
-          "Application Programming Interface",
-          "Advanced Programming Integration",
-          "Application Process Integration",
-          "Advanced Protocol Interface"
-        ],
-        correct: 0,
-        explanation: "API stands for Application Programming Interface, which allows different software applications to communicate with each other."
-      }
-    ]
+    title: 'React Fundamentals',
+    description: 'Test your knowledge of React basics',
+    subject_tag: 'Programming',
+    difficulty_level: 'Easy',
+    estimated_time: 5,
+    total_questions: 3,
+    is_active: true
   }
 ];
 
+const MOCK_QUIZ_DETAIL: QuizDetail = {
+  quiz_id: 'mock-quiz-001',
+  title: 'React Fundamentals',
+  description: 'Test your knowledge of React basics',
+  subject_tag: 'Programming',
+  difficulty_level: 'Easy',
+  estimated_time: 5,
+  questions: [
+    {
+      question_id: 'mock-q1',
+      question_text: "What is the primary purpose of the useEffect hook in React?",
+      correct_answer: "To manage side effects like data fetching",
+      incorrect_answers: [
+        "To handle component styling",
+        "To create global state",
+        "To optimize rendering performance"
+      ],
+      explanation: "useEffect is specifically designed to handle side effects (fetching data, subscriptions, manual DOM changes) in functional components.",
+      difficulty: 'easy'
+    },
+    {
+      question_id: 'mock-q2',
+      question_text: "Which CSS utility class would you use in Tailwind to make text bold?",
+      correct_answer: "font-bold",
+      incorrect_answers: ["font-heavy", "text-bold", "bold"],
+      explanation: "Tailwind CSS uses 'font-bold' to apply bold font weight.",
+      difficulty: 'easy'
+    },
+    {
+      question_id: 'mock-q3',
+      question_text: "What does API stand for?",
+      correct_answer: "Application Programming Interface",
+      incorrect_answers: [
+        "Advanced Programming Integration",
+        "Application Process Integration",
+        "Advanced Protocol Interface"
+      ],
+      explanation: "API stands for Application Programming Interface, which allows different software applications to communicate with each other.",
+      difficulty: 'easy'
+    }
+  ]
+};
+
 /**
  * HELPER: Shuffle array in place (Fisher-Yates algorithm)
- * Used to randomize option order so the correct answer isn't always last.
  */
 function shuffleArray<T>(array: T[]): T[] {
   const newArr = [...array];
@@ -64,86 +93,104 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * DATA NORMALIZATION
- * Transforms various DB formats into the strict QuizQuestionItem interface expected by the UI.
- * Handles:
- * 1. "question_text" vs "question"
- * 2. "correct_answer" + "incorrect_answers" (DB format) vs "options" + "correct" (UI format)
+ * HELPER: Process questions from backend format to frontend format
  */
-const normalizeQuestions = (rawQuestions: any[]): QuizQuestionItem[] => {
-  if (!Array.isArray(rawQuestions)) return [];
-
-  return rawQuestions.map((q: any, idx: number) => {
-    // 1. Resolve Question Text
-    const questionText = q.question || q.question_text || `Question ${idx + 1}`;
-
-    // 2. Resolve Options & Correct Index
-    let options: string[] = [];
-    let correctIndex = 0;
-
-    // CASE A: Data has "correct_answer" and "incorrect_answers" (Format from your screenshot)
-    if (q.correct_answer || q.incorrect_answers) {
-      const incorrect = Array.isArray(q.incorrect_answers) 
-        ? q.incorrect_answers 
-        : (typeof q.incorrect_answers === 'string' ? JSON.parse(q.incorrect_answers) : []); // Handle stringified JSON if necessary
-      
-      const correct = q.correct_answer || "Missing Answer";
-
-      // Combine and Shuffle
-      const allOptions = [...incorrect, correct];
-      options = shuffleArray(allOptions);
-      
-      // Find where the correct answer ended up
-      correctIndex = options.indexOf(correct);
-      if (correctIndex === -1) correctIndex = 0; // Fallback
-    }
-    // CASE B: Data already has "options" list (Legacy/Mock format)
-    else if (Array.isArray(q.options)) {
-      options = q.options;
-      correctIndex = typeof q.correct === 'number' ? q.correct : 0;
-    }
+export const processQuestions = (questions: QuizQuestion[]): ProcessedQuestion[] => {
+  return questions.map(q => {
+    const allOptions = [...q.incorrect_answers, q.correct_answer];
+    const shuffledOptions = shuffleArray(allOptions);
+    const correctIndex = shuffledOptions.indexOf(q.correct_answer);
 
     return {
-      question: questionText,
-      options: options,
-      correct: correctIndex,
-      explanation: q.explanation || "No explanation provided."
+      question_id: q.question_id,
+      question: q.question_text,
+      options: shuffledOptions,
+      correctIndex: correctIndex >= 0 ? correctIndex : 0,
+      explanation: q.explanation
     };
   });
 };
 
-export const fetchQuizzes = async (userId?: string): Promise<Quiz[]> => {
+/**
+ * NEW API: Get all active quizzes
+ */
+export const fetchQuizzes = async (): Promise<QuizListItem[]> => {
   try {
-    const params = userId ? { user_id: userId } : {};
-    // Use type 'any' first to allow inspection of raw unknown structure
-    const response = await apiClient.get<any[]>('/quizzes', { params });
-    
-    let rawData = response.data;
+    const response = await apiClient.get<QuizListItem[]>('/quizzes');
 
-    // Robust check for array
-    if (!Array.isArray(rawData)) {
-      console.warn("API returned non-array data for quizzes:", rawData);
-      return []; 
+    if (!Array.isArray(response.data)) {
+      console.warn("API returned non-array data for quizzes:", response.data);
+      return [];
     }
 
-    // Normalize every quiz and its questions
-    const normalizedQuizzes: Quiz[] = rawData.map((quizRaw: any) => {
-      return {
-        ...quizRaw,
-        // If questions exists, run it through normalization
-        questions: quizRaw.questions ? normalizeQuestions(quizRaw.questions) : []
-      };
-    });
-
-    return normalizedQuizzes;
+    return response.data;
 
   } catch (error) {
     handleApiError(error);
-    console.info("⚠️ Network error or Parse error. Switching to DEMO MODE with mock data.");
+    console.info("⚠️ Network error. Switching to DEMO MODE with mock data.");
     return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZZES), 800));
   }
 };
 
+/**
+ * NEW API: Get specific quiz with all questions
+ */
+export const fetchQuizDetail = async (quizId: string): Promise<QuizDetail | null> => {
+  try {
+    const response = await apiClient.get<QuizDetail>(`/quizzes/${quizId}`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    console.info("⚠️ Network error. Returning mock quiz detail.");
+    return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZ_DETAIL), 800));
+  }
+};
+
+/**
+ * NEW API: Submit quiz attempt
+ */
+export const submitQuizAttempt = async (
+  attempt: QuizAttemptPayload
+): Promise<QuizAttemptResponse | null> => {
+  try {
+    const response = await apiClient.post<QuizAttemptResponse>('/quiz-attempts', attempt);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    console.warn("⚠️ Failed to submit quiz attempt");
+    return null;
+  }
+};
+
+/**
+ * NEW API: Get user's quiz history
+ */
+export const fetchUserQuizHistory = async (userId: string): Promise<UserQuizHistory[]> => {
+  try {
+    const response = await apiClient.get<UserQuizHistory[]>(`/users/${userId}/quiz-attempts`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    return [];
+  }
+};
+
+/**
+ * NEW API: Get quiz statistics
+ */
+export const fetchQuizStatistics = async (): Promise<QuizStatistics[]> => {
+  try {
+    const response = await apiClient.get<QuizStatistics[]>('/quiz-statistics');
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    return [];
+  }
+};
+
+/**
+ * EXISTING API: Fetch user info
+ */
 export const fetchUser = async (userId: string): Promise<User> => {
   try {
     const response = await apiClient.get<User>(`/users/${userId}`);
@@ -158,10 +205,35 @@ export const fetchUser = async (userId: string): Promise<User> => {
   }
 };
 
+/**
+ * LEGACY SUPPORT: Convert new format to old format
+ */
+export const convertQuizDetailToLegacy = (detail: QuizDetail): Quiz => {
+  const processedQuestions = processQuestions(detail.questions);
+
+  return {
+    quiz_id: detail.quiz_id,
+    title: detail.title,
+    description: detail.description,
+    questions: processedQuestions.map(q => ({
+      question: q.question,
+      options: q.options,
+      correct: q.correctIndex,
+      explanation: q.explanation
+    })),
+    score: null,
+    time_taken: null
+  };
+};
+
 const handleApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
     console.warn('API Connection Warning:', axiosError.message);
+    if (axiosError.response) {
+      console.warn('Response status:', axiosError.response.status);
+      console.warn('Response data:', axiosError.response.data);
+    }
   } else {
     console.error('Unexpected Error:', error);
   }
