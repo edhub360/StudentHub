@@ -48,7 +48,6 @@ import Footer from "./Components/Footer";
 import HomeScreen from './Components/Screens/HomeScreen';
 import CoursesScreen from './Components/Screens/CoursesScreen';
 import ChatScreen from './Components/Screens/ChatScreen';
-import FlashCardsScreen from './Components/Screens/FlashCardsScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
@@ -56,6 +55,7 @@ import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import { sendChatMessage } from './services/chatapi';
+import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -424,57 +424,7 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
     { id: 'upload', label: 'Screenshot Solve', icon: Upload },
   ];
 
-  const flashCards: FlashCard[] = [
-    {
-      id: '1',
-      front: 'What is the derivative of x²?',
-      back: '2x',
-      subject: 'Calculus',
-      difficulty: 'easy',
-      mastered: true
-    },
-    {
-      id: '2',
-      front: 'Define photosynthesis',
-      back: 'The process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen',
-      subject: 'Biology',
-      difficulty: 'medium',
-      mastered: false
-    },
-    {
-      id: '3',
-      front: 'What year did World War II end?',
-      back: '1945',
-      subject: 'History',
-      difficulty: 'easy',
-      mastered: true
-    }
-  ];
-
-  const quizQuestions: QuizQuestion[] = [
-    {
-      id: '1',
-      question: 'What is the capital of France?',
-      options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correct: 2,
-      explanation: 'Paris is the capital and largest city of France.'
-    },
-    {
-      id: '2',
-      question: 'Which element has the chemical symbol "O"?',
-      options: ['Gold', 'Oxygen', 'Silver', 'Iron'],
-      correct: 1,
-      explanation: 'Oxygen is represented by the symbol "O" on the periodic table.'
-    },
-    {
-      id: '3',
-      question: 'What is 15 × 8?',
-      options: ['120', '115', '125', '130'],
-      correct: 0,
-      explanation: '15 × 8 = 120'
-    }
-  ];
-
+  
   const edhubCourses = [
     {
       id: 1,
@@ -647,36 +597,6 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
     if (files[0]) {
       handleImageUpload(files[0]);
     }
-  };
-
-  const nextFlashCard = () => {
-    setShowFlashCardBack(false);
-    setCurrentFlashCard((prev) => (prev + 1) % flashCards.length);
-  };
-
-  const answerQuizQuestion = (answerIndex: number) => {
-    setSelectedAnswer(answerIndex);
-    if (answerIndex === quizQuestions[currentQuestion].correct) {
-      setQuizScore(prev => prev + 1);
-    }
-    
-    setTimeout(() => {
-      if (currentQuestion < quizQuestions.length - 1) {
-        setCurrentQuestion(prev => prev + 1);
-        setSelectedAnswer(null);
-      } else {
-        setQuizStarted(false);
-        setCurrentQuestion(0);
-        setSelectedAnswer(null);
-      }
-    }, 2000);
-  };
-
-  const startQuiz = () => {
-    setQuizStarted(true);
-    setCurrentQuestion(0);
-    setQuizScore(0);
-    setSelectedAnswer(null);
   };
 
   const handleNotebookSelect = (notebookId: string) => {
@@ -1075,15 +995,8 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
           />
         );
       case "flashcards":
-        return (
-          <FlashCardsScreen
-            flashCards={flashCards}
-            currentFlashCard={currentFlashCard}
-            showFlashCardBack={showFlashCardBack}
-            setShowFlashCardBack={setShowFlashCardBack}
-            nextFlashCard={nextFlashCard}
-          />
-        );
+        return <FlashcardScreen />;
+
       case 'quiz':
         return <QuizScreen />;
         
