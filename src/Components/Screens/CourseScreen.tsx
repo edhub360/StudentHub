@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, AlertCircle } from 'lucide-react';
-import { fetchCourses } from '../services/courseApi';
-import CourseList from '../components/Course/CourseList';
-import { EdhubCourse, RecommendedCourse } from '../types/course.types';
-import { RECOMMENDED_COURSES, COMPLEXITY_OPTIONS } from '../constants/course.constants';
-import Button from '../components/shared/Button';
+import { fetchCourses } from '../../services/courseApi';
+import CourseList from '../Course/CourseList';
+import { EdhubCourse, RecommendedCourse } from '../../types/course.types';
+import { RECOMMENDED_COURSES, COMPLEXITY_OPTIONS } from '../../constants/course.constants';
+import Button from '../Course/Button';
 
 const CourseScreen: React.FC = () => {
   // State
