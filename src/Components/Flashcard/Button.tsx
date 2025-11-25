@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient';
   fullWidth?: boolean;
   children: React.ReactNode;
 }
@@ -19,7 +19,8 @@ export const Button: React.FC<ButtonProps> = ({
     primary: "bg-cyan-500 hover:bg-cyan-600 text-white shadow-md hover:shadow-lg focus:ring-cyan-500 border border-transparent",
     secondary: "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md hover:shadow-lg focus:ring-emerald-500 border border-transparent",
     outline: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm focus:ring-gray-500",
-    ghost: "bg-transparent hover:bg-gray-100 text-gray-600 border border-transparent shadow-none"
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-600 border border-transparent shadow-none",
+    gradient: "bg-gradient-to-r from-blue-500 to-teal-400 text-white hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg shadow-md",
   };
 
   const widthClass = fullWidth ? "w-full" : "";

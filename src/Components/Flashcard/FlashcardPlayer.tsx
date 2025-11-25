@@ -49,6 +49,15 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
     }
   };
 
+  const handleRestart = () => {
+    setAnimationClass('opacity-0 scale-95');
+    setTimeout(() => {
+      setCurrentIndex(0);
+      setShowAnswer(false);
+      setAnimationClass('opacity-100 scale-100');
+    }, 200);
+  };
+
   const handleShowAnswer = () => {
     setShowAnswer(true);
   };
@@ -83,8 +92,19 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
         >
           <ArrowLeft size={24} />
         </button>
+        
         <h1 className="text-2xl font-bold text-gray-800">Flashcards</h1>
         <p className="text-gray-500 text-sm">Test your knowledge with AI-generated cards</p>
+
+        {/* Reset Button */}
+        <button 
+          onClick={handleRestart}
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 transition-colors p-2"
+          aria-label="Restart Deck"
+          title="Restart Deck"
+        >
+          <RotateCcw size={20} />
+        </button>
       </div>
 
       {/* Main Flashcard Area */}
@@ -136,29 +156,29 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
 
       {/* Footer Controls */}
       <div className="flex items-center justify-between mt-8 px-2">
-        <span className="text-gray-500 font-medium">
+        {/* Previous Button */}
+        <Button 
+          onClick={handlePrevious}
+          disabled={currentIndex === 0}
+          variant="outline"
+          className="min-w-[100px] md:min-w-[130px]"
+        >
+          Previous
+        </Button>
+
+        {/* Counter */}
+        <span className="text-gray-500 font-medium text-sm md:text-base">
           Card {currentIndex + 1} of {deck.cards.length}
         </span>
 
-        <div className="flex items-center gap-4">
-          {/* Previous Button */}
-          <button 
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            className="p-3 rounded-full text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
-            title="Previous Question"
-          >
-            <RotateCcw size={20} />
-          </button>
-
-          {/* Next Card Button */}
-          <Button 
-            onClick={handleNext}
-            className="px-8 min-w-[140px]"
-          >
-            {currentIndex === deck.cards.length - 1 ? 'Finish' : 'Next Card'}
-          </Button>
-        </div>
+        {/* Next Card Button */}
+        <Button 
+          onClick={handleNext}
+          variant="gradient"
+          className="min-w-[100px] md:min-w-[130px]"
+        >
+          {currentIndex === deck.cards.length - 1 ? 'Finish' : 'Next Card'}
+        </Button>
       </div>
     </div>
   );
