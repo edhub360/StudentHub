@@ -46,7 +46,6 @@ import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
 import Footer from "./Components/Footer";
 import HomeScreen from './Components/Screens/HomeScreen';
-import CoursesScreen from './Components/Screens/CoursesScreen';
 import ChatScreen from './Components/Screens/ChatScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
@@ -56,6 +55,7 @@ import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
+import CourseScreen from './Components/Screens/CourseScreen';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -425,87 +425,7 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
   ];
 
   
-  const edhubCourses = [
-    {
-      id: 1,
-      title: "Advanced Mathematics",
-      description: "Master calculus, linear algebra, and advanced mathematical concepts with AI-powered assistance.",
-      image: "https://images.pexels.com/photos/6238050/pexels-photo-6238050.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "Advanced",
-      duration: "12 weeks"
-    },
-    {
-      id: 2,
-      title: "Physics Fundamentals",
-      description: "Explore the laws of physics through interactive simulations and AI-guided problem solving.",
-      image: "https://images.pexels.com/photos/2280549/pexels-photo-2280549.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "Intermediate",
-      duration: "10 weeks"
-    },
-    {
-      id: 3,
-      title: "Chemistry Lab Mastery",
-      description: "Learn chemistry concepts and lab techniques with virtual experiments and AI tutoring.",
-      image: "https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "Beginner",
-      duration: "8 weeks"
-    },
-    {
-      id: 4,
-      title: "Computer Science Basics",
-      description: "Introduction to programming, algorithms, and computational thinking with hands-on projects.",
-      image: "https://images.pexels.com/photos/1181677/pexels-photo-1181677.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "Beginner",
-      duration: "14 weeks"
-    },
-    {
-      id: 5,
-      title: "Biology & Life Sciences",
-      description: "Discover the wonders of life through interactive diagrams and AI-powered explanations.",
-      image: "https://images.pexels.com/photos/2280568/pexels-photo-2280568.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "Intermediate",
-      duration: "12 weeks"
-    },
-    {
-      id: 6,
-      title: "Literature & Writing",
-      description: "Enhance your writing skills and literary analysis with AI feedback and guidance.",
-      image: "https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=400",
-      level: "All Levels",
-      duration: "10 weeks"
-    }
-  ];
-
-  const externalRecommendations = [
-    {
-      id: 1,
-      title: "Machine Learning Specialization",
-      description: "Learn the fundamentals of machine learning with hands-on projects and real-world applications.",
-      platform: "Coursera",
-      platformLogo: "🎓",
-      rating: 4.9,
-      url: "https://coursera.org"
-    },
-    {
-      id: 2,
-      title: "Data Science MicroMasters",
-      description: "Comprehensive program covering statistics, programming, and data analysis techniques.",
-      platform: "edX",
-      platformLogo: "📚",
-      rating: 4.7,
-      url: "https://edx.org"
-    },
-    {
-      id: 3,
-      title: "Full Stack Web Development",
-      description: "Build modern web applications using React, Node.js, and cloud technologies.",
-      platform: "Udacity",
-      platformLogo: "🚀",
-      rating: 4.6,
-      url: "https://udacity.com"
-    }
-  ];
-
+  
 
   const notebookSources = [
     { id: '1', name: 'Calculus Textbook Ch. 3-5.pdf', type: 'pdf', size: '2.4 MB' },
@@ -513,22 +433,6 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
     { id: '3', name: 'Khan Academy - Derivatives', type: 'youtube', url: 'youtube.com/watch?v=...' },
     { id: '4', name: 'MIT OpenCourseWare - Calculus', type: 'web', url: 'ocw.mit.edu/...' }
   ];
-
-  const handleCourseSearch = (query: string) => {
-    setCourseSearchQuery(query);
-    const hasMatch = edhubCourses.some(course => 
-      course.title.toLowerCase().includes(query.toLowerCase()) ||
-      course.description.toLowerCase().includes(query.toLowerCase())
-    );
-    setShowRecommendations(query.length > 0 && !hasMatch);
-  };
-
-  const filteredCourses = courseSearchQuery 
-    ? edhubCourses.filter(course => 
-        course.title.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
-        course.description.toLowerCase().includes(courseSearchQuery.toLowerCase())
-      )
-    : edhubCourses;
 
   const handleSendMessage = async () => {
     console.log("handleSendMessage triggered; input:", chatInput);
@@ -1001,17 +905,8 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
         return <QuizScreen />;
         
       case 'courses': 
-        return (
-          <CoursesScreen
-            courseSearchQuery={courseSearchQuery}
-            showRecommendations={showRecommendations}
-            filteredCourses={filteredCourses}
-            externalRecommendations={externalRecommendations}
-            setCourseSearchQuery={setCourseSearchQuery}
-            setShowRecommendations={setShowRecommendations}
-            handleCourseSearch={handleCourseSearch}
-          />
-        );
+        return <CourseScreen />;
+
       case 'notes': 
         return renderNotesContent();
       case 'progress': 
