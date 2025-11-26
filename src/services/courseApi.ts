@@ -11,7 +11,7 @@ const apiClient = axios.create({
 
 export const fetchCourses = async (params: CourseQueryParams): Promise<PaginatedCourses> => {
   try {
-    const response = await apiClient.get<PaginatedCourses>('/courses', { params });
+    const response = await apiClient.get<PaginatedCourses>('/courses/', { params });
     return response.data;
   } catch (error) {
     // Only warn in development or if critical; logic ensures app continuity
