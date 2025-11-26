@@ -16,6 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Generate .env file from secrets
+        run: |
+          echo "VITE_QUIZ_API_URL=${{ secrets.VITE_QUIZ_API_URL }}" >> .env
+          echo "VITE_FLASHCARD_API_URL=${{ secrets.VITE_FLASHCARD_API_URL }}" >> .env
+          echo "VITE_AICHAT_API_URL=${{ secrets.VITE_AICHAT_API_URL }}" >> .env
+          echo "VITE_NOTES_API_URL=${{ secrets.VITE_NOTES_API_URL }}" >> .env
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -32,4 +40,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: dev-pages
-          publish_dir: ./dist   # change to ./build for CRA.
+          publish_dir: ./dist   # change to ./build for CRA

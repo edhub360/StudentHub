@@ -1,164 +1,191 @@
-import React from "react";
-import { Brain, Check, X } from "lucide-react";
+// src/components/screens/QuizScreen.tsx
+import React, { useState, useEffect } from 'react';
+import { 
+  QuizListItem, 
+  QuizDetail, 
+  ProcessedQuestion,
+  QuizResult, 
+  ViewState,
+  UserAnswer 
+} from '../../types/quiz.types';
+import { 
+  fetchQuizzes, 
+  fetchQuizDetail, 
+  processQuestions,
+  submitQuizAttempt 
+} from '../../services/quizapi';
+import { TEST_USER_ID, GRADIENT_BG } from '../../constants/quiz.constants';
+import { QuizList } from '../Quiz/QuizList';
+import { QuizPlayer } from '../Quiz/QuizPlayer';
+import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
 
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correct: number;
-  explanation?: string;
-}
+const QuizScreen: React.FC = () => {
+  const [view, setView] = useState<ViewState>(ViewState.LOADING);
+  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
+  const [activeQuiz, setActiveQuiz] = useState<QuizDetail | null>(null);
+  const [processedQuestions, setProcessedQuestions] = useState<ProcessedQuestion[]>([]);
+  const [lastResult, setLastResult] = useState<QuizResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
-interface QuizScreenProps {
-  quizStarted: boolean;
-  quizQuestions: QuizQuestion[];
-  currentQuestion: number;
-  selectedAnswer: number | null;
-  startQuiz: () => void;
-  answerQuizQuestion: (index: number) => void;
-}
+  useEffect(() => {
+    loadQuizzes();
+  }, []);
 
-const QuizScreen: React.FC<QuizScreenProps> = ({
-  quizStarted,
-  quizQuestions,
-  currentQuestion,
-  selectedAnswer,
-  startQuiz,
-  answerQuizQuestion
-}) => {
+  const loadQuizzes = async () => {
+    setView(ViewState.LOADING);
+    setError(null);
+    try {
+      // NEW: No user_id needed - fetches global quizzes
+      const data = await fetchQuizzes();
+      
+      // Check if we are receiving the mock data
+      if (Array.isArray(data) && data.length > 0 && data[0].quiz_id.startsWith('mock-')) {
+        setIsDemoMode(true);
+      } else {
+        setIsDemoMode(false);
+      }
+
+      setQuizzes(data || []);
+      setView(ViewState.LIST);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load quizzes. Please ensure the backend is running.");
+      setView(ViewState.ERROR);
+    }
+  };
+
+  const handleStartQuiz = async (quizId: string) => {
+    setView(ViewState.LOADING);
+    try {
+      // NEW: Fetch quiz with questions from backend
+      const quiz = await fetchQuizDetail(quizId);
+      
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      if (!quiz.questions || quiz.questions.length === 0) {
+        setError('This quiz has no questions available.');
+        setView(ViewState.ERROR);
+        return;
+      }
+
+      setActiveQuiz(quiz);
+      
+      // NEW: Process questions (shuffle options, normalize format)
+      const processed = processQuestions(quiz.questions);
+      setProcessedQuestions(processed);
+      
+      setView(ViewState.PLAYING);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load quiz. Please try again.');
+      setView(ViewState.ERROR);
+    }
+  };
+
+  const handleQuizComplete = async (
+    result: QuizResult,
+    userAnswers: UserAnswer[]
+  ) => {
+    if (!activeQuiz) return;
+
+    // NEW: Submit quiz attempt to backend
+    try {
+      await submitQuizAttempt({
+        user_id: TEST_USER_ID,
+        quiz_id: activeQuiz.quiz_id,
+        score: result.correctAnswers,
+        total_questions: result.totalQuestions,
+        score_percentage: result.scorePercentage,
+        time_taken: result.timeSpentSeconds,
+        answers: userAnswers,
+      });
+      console.log('✅ Quiz attempt submitted successfully');
+    } catch (err) {
+      console.error('⚠️ Failed to submit quiz attempt:', err);
+      // Continue to show results even if submission fails
+    }
+
+    setLastResult(result);
+    setView(ViewState.RESULT);
+  };
+
+  const handleRetry = async () => {
+    if (activeQuiz) {
+      // Re-shuffle questions for retry
+      const processed = processQuestions(activeQuiz.questions);
+      setProcessedQuestions(processed);
+      setLastResult(null);
+      setView(ViewState.PLAYING);
+    }
+  };
+
+  const handleBackToList = () => {
+    setActiveQuiz(null);
+    setProcessedQuestions([]);
+    setLastResult(null);
+    loadQuizzes();
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {!quizStarted ? (
-        <div className="space-y-6">
-          {/* Welcome / Quiz Start Card */}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Mode</h2>
-            <p className="text-gray-600">Test your knowledge with adaptive questions</p>
+    <div className={`min-h-screen ${GRADIENT_BG} py-8 px-4`}>
+      <div className="max-w-6xl mx-auto">
+        {isDemoMode && (
+          <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+            <p className="font-semibold">Demo Mode Active</p>
+            <p className="text-sm">Using sample data. Backend connection unavailable.</p>
           </div>
+        )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Brain className="w-10 h-10 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Ready to test yourself?</h3>
-            <p className="text-gray-600 mb-8">This quiz contains {quizQuestions.length} questions covering various topics.</p>
-            <button
-              onClick={startQuiz}
-              className="px-10 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
-              Start Quiz
-            </button>
-          </div>
-
-          {/* Recent Scores & Quiz Statistics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Scores */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Recent Scores</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="font-medium text-gray-900">Mathematics</span>
-                  <span className="font-bold text-green-600">92%</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="font-medium text-gray-900">Science</span>
-                  <span className="font-bold text-blue-600">85%</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
-                  <span className="font-medium text-gray-900">History</span>
-                  <span className="font-bold text-yellow-600">78%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quiz Statistics */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Quiz Statistics</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Quizzes</span>
-                  <span className="font-semibold">47</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Average Score</span>
-                  <span className="font-semibold">85%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Best Subject</span>
-                  <span className="font-semibold">Mathematics</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Improvement</span>
-                  <span className="font-semibold text-green-600">+12%</span>
-                </div>
-              </div>
+        {view === ViewState.LOADING && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center text-gray-700">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-cyan-500 mx-auto mb-4"></div>
+              <p className="text-xl font-semibold">Loading quizzes...</p>
             </div>
           </div>
-        </div>
-      ) : (
-        /* Quiz In-Progress */
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Question {currentQuestion + 1}</h2>
-            <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-              {currentQuestion + 1} of {quizQuestions.length}
+        )}
+
+        {view === ViewState.ERROR && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow-xl p-8 text-center">
+              <div className="text-red-500 text-6xl mb-4">⚠️</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Error Loading Quizzes</h2>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <button
+                onClick={loadQuizzes}
+                className="px-6 py-3 bg-cyan-500 text-white font-semibold rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                Try Again
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-teal-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestion + 1) / quizQuestions.length) * 100}%` }}
-            ></div>
-          </div>
+        {view === ViewState.LIST && (
+          <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
+        )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-8">
-              {quizQuestions[currentQuestion].question}
-            </h3>
+        {view === ViewState.PLAYING && activeQuiz && processedQuestions.length > 0 && (
+          <QuizPlayer
+            quiz={activeQuiz}
+            questions={processedQuestions}
+            onComplete={handleQuizComplete}
+            onExit={handleBackToList}
+          />
+        )}
 
-            <div className="space-y-4">
-              {quizQuestions[currentQuestion].options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => answerQuizQuestion(index)}
-                  disabled={selectedAnswer !== null}
-                  className={`w-full p-5 text-left rounded-xl border-2 transition-all ${
-                    selectedAnswer === null
-                      ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                      : selectedAnswer === index
-                      ? index === quizQuestions[currentQuestion].correct
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-red-500 bg-red-50 text-red-700'
-                      : index === quizQuestions[currentQuestion].correct
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 text-gray-400'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{option}</span>
-                    {selectedAnswer !== null && (
-                      <div>
-                        {index === quizQuestions[currentQuestion].correct ? (
-                          <Check className="w-6 h-6 text-green-600" />
-                        ) : selectedAnswer === index ? (
-                          <X className="w-6 h-6 text-red-600" />
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {selectedAnswer !== null && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-                <p className="text-blue-800 font-medium mb-2">Explanation:</p>
-                <p className="text-blue-700">{quizQuestions[currentQuestion].explanation}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        {view === ViewState.RESULT && lastResult && activeQuiz && (
+          <QuizScoreScreen
+            result={lastResult}
+            quizTitle={activeQuiz.title}
+            onRetry={handleRetry}
+            onHome={handleBackToList}
+          />
+        )}
+      </div>
     </div>
   );
 };
