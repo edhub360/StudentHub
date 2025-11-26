@@ -39,7 +39,7 @@ export const DeckList: React.FC<DeckListProps> = ({ decks, onSelectDeck }) => {
               {deck.subject_tag}
             </div>
 
-            <Button onClick={() => onSelectDeck(deck.deck_id)} fullWidth>
+            <Button onClick={() => onSelectDeck(deck.deck_id)} variant="gradient" fullWidth>
               Start Studying
             </Button>
           </Card>
