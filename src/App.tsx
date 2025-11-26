@@ -154,7 +154,7 @@ useEffect(() => {
   }
 }, [isLoggedIn, userId]);
 
-
+//login integration code
 
 // ✅ Handle Login Success - WITH BACKEND SUBSCRIPTION CHECK
 const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: boolean) => {
@@ -209,7 +209,7 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
   };
 
   // ============================================
-  // API INTEGRATION - State & Functions
+  // NOTEBOOK API INTEGRATION - State & Functions
   // ============================================
 const [title, setTitle] = useState<string>('');
 const [description, setDescription] = useState<string>('');
