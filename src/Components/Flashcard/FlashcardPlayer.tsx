@@ -95,16 +95,6 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
         
         <h1 className="text-2xl font-bold text-gray-800">Flashcards</h1>
         <p className="text-gray-500 text-sm">Test your knowledge with AI-generated cards</p>
-
-        {/* Reset Button */}
-        <button 
-          onClick={handleRestart}
-          className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600 transition-colors p-2"
-          aria-label="Restart Deck"
-          title="Restart Deck"
-        >
-          <RotateCcw size={20} />
-        </button>
       </div>
 
       {/* Main Flashcard Area */}
@@ -171,14 +161,27 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
           Card {currentIndex + 1} of {deck.cards.length}
         </span>
 
-        {/* Next Card Button */}
-        <Button 
-          onClick={handleNext}
-          variant="gradient"
-          className="min-w-[100px] md:min-w-[130px]"
-        >
-          {currentIndex === deck.cards.length - 1 ? 'Finish' : 'Next Card'}
-        </Button>
+        {/* Right Controls Group */}
+        <div className="flex items-center gap-3">
+          {/* Reset Button */}
+          <button 
+            onClick={handleRestart}
+            className="text-gray-400 hover:text-cyan-600 transition-colors p-2 rounded-full hover:bg-cyan-50"
+            aria-label="Restart Deck"
+            title="Restart Deck"
+          >
+            <RotateCcw size={20} />
+          </button>
+
+          {/* Next Card Button */}
+          <Button 
+            onClick={handleNext}
+            variant="gradient"
+            className="min-w-[100px] md:min-w-[130px]"
+          >
+            {currentIndex === deck.cards.length - 1 ? 'Finish' : 'Next Card'}
+          </Button>
+        </div>
       </div>
     </div>
   );
