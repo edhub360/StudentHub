@@ -50,9 +50,9 @@ import ChatScreen from './Components/Screens/ChatScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
 import ProgressScreen from './Components/Screens/ProgressScreen';
-import Login from './Components/Login';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
+import LoginScreen from './Components/Screens/LoginScreen';
 import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
@@ -110,7 +110,6 @@ const App: React.FC = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [userId, setUserId] = useState<string | null>(localStorage.getItem('user_id'));
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
-  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);  // ← false dhaan
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
   const [IsLoading, setIsLoading] = useState(false);
   // ✅ Existing App States (unchanged)
@@ -135,55 +134,57 @@ const App: React.FC = () => {
 useEffect(() => {
   if (!isLoggedIn || !userId) return;
 
-  const hasSeenBefore = localStorage.getItem('has_seen_subscription') === 'true';
-  
-  if (!hasSeenBefore) {
+  const storedUserRaw = localStorage.getItem('user');
+  const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+  const hasSubscription = !!(storedUser && storedUser.subscription_tier);
+
+  if (!hasSubscription) {
     setShowSubscriptionPage(true);
     setUserStatus({
       has_seen_subscription: false,
       has_active_subscription: false,
-      subscription: null
+      subscription: null,
     });
   } else {
     setShowSubscriptionPage(false);
     setUserStatus({
       has_seen_subscription: true,
       has_active_subscription: true,
-      subscription: { plan_id: 'trial', status: 'active' }
+      subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
     });
   }
 }, [isLoggedIn, userId]);
 
 //login integration code
 
-// ✅ Handle Login Success - WITH BACKEND SUBSCRIPTION CHECK
-const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: boolean) => {
+const handleLoginSuccess = (
+  token: string,
+  newUserId: string,
+  hasSubscription: boolean
+) => {
   console.log('✅ Login success:', { userId: newUserId, hasSubscription });
-  
+
   localStorage.setItem('token', token);
   localStorage.setItem('user_id', newUserId);
   localStorage.setItem('isLoggedIn', 'true');
   setIsLoggedIn(true);
   setUserId(newUserId);
 
-  // ✅ CHECK BACKEND RESPONSE
   if (hasSubscription) {
-    // Already has subscription → Go to dashboard
     console.log('✅ Has subscription - Going to dashboard');
     setShowSubscriptionPage(false);
     setUserStatus({
       has_seen_subscription: true,
       has_active_subscription: true,
-      subscription: { plan_id: 'free', status: 'active' }
+      subscription: { plan_id: 'free', status: 'active' },
     });
   } else {
-    // No subscription → Show subscription page
     console.log('📋 No subscription - Showing subscription page');
     setShowSubscriptionPage(true);
     setUserStatus({
       has_seen_subscription: false,
       has_active_subscription: false,
-      subscription: null
+      subscription: null,
     });
   }
 };
@@ -197,15 +198,21 @@ const handleLoginSuccess = (token: string, newUserId: string, hasSubscription: b
     setShowSubscriptionPage(false);
   };
 
-  // ✅ Handle Subscription Completion
   const handleSubscriptionComplete = () => {
-    setShowSubscriptionPage(false);
-    // Refresh user status
-    if (userId) {
-      axios.get(`${API_BASE_URL}/api/subscription/user-status/${userId}`)
-        .then(({ data }) => setUserStatus(data))
-        .catch(err => console.error("Error refreshing status:", err));
+    const storedUserRaw = localStorage.getItem('user');
+    if (storedUserRaw) {
+      const storedUser = JSON.parse(storedUserRaw);
+      storedUser.subscription_tier = 'free';
+      localStorage.setItem('user', JSON.stringify(storedUser));
+      localStorage.setItem('subscription_tier', 'free');
     }
+
+    setShowSubscriptionPage(false);
+    setUserStatus({
+      has_seen_subscription: true,
+      has_active_subscription: true,
+      subscription: { plan_id: 'free', status: 'active' },
+    });
   };
 
   // ============================================
@@ -927,17 +934,6 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
     }
   };
 
-  // ✅ Loading State - While Checking Subscription
-  if (isLoggedIn && isCheckingSubscription) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage && userId) {
@@ -950,24 +946,19 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
     );
   }
 
-  // ✅ Show Login/Register (Not Logged In)
   if (!isLoggedIn) {
     if (showRegister) {
       return (
-        <Register 
+        <Register
           onSwitchToLogin={() => setShowRegister(false)}
           onRegisterSuccess={handleLoginSuccess}
         />
       );
     }
     return (
-      <Login 
-        setIsLoggedIn={(val) => {
-          setIsLoggedIn(val);
-          localStorage.setItem('isLoggedIn', 'true');
-        }} 
-        onSwitchToRegister={() => setShowRegister(true)}
+      <LoginScreen
         onLoginSuccess={handleLoginSuccess}
+        onSwitchToRegister={() => setShowRegister(true)}
       />
     );
   }
