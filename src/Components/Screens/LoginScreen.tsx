@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaFacebook } from 'react-icons/fa';
 import Logo from '../../images/logo.edhub.png';
 import LoginForm from '../login/LoginForm';
@@ -11,6 +12,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
   onSwitchToRegister,
 }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,6 +60,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     setError('Facebook login coming soon!');
   };
 
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md border border-gray-200">
@@ -67,7 +73,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         <h2 className="text-3xl font-bold text-center mb-2 text-gray-800">Welcome Back!</h2>
         <p className="text-center text-gray-500 mb-6">Login to continue your journey</p>
 
-        <LoginForm loading={loading} onSubmit={handleEmailLogin} />
+        <LoginForm
+          loading={loading}
+          onSubmit={handleEmailLogin}
+          onForgotPassword={handleForgotPassword}
+        />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm mt-4">
