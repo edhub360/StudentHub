@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { 
   Home, 
   MessageCircle, 
@@ -53,6 +54,8 @@ import ProgressScreen from './Components/Screens/ProgressScreen';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
+import ForgotPasswordScreen from './Components/Screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './Components/Screens/ResetPasswordScreen';
 import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
@@ -101,6 +104,7 @@ interface UserStatus {
 }
 
 const App: React.FC = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('home');
   const [notebooks, setNotebooks] = useState<any[]>([]);
   // ✅ Authentication & Subscription States
@@ -935,10 +939,20 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
   };
 
 
+  const pathname = location.pathname;
+
+  if (pathname === '/forgot-password') {
+    return <ForgotPasswordScreen />;
+  }
+
+  if (pathname === '/reset-password') {
+    return <ResetPasswordScreen />;
+  }
+
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage && userId) {
     return (
-      <SubscriptionWrapper 
+      <SubscriptionWrapper
         isFirstTime={!userStatus?.has_seen_subscription}
         userId={userId}
         onComplete={handleSubscriptionComplete}
