@@ -1,43 +1,43 @@
-name: Build and Deploy to GitHub Pages
+# name: Build and Deploy to GitHub Pages
 
-on:
-  push:
-    branches: [Develop]
+# on:
+#   push:
+#     branches: [Develop]
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+# permissions:
+#   contents: write
+#   pages: write
+#   id-token: write
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
 
-      - name: Generate .env file from secrets
-        run: |
-          echo "VITE_QUIZ_API_URL=${{ secrets.VITE_QUIZ_API_URL }}" >> .env
-          echo "VITE_FLASHCARD_API_URL=${{ secrets.VITE_FLASHCARD_API_URL }}" >> .env
-          echo "VITE_AICHAT_API_URL=${{ secrets.VITE_AICHAT_API_URL }}" >> .env
-          echo "VITE_NOTES_API_URL=${{ secrets.VITE_NOTES_API_URL }}" >> .env
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
+#       - name: Generate .env file from secrets
+#         run: |
+#           echo "VITE_QUIZ_API_URL=${{ secrets.VITE_QUIZ_API_URL }}" >> .env
+#           echo "VITE_FLASHCARD_API_URL=${{ secrets.VITE_FLASHCARD_API_URL }}" >> .env
+#           echo "VITE_AICHAT_API_URL=${{ secrets.VITE_AICHAT_API_URL }}" >> .env
+#           echo "VITE_NOTES_API_URL=${{ secrets.VITE_NOTES_API_URL }}" >> .env
+#           echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> .env
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 18
 
-      - name: Install dependencies
-        run: npm install
+#       - name: Install dependencies
+#         run: npm install
 
-      - name: Build project
-        run: npm run build
+#       - name: Build project
+#         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: dev-pages
-          publish_dir: ./dist   # change to ./build for CRA
+#       - name: Deploy to GitHub Pages
+#         uses: peaceiris/actions-gh-pages@v4
+#         with:
+#           github_token: ${{ secrets.GITHUB_TOKEN }}
+#           publish_branch: dev-pages
+#           publish_dir: ./dist   # change to ./build for CRA

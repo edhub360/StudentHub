@@ -57,22 +57,25 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin, onRegisterSuccess 
 
       const data = await response.json();
 
-      // Save to localStorage
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('subscription_tier', data.user.subscription_tier || '');
       localStorage.setItem('user_id', data.user.user_id);
       localStorage.setItem('userEmail', data.user.email);
       localStorage.setItem('userName', data.user.name || '');
 
       setSuccess('Account created successfully! Redirecting...');
 
+      const hasSubscription = !!data.user.subscription_tier;
+
       setTimeout(() => {
         if (onRegisterSuccess) {
           onRegisterSuccess(
             data.access_token,
             data.user.user_id,
-            data.user.has_active_subscription
+            hasSubscription
           );
         }
       }, 1000);
