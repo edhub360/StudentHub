@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardDeckDetail } from '../../types/flashcard.types';
 import { Button } from './Button';
 import { Card } from './Card';
 import { ArrowLeft, Lightbulb, RotateCcw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { logFlashcardAttempt } from '../../services/flashcardApi';
 
 interface FlashcardPlayerProps {
   deck: FlashcardDeckDetail;
@@ -14,17 +16,45 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [animationClass, setAnimationClass] = useState('opacity-100');
+  
+  // Analytics and User Context
+  const { user } = useAuth();
+  
+  // Track total time spent on the DECK, not individual cards
+  const deckStartTimeRef = useRef<number>(Date.now());
 
   const currentCard = deck.cards[currentIndex];
+
+  // Logic to send analytics for the entire deck session
+  const sendDeckAnalytics = () => {
+    // 1. Check if user is logged in
+    if (!user || !user.id) return;
+
+    const endTime = Date.now();
+    const totalDuration = (endTime - deckStartTimeRef.current) / 1000;
+
+    // 2. Ignore durations less than threshold (e.g., 1s for a whole deck) to avoid noise
+    if (totalDuration < 1) return;
+
+    // 3. Fire-and-forget API call
+    logFlashcardAttempt({
+      deck_id: deck.deck_id,
+      user_id: user.id,
+      card_reviewed: true, // Indicates deck was reviewed
+      time_taken: parseFloat(totalDuration.toFixed(2)) // Round to 2 decimals
+    }).catch(err => console.error("Analytics error:", err));
+  };
 
   // Reset state when deck changes
   useEffect(() => {
     setCurrentIndex(0);
     setShowAnswer(false);
+    deckStartTimeRef.current = Date.now(); // Reset timer for new deck
   }, [deck.deck_id]);
 
   const handleNext = () => {
     if (currentIndex < deck.cards.length - 1) {
+      // Move to next card
       setAnimationClass('opacity-0 translate-x-4');
       setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
@@ -33,6 +63,8 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
         setTimeout(() => setAnimationClass('opacity-100 translate-x-0'), 50);
       }, 200);
     } else {
+      // Finished the deck
+      sendDeckAnalytics();
       onComplete();
     }
   };
@@ -50,6 +82,9 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
   };
 
   const handleRestart = () => {
+    // Restarting resets the timer
+    deckStartTimeRef.current = Date.now();
+
     setAnimationClass('opacity-0 scale-95');
     setTimeout(() => {
       setCurrentIndex(0);
@@ -79,7 +114,7 @@ export const FlashcardPlayer: React.FC<FlashcardPlayerProps> = ({ deck, onComple
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAnswer, currentIndex]);
+  }, [showAnswer, currentIndex]); // Dependencies need to include state used in handlers
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 flex flex-col h-screen max-h-[850px]">

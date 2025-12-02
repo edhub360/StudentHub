@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/flashcard.constants';
-import { FlashcardDeck, FlashcardDeckDetail } from '../types/flashcard.types';
+import { FlashcardDeck, FlashcardDeckDetail, FlashcardAnalyticsPayload } from '../types/flashcard.types';
 
 // Create axios instance
 const api = axios.create({
@@ -121,5 +121,20 @@ export const fetchDeckDetail = async (deckId: string): Promise<FlashcardDeckDeta
       ...MOCK_DECKS[0],
       cards: MOCK_DECK_DETAILS["1"].cards
     };
+  }
+};
+
+/**
+ * Sends flashcard analytics data to the backend.
+ * Uses fire-and-forget pattern.
+ */
+export const logFlashcardAttempt = async (payload: FlashcardAnalyticsPayload): Promise<void> => {
+  try {
+    // The endpoint expects: deck_id, user_id, card_reviewed, time_taken
+    await api.post('/flashcard-analytics', payload);
+    console.debug(`Deck Analytics sent: Deck ${payload.deck_id} completed in ${payload.time_taken}s`);
+  } catch (error) {
+    // Silently fail for analytics to not disrupt user experience
+    console.warn("Failed to send flashcard analytics:", error);
   }
 };
