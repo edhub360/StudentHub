@@ -31,3 +31,10 @@ export interface FlashcardDeckDetail {
   difficulty_level: string;
   cards: FlashcardItem[];
 }
+
+export interface FlashcardAnalyticsPayload {
+  deck_id: string;
+  user_id: string;
+  card_reviewed: boolean;
+  time_taken: number;
+}
