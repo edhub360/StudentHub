@@ -132,7 +132,7 @@ export const logFlashcardAttempt = async (payload: FlashcardAnalyticsPayload): P
   try {
     // The endpoint expects: deck_id, user_id, card_reviewed, time_taken
     await api.post('/flashcard-analytics', payload);
-    console.debug(`Deck Analytics sent: Deck ${payload.deck_id} completed in ${payload.time_taken}s`);
+    console.debug(`✅ Flashcard analytics sent for user: ${payload.user_id}, Deck: ${payload.deck_id}, Time: ${payload.time_taken}s`);
   } catch (error) {
     // Silently fail for analytics to not disrupt user experience
     console.warn("Failed to send flashcard analytics:", error);
