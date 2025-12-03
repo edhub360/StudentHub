@@ -56,6 +56,8 @@ import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
 import ForgotPasswordScreen from './Components/Screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './Components/Screens/ResetPasswordScreen';
+import PrivacyPolicy from './Components/Screens/PrivacyPolicy';
+import TermsOfService from './Components/Screens/TermsOfService';
 import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
@@ -947,6 +949,14 @@ const addUrlSource = async (notebookId: string, type: 'website' | 'youtube', url
 
   if (pathname === '/reset-password') {
     return <ResetPasswordScreen />;
+  }
+
+  if (pathname === '/privacy-policy') {
+    return <PrivacyPolicy />;
+  }
+
+  if (pathname === '/terms-of-service') {
+    return <TermsOfService />;
   }
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
