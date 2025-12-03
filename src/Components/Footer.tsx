@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 interface FooterProps {
   sidebarCollapsed: boolean;
 }
@@ -18,29 +20,21 @@ export default function Footer({ sidebarCollapsed }: FooterProps) {
             © {currentYear} <span className="font-semibold text-gray-900">EdHub360</span>. All rights reserved.
           </p>
 
-          {/* Optional Links */}
+          {/* Links */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <a 
-              href="#" 
+            <Link
+              to="/privacy-policy"
               className="hover:text-gray-900 transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                // TODO: Add privacy policy navigation
-              }}
             >
               Privacy Policy
-            </a>
+            </Link>
             <span className="text-gray-300">|</span>
-            <a 
-              href="#" 
+            <Link
+              to="/terms-of-service"
               className="hover:text-gray-900 transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                // TODO: Add terms navigation
-              }}
             >
               Terms of Service
-            </a>
+            </Link>
           </div>
         </div>
       </div>

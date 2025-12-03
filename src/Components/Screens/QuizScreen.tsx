@@ -1,25 +1,29 @@
 // src/components/screens/QuizScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  QuizListItem, 
-  QuizDetail, 
+import {
+  QuizListItem,
+  QuizDetail,
   ProcessedQuestion,
-  QuizResult, 
+  QuizResult,
   ViewState,
-  UserAnswer 
+  UserAnswer
 } from '../../types/quiz.types';
-import { 
-  fetchQuizzes, 
-  fetchQuizDetail, 
+import {
+  fetchQuizzes,
+  fetchQuizDetail,
   processQuestions,
-  submitQuizAttempt 
+  submitQuizAttempt
 } from '../../services/quizapi';
-import { TEST_USER_ID, GRADIENT_BG } from '../../constants/quiz.constants';
+import { GRADIENT_BG } from '../../constants/quiz.constants';
+import { useAuth } from '../../context/AuthContext';
 import { QuizList } from '../Quiz/QuizList';
 import { QuizPlayer } from '../Quiz/QuizPlayer';
 import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
 
 const QuizScreen: React.FC = () => {
+  // Get real logged-in user from auth context
+  const { user } = useAuth();
+
   const [view, setView] = useState<ViewState>(ViewState.LOADING);
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const [activeQuiz, setActiveQuiz] = useState<QuizDetail | null>(null);
@@ -91,21 +95,28 @@ const QuizScreen: React.FC = () => {
   ) => {
     if (!activeQuiz) return;
 
-    // NEW: Submit quiz attempt to backend
-    try {
-      await submitQuizAttempt({
-        user_id: TEST_USER_ID,
-        quiz_id: activeQuiz.quiz_id,
-        score: result.correctAnswers,
-        total_questions: result.totalQuestions,
-        score_percentage: result.scorePercentage,
-        time_taken: result.timeSpentSeconds,
-        answers: userAnswers,
-      });
-      console.log('✅ Quiz attempt submitted successfully');
-    } catch (err) {
-      console.error('⚠️ Failed to submit quiz attempt:', err);
-      // Continue to show results even if submission fails
+    // Submit quiz attempt to backend with real user_id from auth context
+    // Extract user_id from auth context (the field name is 'id')
+    const userId = user?.id;
+
+    if (userId) {
+      try {
+        await submitQuizAttempt({
+          user_id: userId, // Using real logged-in user's ID
+          quiz_id: activeQuiz.quiz_id,
+          score: result.correctAnswers,
+          total_questions: result.totalQuestions,
+          score_percentage: result.scorePercentage,
+          time_taken: result.timeSpentSeconds,
+          answers: userAnswers,
+        });
+        console.debug(`✅ Quiz attempt submitted for user: ${userId}`);
+      } catch (err) {
+        console.warn('⚠️ Failed to submit quiz attempt:', err);
+        // Continue to show results even if submission fails
+      }
+    } else {
+      console.debug('⚠️ No user logged in - skipping quiz analytics submission');
     }
 
     setLastResult(result);
