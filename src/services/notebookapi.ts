@@ -1,14 +1,12 @@
 import { NOTES_API_BASE_URL } from '../constants/notebook.contants';
 import { Notebook, NotebookSource, ChatRequestDto, ChatResponseDto, ChatMessageDto } from '../types/notebook.types';
+import { getValidAccessToken } from '../services/TokenManager';
 
 // --- API CLIENT ---
 
 // Helper to get headers
-const getHeaders = (isJson = true) => {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    throw new Error("Missing access token for notebook service");
-  }
+const getHeaders = async (isJson = true) => {
+  const token = await getValidAccessToken();
   
   const headers: HeadersInit = {
     'Authorization': `Bearer ${token}`,
@@ -47,7 +45,7 @@ const handleResponse = async (response: Response) => {
 };
 
 export const fetchNotebooks = async (): Promise<Notebook[]> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/notebooks/`, {
     method: 'GET',
     headers: headers,
@@ -56,7 +54,7 @@ export const fetchNotebooks = async (): Promise<Notebook[]> => {
 };
 
 export const createNotebook = async (title: string, description?: string): Promise<Notebook> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/notebooks/`, {
     method: 'POST',
     headers: headers,
@@ -66,7 +64,7 @@ export const createNotebook = async (title: string, description?: string): Promi
 };
 
 export const updateNotebook = async (notebookId: string, updates: { title?: string, description?: string }): Promise<Notebook> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   // Use PATCH for partial updates
   const response = await fetch(`${NOTES_API_BASE_URL}/notebooks/${notebookId}`, {
     method: 'PATCH',
@@ -77,7 +75,7 @@ export const updateNotebook = async (notebookId: string, updates: { title?: stri
 };
 
 export const deleteNotebook = async (notebookId: string): Promise<void> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/notebooks/${notebookId}`, {
     method: 'DELETE',
     headers: headers,
@@ -93,7 +91,7 @@ export const uploadSourceFile = async (notebookId: string, file: File, metadata:
   formData.append('metadata', JSON.stringify(metadata));
 
   // getHeaders(false) skips Content-Type so browser sets boundary for FormData
-  const headers = getHeaders(false);
+  const headers = await getHeaders(false);
   const response = await fetch(`${NOTES_API_BASE_URL}/sources/`, {
     method: 'POST',
     headers: headers,
@@ -115,7 +113,7 @@ export const addSourceUrl = async (
   if (type === 'youtube') formData.append('youtube_url', url);
   formData.append('metadata', JSON.stringify(metadata));
 
-  const headers = getHeaders(false);
+  const headers = await getHeaders(false);
   const response = await fetch(`${NOTES_API_BASE_URL}/sources/`, {
     method: 'POST',
     headers: headers,
@@ -125,7 +123,7 @@ export const addSourceUrl = async (
 };
 
 export const fetchNotebookSources = async (notebookId: string): Promise<{ sources: NotebookSource[], count: number }> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/sources/${notebookId}`, {
     method: 'GET',
     headers: headers,
@@ -134,7 +132,7 @@ export const fetchNotebookSources = async (notebookId: string): Promise<{ source
 };
 
 export const sendNotebookChat = async (notebookId: string, payload: ChatRequestDto): Promise<ChatResponseDto> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/chat/${notebookId}`, {
     method: 'POST',
     headers: headers,
@@ -144,7 +142,7 @@ export const sendNotebookChat = async (notebookId: string, payload: ChatRequestD
 };
 
 export const fetchNotebookChatHistory = async (notebookId: string): Promise<ChatMessageDto[]> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/chat/${notebookId}/history`, {
     method: 'GET',
     headers: headers,
@@ -153,7 +151,7 @@ export const fetchNotebookChatHistory = async (notebookId: string): Promise<Chat
 };
 
 export const clearNotebookChatHistory = async (notebookId: string): Promise<any> => {
-  const headers = getHeaders();
+  const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/chat/${notebookId}/history`, {
     method: 'DELETE',
     headers: headers,
