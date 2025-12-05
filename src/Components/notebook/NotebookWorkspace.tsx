@@ -7,7 +7,6 @@ import {
   Bot, User, Send, Mic, BrainCircuit, Headphones
 } from 'lucide-react';
 
-
 interface NotebookWorkspaceProps {
   notebook: Notebook;
   onBackToNotebooks: () => void;
@@ -84,7 +83,11 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
     setSendingMessage(true);
 
     try {
-      const response = await sendNotebookChat(notebook.id, { user_query: userMsg.text });
+      const response = await sendNotebookChat(notebook.id, { 
+        user_query: userMsg.text,
+        max_context_chunks: 5,
+        max_tokens: 1024
+      });
       
       const assistantMsg: ChatMessageUi = {
         id: Date.now().toString() + 'ai',
