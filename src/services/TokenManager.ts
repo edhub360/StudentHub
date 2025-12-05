@@ -1,4 +1,5 @@
-// src/services/tokenManager.ts
+// src/services/TokenManager.ts
+
 import { refreshToken } from './loginApi';
 import type { LoginResponse } from '../types/login.types';
 
@@ -24,23 +25,51 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+// --- helpers ---
+
+function isTokenExpired(token: string, skewMs = 30_000): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+
+    const payloadJson = atob(
+      parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    );
+    const payload = JSON.parse(payloadJson);
+    if (!payload.exp) return true;
+
+    const expMs = payload.exp * 1000;
+    return expMs <= Date.now() + skewMs; // treat "about to expire" as expired
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Returns a valid access token.
- * If the current one is missing or rejected, tries to refresh using refresh_token.
- * On refresh failure, clears tokens and throws an error so caller can redirect to login.
+ * If current one is missing OR expired, tries to refresh using refresh_token.
+ * On refresh failure, clears tokens and throws so caller can redirect to login.
  */
 export async function getValidAccessToken(): Promise<string> {
   let { accessToken, refreshToken: storedRefresh } = getStoredTokens();
 
-  if (accessToken) {
+  // If we have a token and it is still valid, just use it
+  if (accessToken && !isTokenExpired(accessToken)) {
     return accessToken;
   }
 
+  // Otherwise try to refresh
   if (!storedRefresh) {
+    clearTokens();
     throw new Error('No refresh token available');
   }
 
-  const refreshed = await refreshToken(storedRefresh);
-  setTokens(refreshed);
-  return refreshed.access_token;
+  try {
+    const refreshed = await refreshToken(storedRefresh);
+    setTokens(refreshed);
+    return refreshed.access_token;
+  } catch (err) {
+    clearTokens();
+    throw new Error('Session expired. Please sign in again.');
+  }
 }
