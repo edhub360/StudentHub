@@ -316,7 +316,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                   disabled={!chatInput.trim() || sendingMessage}
                   className="bg-gray-900 text-white p-2 rounded-lg hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-xs font-semibold px-3"
                  >
-                    <span className="hidden sm:inline">Made in Bolt</span>
+                
                  </button>
               </div>
             </div>
