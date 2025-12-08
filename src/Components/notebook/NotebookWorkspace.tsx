@@ -14,6 +14,23 @@ interface NotebookWorkspaceProps {
   onAddSources: () => void;
 }
 
+// Helper function to turn source tokens into markdown links
+function linkifySources(
+  markdown: string,
+  sourceLinks?: Record<string, string>
+): string {
+  if (!sourceLinks || Object.keys(sourceLinks).length === 0) return markdown;
+
+  let result = markdown;
+
+  Object.entries(sourceLinks).forEach(([label, url]) => {
+    const pattern = new RegExp(`\\b${label}\\b`, "g");
+    result = result.replace(pattern, `[${label}](${url})`);
+  });
+
+  return result;
+}
+
 const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackToNotebooks }) => {
   // Data State
   const [sources, setSources] = useState<NotebookSource[]>([]);
@@ -90,7 +107,8 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
         id: Date.now().toString() + 'ai',
         text: response.answer,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        sourceLinks: response.source_links
       };
       
       setChatMessages(prev => [...prev, assistantMsg]);
@@ -267,7 +285,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                       ) : (
                         <div className="prose prose-sm max-w-none prose-blue">
                           <ReactMarkdown>
-                            {msg.text}
+                            {linkifySources(msg.text, msg.sourceLinks)}
                           </ReactMarkdown>
                         </div>
                       )}
