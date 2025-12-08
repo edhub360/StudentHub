@@ -314,9 +314,9 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                  <button 
                   onClick={handleSendMessage}
                   disabled={!chatInput.trim() || sendingMessage}
-                  className="bg-gray-900 text-white p-2 rounded-lg hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-xs font-semibold px-3"
+                  className="bg-teal-600 text-white p-2.5 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm"
                  >
-                
+                    <Send size={18} />
                  </button>
               </div>
             </div>
