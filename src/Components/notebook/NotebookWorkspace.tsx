@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Notebook, NotebookSource, ChatMessageUi } from '../../types/notebook.types';
 import { fetchNotebookSources, fetchNotebookChatHistory, sendNotebookChat, clearNotebookChatHistory } from '../../services/notebookapi';
+import ReactMarkdown from 'react-markdown';
 import { 
   ArrowLeft, Plus, FileText, Globe, Youtube, 
   Share2, Settings, Download,
-  Bot, User, Send, Mic, BrainCircuit, Headphones
+  Bot, User, Send, Mic, Sparkles, BrainCircuit, Headphones
 } from 'lucide-react';
 
 interface NotebookWorkspaceProps {
@@ -13,7 +14,7 @@ interface NotebookWorkspaceProps {
   onAddSources: () => void;
 }
 
-const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackToNotebooks, onAddSources }) => {
+const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackToNotebooks }) => {
   // Data State
   const [sources, setSources] = useState<NotebookSource[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessageUi[]>([]);
@@ -83,11 +84,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
     setSendingMessage(true);
 
     try {
-      const response = await sendNotebookChat(notebook.id, { 
-        user_query: userMsg.text,
-        max_context_chunks: 5,
-        max_tokens: 1024
-      });
+      const response = await sendNotebookChat(notebook.id, { user_query: userMsg.text });
       
       const assistantMsg: ChatMessageUi = {
         id: Date.now().toString() + 'ai',
@@ -175,10 +172,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
         {/* Left Sidebar - Sources */}
         <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col shrink-0">
           <div className="p-4 border-b border-gray-200">
-            <button 
-              onClick={onAddSources}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
-            >
+            <button className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
               <Plus size={16} />
               Add Sources
             </button>
@@ -268,7 +262,15 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                   </div>
                   <div className={`max-w-[80%] rounded-2xl p-4 ${msg.isUser ? 'bg-gray-100 text-gray-800' : 'bg-blue-50/50 border border-blue-100 text-gray-800'}`}>
                     <div className="text-sm leading-relaxed">
-                      {renderMessageText(msg.text)}
+                      {msg.isUser ? (
+                        renderMessageText(msg.text)
+                      ) : (
+                        <div className="prose prose-sm max-w-none prose-blue">
+                          <ReactMarkdown>
+                            {msg.text}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -312,10 +314,9 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                  <button 
                   onClick={handleSendMessage}
                   disabled={!chatInput.trim() || sendingMessage}
-                  className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm"
-                  aria-label="Send message"
+                  className="bg-gray-900 text-white p-2 rounded-lg hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-xs font-semibold px-3"
                  >
-                    <Send size={18} />
+                    <span className="hidden sm:inline">Made in Bolt</span>
                  </button>
               </div>
             </div>
