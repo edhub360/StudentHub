@@ -14,24 +14,7 @@ interface NotebookWorkspaceProps {
   onAddSources: () => void;
 }
 
-// Helper function to turn source tokens into markdown links
-function linkifySources(
-  markdown: string,
-  sourceLinks?: Record<string, string>
-): string {
-  if (!sourceLinks || Object.keys(sourceLinks).length === 0) return markdown;
-
-  let result = markdown;
-
-  Object.entries(sourceLinks).forEach(([label, url]) => {
-    const pattern = new RegExp(`\\b${label}\\b`, "g");
-    result = result.replace(pattern, `[${label}](${url})`);
-  });
-
-  return result;
-}
-
-const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackToNotebooks }) => {
+const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackToNotebooks, onAddSources }) => {
   // Data State
   const [sources, setSources] = useState<NotebookSource[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessageUi[]>([]);
@@ -107,8 +90,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
         id: Date.now().toString() + 'ai',
         text: response.answer,
         isUser: false,
-        timestamp: new Date(),
-        sourceLinks: response.source_links
+        timestamp: new Date()
       };
       
       setChatMessages(prev => [...prev, assistantMsg]);
@@ -190,7 +172,9 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
         {/* Left Sidebar - Sources */}
         <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col shrink-0">
           <div className="p-4 border-b border-gray-200">
-            <button className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+            <button 
+              onClick={onAddSources}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
               <Plus size={16} />
               Add Sources
             </button>
@@ -285,7 +269,7 @@ const NotebookWorkspace: React.FC<NotebookWorkspaceProps> = ({ notebook, onBackT
                       ) : (
                         <div className="prose prose-sm max-w-none prose-blue">
                           <ReactMarkdown>
-                            {linkifySources(msg.text, msg.sourceLinks)}
+                            {msg.text}
                           </ReactMarkdown>
                         </div>
                       )}

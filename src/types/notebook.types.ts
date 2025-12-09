@@ -36,7 +36,6 @@ export interface ChatMessageUi {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  sourceLinks?: Record<string, string>;
 }
 
 export interface ContextChunk {
@@ -51,7 +50,6 @@ export interface ChatResponseDto {
   history: ChatMessageDto[];
   notebook_id: string;
   total_chunks_found: number;
-  source_links?: Record<string, string>;
 }
 
 export interface ChatRequestDto {
