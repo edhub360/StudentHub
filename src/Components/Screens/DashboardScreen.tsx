@@ -81,7 +81,7 @@ const DashboardScreen: React.FC = () => {
     <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8 pb-12 bg-slate-50 min-h-screen">
       
       {/* Hero Welcome Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-teal-500 p-8 shadow-lg text-white">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 to-teal-500 p-8 shadow-lg text-white">
         <div className="relative z-10">
           <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.name || "Student"}!</h2>
           <p className="text-teal-50 text-lg opacity-90">Ready to continue your learning journey?</p>
