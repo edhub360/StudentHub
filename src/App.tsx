@@ -8,45 +8,13 @@ import {
   Brain, 
   BarChart3, 
   Upload,
-  User,
-  Settings,
-  Bell,
-  Trophy,
-  Target,
-  Clock,
   BookOpen,
-  Zap,
-  Camera,
-  Search,
-  ChevronRight,
-  Play,
-  RotateCcw,
-  Check,
-  X,
-  Award,
-  Calendar,
-  TrendingUp,
   Image as ImageIcon,
-  Send,
-  Menu,
-  ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  StickyNote,
-  ExternalLink,
-  Star,
-  Plus,
-  ArrowLeft,
-  Globe,
-  Volume2,
-  GitBranch,
-  Download,
-  Share2,
-  CreditCard
 } from 'lucide-react';
 import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
 import Footer from "./Components/Footer";
-import HomeScreen from './Components/Screens/HomeScreen';
 import ChatScreen from './Components/Screens/ChatScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
@@ -62,6 +30,7 @@ import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
+import DashboardScreen from './Components/Screens/DashboardScreen';
 
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -280,7 +249,7 @@ const handleLoginSuccess = (
   const renderContent = () => {
     switch (activeTab) {
       case 'home': 
-        return <HomeScreen setActiveTab={setActiveTab} />;
+        return <DashboardScreen />;
       case "chat":
         return (
           <ChatScreen
@@ -315,7 +284,7 @@ const handleLoginSuccess = (
           />
         );
       default: 
-        return <HomeScreen setActiveTab={setActiveTab} />;
+        return <DashboardScreen />;
     }
   };
 
