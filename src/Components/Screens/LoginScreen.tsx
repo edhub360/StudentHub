@@ -4,6 +4,7 @@ import { FaFacebook } from 'react-icons/fa';
 import Logo from '../../images/logo.edhub.png';
 import LoginForm from '../login/LoginForm';
 import GoogleLoginButton from '../login/GoogleLoginButton';
+import { setTokens } from '../../services/TokenManager';
 import { loginWithEmail } from '../../services/loginApi';
 import { LoginScreenProps, LoginResponse, LoginFormValues } from '../../types/login.types';
 import { LOGIN_ERROR_MESSAGES } from '../../constants/login.constants';
@@ -17,9 +18,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [error, setError] = useState('');
 
   const saveUserData = (data: LoginResponse) => {
+    // store tokens via shared helper
+    setTokens(data);
+
+    // keep existing localStorage fields for backward compatibility
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
+    if (data.refresh_token) {
+      localStorage.setItem('refresh_token', data.refresh_token);
+    }
     localStorage.setItem('user', JSON.stringify(data.user));
     localStorage.setItem('subscription_tier', data.user.subscription_tier || '');
     localStorage.setItem('user_id', data.user.user_id);
