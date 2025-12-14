@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { UploadCloud, File as FileIcon, X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { solveImage } from '../../services/uploadsolveApi';
 import { useAuth } from '../../context/AuthContext';
 import { SolveMode, Subject, SolveImageResponse } from '../../types/uploadsolve.types';
@@ -242,10 +243,10 @@ const UploadScreen: React.FC = () => {
             </span>
           </div>
           <div className="p-6 md:p-8">
-            <div className="prose prose-slate max-w-none">
-              <pre className="whitespace-pre-wrap font-sans text-slate-800 text-base leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
+            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-img:rounded-lg">
+              <ReactMarkdown>
                 {result.answer}
-              </pre>
+              </ReactMarkdown>
             </div>
             
             {result.token_count && (
