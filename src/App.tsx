@@ -274,14 +274,7 @@ const handleLoginSuccess = (
         return <ProgressScreen />;
       case 'upload':
         return (
-          <UploadScreen
-            uploadedImage={uploadedImage}
-            dragActive={dragActive}
-            setDragActive={setDragActive}
-            setUploadedImage={setUploadedImage}
-            handleDrop={handleDrop}
-            handleImageUpload={handleImageUpload}
-          />
+          <UploadScreen />
         );
       default: 
         return <DashboardScreen />;
