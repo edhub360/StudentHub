@@ -18,7 +18,6 @@ import Footer from "./Components/Footer";
 import ChatScreen from './Components/Screens/ChatScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
-import ProgressScreen from './Components/Screens/ProgressScreen';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
@@ -172,7 +171,6 @@ const handleLoginSuccess = (
     { id: 'quiz', label: 'Quiz Mode', icon: Brain },
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'notes', label: 'Notes', icon: BookOpen },
-    { id: 'progress', label: 'Progress', icon: BarChart3 },
     { id: 'upload', label: 'Screenshot Solve', icon: Upload },
   ];
 
@@ -270,8 +268,6 @@ const handleLoginSuccess = (
 
       case 'notes': 
         return <NotebookScreen />;
-      case 'progress': 
-        return <ProgressScreen />;
       case 'upload':
         return (
           <UploadScreen />
