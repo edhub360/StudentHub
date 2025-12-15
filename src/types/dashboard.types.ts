@@ -7,6 +7,17 @@ export type QuizDashboardSummary = {
   currentStreakDays: number;
 };
 
+export type WeeklyActivityDailyData = {
+  date: string;
+  studyTimeSeconds: number;
+  quizzesCompleted: number;
+};
+
+export type WeeklyActivityResponse = {
+  user_id: string;
+  days: WeeklyActivityDailyData[];
+};
+
 // UI Types (Preserved for the rich dashboard interface)
 export type WeeklyActivityDay = {
   day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
