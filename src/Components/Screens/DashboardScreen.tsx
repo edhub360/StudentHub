@@ -53,8 +53,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ setActiveTab }) => {
             const formattedActivity: WeeklyActivityDay[] = activityData.days.map(day => ({
               // Convert "2025-12-15" to "Mon"
               day: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }) as WeeklyActivityDay['day'],
-              // Convert seconds to hours
-              hours: parseFloat((day.studyTimeSeconds / 3600).toFixed(1))
+              // Convert seconds to minutes
+              minutes: Math.round(day.studyTimeSeconds / 60)
             }));
             setWeeklyActivityData(formattedActivity);
           }

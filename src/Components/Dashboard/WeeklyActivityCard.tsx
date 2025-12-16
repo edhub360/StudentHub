@@ -43,13 +43,19 @@ export const WeeklyActivityCard: React.FC<WeeklyActivityCardProps> = ({ data }) 
                 border: 'none',
                 fontSize: '12px'
               }}
-              formatter={(value: number) => [`${value} hrs`, 'Study Time']}
+              formatter={(value: number) => {
+                if (value < 60) {
+                  return [`${value}m`, 'Study Time'];
+                }
+                const hours = (value / 60).toFixed(1);
+                return [`${hours}h`, 'Study Time'];
+              }}
             />
-            <Bar dataKey="hours" radius={[6, 6, 6, 6]} barSize={32}>
+            <Bar dataKey="minutes" radius={[6, 6, 6, 6]} barSize={32}>
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={entry.hours >= 3 ? '#0ea5e9' : '#2dd4bf'} // Sky blue for high activity, Teal for lower
+                  fill={entry.minutes >= 180 ? '#0ea5e9' : '#2dd4bf'} // 180m = 3h. Sky blue for high activity, Teal for lower
                 />
               ))}
             </Bar>
