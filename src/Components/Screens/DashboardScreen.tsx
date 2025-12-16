@@ -15,11 +15,24 @@ import {
   Clock, 
   Hourglass, 
   Medal, 
-  TrendingUp,
-  Bell
+  TrendingUp
 } from 'lucide-react';
 
-const DashboardScreen: React.FC = () => {
+export type TabId =
+  | 'home'
+  | 'chat'
+  | 'flashcards'
+  | 'quiz'
+  | 'courses'
+  | 'notes'
+  | 'progress'
+  | 'upload';
+
+interface DashboardScreenProps {
+  setActiveTab: (tab: TabId) => void;
+}
+
+const DashboardScreen: React.FC<DashboardScreenProps> = ({ setActiveTab }) => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<QuizDashboardSummary | null>(null);
   const [weeklyActivityData, setWeeklyActivityData] = useState<WeeklyActivityDay[]>(STATIC_DASHBOARD_DATA.weeklyActivity);
@@ -95,6 +108,36 @@ const DashboardScreen: React.FC = () => {
 
   const handleQuickAction = (id: string) => {
     console.log(`Navigating to action: ${id}`);
+    switch (id) {
+      // Requested mappings
+      case 'start_quiz':
+      case 'take-quiz': // Handle existing data ID
+        setActiveTab('quiz');
+        break;
+      case 'continue_course':
+        setActiveTab('courses');
+        break;
+      case 'open_chat':
+      case 'ask-ai': // Handle existing data ID
+        setActiveTab('chat');
+        break;
+      case 'review_notes':
+        setActiveTab('notes');
+        break;
+      case 'view_progress':
+        setActiveTab('progress');
+        break;
+      case 'upload_screenshot':
+      case 'scan-solve': // Handle existing data ID
+        setActiveTab('upload');
+        break;
+      case 'flashcards': // Handle existing data ID
+        setActiveTab('flashcards');
+        break;
+      default:
+        console.warn(`Unknown action id: ${id}`);
+        break;
+    }
   };
 
   return (

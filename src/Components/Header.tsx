@@ -1,13 +1,15 @@
 import { Menu, Bell, Settings, User, LogOut, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { TabId } from './Screens/DashboardScreen';
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (val: boolean) => void;
-  activeTab: string;
+  activeTab: TabId;
   onLogout: () => void;
 }
+
 
 export default function Header({
   sidebarCollapsed,

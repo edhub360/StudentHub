@@ -29,12 +29,12 @@ import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
-import DashboardScreen from './Components/Screens/DashboardScreen';
+import DashboardScreen, {TabId} from './Components/Screens/DashboardScreen';
 
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
-  id: string;
+  id: TabId;
   label: string;
   icon: React.ComponentType<any>;
 }
@@ -57,9 +57,10 @@ interface UserStatus {
   subscription: any;
 }
 
+
 const App: React.FC = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
   // ✅ Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
@@ -247,7 +248,7 @@ const handleLoginSuccess = (
   const renderContent = () => {
     switch (activeTab) {
       case 'home': 
-        return <DashboardScreen />;
+        return <DashboardScreen setActiveTab={setActiveTab} />;
       case "chat":
         return (
           <ChatScreen
@@ -273,7 +274,7 @@ const handleLoginSuccess = (
           <UploadScreen />
         );
       default: 
-        return <DashboardScreen />;
+        return <DashboardScreen setActiveTab={setActiveTab} />;
     }
   };
 
