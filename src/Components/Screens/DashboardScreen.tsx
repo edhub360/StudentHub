@@ -18,15 +18,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-export type TabId =
-  | 'home'
-  | 'chat'
-  | 'flashcards'
-  | 'quiz'
-  | 'courses'
-  | 'notes'
-  | 'progress'
-  | 'upload';
+export type TabId = 'home' | 'chat' | 'flashcards' | 'quiz' | 'courses' | 'notes' | 'upload';
 
 interface DashboardScreenProps {
   setActiveTab: (tab: TabId) => void;
@@ -107,35 +99,22 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ setActiveTab }) => {
   const goalCompletionPercent = 75; 
 
   const handleQuickAction = (id: string) => {
-    console.log(`Navigating to action: ${id}`);
+    console.log('Dashboard handleQuickAction', id);
     switch (id) {
-      // Requested mappings
-      case 'start_quiz':
-      case 'take-quiz': // Handle existing data ID
+      case 'take-quiz': 
         setActiveTab('quiz');
         break;
-      case 'continue_course':
-        setActiveTab('courses');
-        break;
-      case 'open_chat':
-      case 'ask-ai': // Handle existing data ID
+      case 'ask-ai':
         setActiveTab('chat');
         break;
-      case 'review_notes':
-        setActiveTab('notes');
-        break;
-      case 'view_progress':
-        setActiveTab('progress');
-        break;
-      case 'upload_screenshot':
-      case 'scan-solve': // Handle existing data ID
+      case 'scan-solve':
         setActiveTab('upload');
         break;
-      case 'flashcards': // Handle existing data ID
+      case 'flashcards':
         setActiveTab('flashcards');
         break;
       default:
-        console.warn(`Unknown action id: ${id}`);
+        console.warn('Unknown quick action id', id);
         break;
     }
   };

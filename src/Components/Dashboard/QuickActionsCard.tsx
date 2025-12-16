@@ -41,7 +41,10 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({ actions, onA
           return (
             <button
               key={action.id}
-              onClick={() => onActionClick(action.id)}
+              onClick={() => {
+                console.log('QuickActionsCard click', action.id);
+                onActionClick(action.id);
+              }}
               className={`flex flex-col items-center justify-center p-4 rounded-xl text-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${theme.bg} group`}
             >
               <div className={`p-3 rounded-full mb-3 bg-white shadow-sm ${theme.text}`}>
