@@ -131,6 +131,15 @@ export const fetchNotebookSources = async (notebookId: string): Promise<{ source
   return handleResponse(response);
 };
 
+export const deleteSource = async (sourceId: string): Promise<void> => {
+  const headers = await getHeaders();
+  const response = await fetch(`${NOTES_API_BASE_URL}/sources/${sourceId}`, {
+    method: 'DELETE',
+    headers: headers,
+  });
+  await handleResponse(response);
+};
+
 export const sendNotebookChat = async (notebookId: string, payload: ChatRequestDto): Promise<ChatResponseDto> => {
   const headers = await getHeaders();
   const response = await fetch(`${NOTES_API_BASE_URL}/chat/${notebookId}`, {

@@ -172,7 +172,7 @@ const handleLoginSuccess = (
     { id: 'flashcards', label: 'Flashcards', icon: FileText },
     { id: 'quiz', label: 'Quiz Mode', icon: Brain },
     { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'study-planner', label: 'Study Planner', icon: BarChart3 },
+    { id: 'study planner', label: 'Study Planner', icon: BarChart3 },
     { id: 'notes', label: 'Notes', icon: BookOpen },
     { id: 'upload', label: 'Screenshot Solve', icon: Upload },
   ];
@@ -269,7 +269,7 @@ const handleLoginSuccess = (
       case 'courses': 
         return <CourseScreen />;
 
-      case 'study-planner':                         // <-- new
+      case 'study planner':                         // <-- new
       return <StudyPlanScreen />;
 
       case 'notes': 
