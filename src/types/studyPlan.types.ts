@@ -10,6 +10,11 @@ export interface Term {
   is_archived: boolean;
 }
 
+export interface RequirementCategory {
+  id: string;
+  name: string;
+}
+
 export interface StudyItem {
   id: string;
   term_id: string;

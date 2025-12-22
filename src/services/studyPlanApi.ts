@@ -4,7 +4,8 @@ import {
   Term, 
   StudyItem, 
   NewStudyItemPayload, 
-  UpdateStudyItemPayload 
+  UpdateStudyItemPayload,
+  RequirementCategory
 } from '../types/studyPlan.types';
 import { STUDY_PLAN_API_BASE_URL } from '../constants/studyPlan.constants';
 
@@ -23,6 +24,15 @@ export const setupApiAuth = (token: string) => {
 export async function fetchTerms(): Promise<Term[]> {
   try {
     const response = await api.get('/study-plan/terms');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error as AxiosError);
+  }
+}
+
+export async function fetchRequirementCategories(): Promise<RequirementCategory[]> {
+  try {
+    const response = await api.get('/study-plan/requirement-categories');
     return response.data;
   } catch (error) {
     throw handleApiError(error as AxiosError);

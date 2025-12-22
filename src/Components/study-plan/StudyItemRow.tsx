@@ -1,24 +1,34 @@
 
 import React from 'react';
 import { StudyItem } from '../../types/studyPlan.types';
-import { STATUS_LABELS, STATUS_COLORS, MOCK_REQUIREMENT_CATEGORIES } from '../../constants/studyPlan.constants';
+import { STATUS_LABELS, STATUS_COLORS } from '../../constants/studyPlan.constants';
 
 interface StudyItemRowProps {
   item: StudyItem;
+  requirementName: string;
+  termName: string;
   onEdit: (item: StudyItem) => void;
   onDelete: (id: string) => void;
   onToggleLock: (item: StudyItem) => void;
 }
 
-const StudyItemRow: React.FC<StudyItemRowProps> = ({ item, onEdit, onDelete, onToggleLock }) => {
-  const category = MOCK_REQUIREMENT_CATEGORIES.find(c => c.id === item.requirement_category_id)?.name || "General Education";
-
+const StudyItemRow: React.FC<StudyItemRowProps> = ({ 
+  item, 
+  requirementName,
+  termName,
+  onEdit, 
+  onDelete, 
+  onToggleLock 
+}) => {
   return (
     <tr className="hover:bg-slate-50/80 transition-colors group">
       <td className="py-6 px-6">
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-1 bg-slate-100 rounded-lg">
-          {category}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400 self-start">
+            {requirementName}
+          </span>
+          <span className="text-[10px] text-slate-400 font-medium">{termName}</span>
+        </div>
       </td>
       <td className="py-6 px-6">
         <span className="font-black text-slate-800 text-sm tracking-tight">{item.course_code}</span>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Term, StudyItem, NewStudyItemPayload } from '../../types/studyPlan.types';
+import { Term, StudyItem, NewStudyItemPayload, RequirementCategory } from '../../types/studyPlan.types';
 import * as api from '../../services/studyPlanApi';
 import StudyPlanToolbar from '../study-plan/StudyPlanToolbar';
 import StudyPlanList from '../study-plan/StudyPlanList';
@@ -9,6 +9,7 @@ import { getValidAccessToken } from "../../services/TokenManager";
 
 const StudyPlanScreen: React.FC = () => {
   const [terms, setTerms] = useState<Term[]>([]);
+  const [requirementCategories, setRequirementCategories] = useState<RequirementCategory[]>([]);
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [studyItems, setStudyItems] = useState<StudyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +49,15 @@ const StudyPlanScreen: React.FC = () => {
     }
   }, [selectedTermId]);
 
+  const loadRequirementCategories = useCallback(async () => {
+    try {
+      const data = await api.fetchRequirementCategories();
+      setRequirementCategories(data);
+    } catch (err: any) {
+      // Keep existing error pattern
+    }
+  }, []);
+
   const loadItems = useCallback(async (termId: string) => {
     if (!termId) return;
     try {
@@ -63,7 +73,8 @@ const StudyPlanScreen: React.FC = () => {
 
   useEffect(() => {
     loadTerms();
-  }, [loadTerms]);
+    loadRequirementCategories();
+  }, [loadTerms, loadRequirementCategories]);
 
   useEffect(() => {
     if (selectedTermId) {
@@ -174,7 +185,7 @@ const StudyPlanScreen: React.FC = () => {
         {!selectedTermId ? (
           <div className="bg-white rounded-[24px] p-16 sm:p-24 text-center border border-slate-100 shadow-sm">
             <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
             </div>
             <h3 className="text-2xl font-black text-slate-800 mb-3">No term selected</h3>
             <p className="text-slate-400 max-w-sm mx-auto font-medium">Please select a term from the menu above to view or build your schedule.</p>
@@ -196,6 +207,8 @@ const StudyPlanScreen: React.FC = () => {
           <StudyPlanList 
             items={filteredItems}
             isLoading={isLoading}
+            terms={terms}
+            requirementCategories={requirementCategories}
             onEdit={handleEditCourse}
             onDelete={handleDeleteCourse}
             onToggleLock={handleToggleLock}

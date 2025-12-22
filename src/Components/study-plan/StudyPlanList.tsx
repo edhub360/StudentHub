@@ -1,11 +1,13 @@
 
 import React from 'react';
-import { StudyItem } from '../../types/studyPlan.types';
+import { StudyItem, Term, RequirementCategory } from '../../types/studyPlan.types';
 import StudyItemRow from './StudyItemRow';
 
 interface StudyPlanListProps {
   items: StudyItem[];
   isLoading: boolean;
+  terms: Term[];
+  requirementCategories: RequirementCategory[];
   onEdit: (item: StudyItem) => void;
   onDelete: (id: string) => void;
   onToggleLock: (item: StudyItem) => void;
@@ -14,6 +16,8 @@ interface StudyPlanListProps {
 const StudyPlanList: React.FC<StudyPlanListProps> = ({ 
   items, 
   isLoading, 
+  terms,
+  requirementCategories,
   onEdit, 
   onDelete, 
   onToggleLock 
@@ -39,6 +43,11 @@ const StudyPlanList: React.FC<StudyPlanListProps> = ({
     );
   }
 
+  const termById = new Map(terms.map((t) => [t.id, t.name]));
+  const requirementById = new Map(
+    requirementCategories.map((rc) => [rc.id, rc.name])
+  );
+
   return (
     <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden">
       <div className="overflow-x-auto">
@@ -58,6 +67,12 @@ const StudyPlanList: React.FC<StudyPlanListProps> = ({
               <StudyItemRow 
                 key={item.id} 
                 item={item} 
+                requirementName={
+                  (item.requirement_category_id &&
+                    requirementById.get(item.requirement_category_id)) ||
+                  'General Education'
+                }
+                termName={termById.get(item.term_id) || ''}
                 onEdit={onEdit} 
                 onDelete={onDelete} 
                 onToggleLock={onToggleLock}
