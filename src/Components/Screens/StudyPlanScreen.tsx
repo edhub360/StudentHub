@@ -13,6 +13,7 @@ const StudyPlanScreen: React.FC = () => {
   const [studyItems, setStudyItems] = useState<StudyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hideEmptyTerms, setHideEmptyTerms] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Modal states
@@ -124,8 +125,13 @@ const StudyPlanScreen: React.FC = () => {
 
   const currentTerm = terms.find(t => t.id === selectedTermId) || null;
 
-  // Filter logic: if hideEmptyTerms is true, and the list is empty, we show a special empty state.
-  const isTermEmpty = studyItems.length === 0;
+  // Search filter logic
+  const filteredItems = studyItems.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter logic: if hideEmptyTerms is true, and the filtered list is empty, we hide the rows.
+  const isTermEmpty = filteredItems.length === 0;
   const shouldHideRows = hideEmptyTerms && isTermEmpty;
 
   return (
@@ -157,9 +163,8 @@ const StudyPlanScreen: React.FC = () => {
       <div className="space-y-6">
         {/* Toolbar Card */}
         <StudyPlanToolbar 
-          terms={terms}
-          selectedTermId={selectedTermId}
-          onTermChange={setSelectedTermId}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           hideEmptyTerms={hideEmptyTerms}
           onToggleHideEmpty={() => setHideEmptyTerms(!hideEmptyTerms)}
           onAddCourse={handleAddCourse}
@@ -177,11 +182,19 @@ const StudyPlanScreen: React.FC = () => {
         ) : shouldHideRows ? (
            <div className="bg-white rounded-[24px] p-16 sm:p-24 text-center border border-slate-100 shadow-sm">
             <h3 className="text-xl font-bold text-slate-600 mb-2">Term is hidden</h3>
-            <p className="text-slate-400 font-medium">This term contains no items and "Hide empty terms" is active.</p>
+            <p className="text-slate-400 font-medium">This term contains no items matching your search or is empty while "Hide empty terms" is active.</p>
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="mt-4 text-teal-600 font-bold hover:text-teal-700 transition-colors"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
           <StudyPlanList 
-            items={studyItems}
+            items={filteredItems}
             isLoading={isLoading}
             onEdit={handleEditCourse}
             onDelete={handleDeleteCourse}

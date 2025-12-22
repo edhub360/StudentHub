@@ -1,20 +1,17 @@
 
 import React from 'react';
-import { Term } from '../../types/studyPlan.types';
 
 interface StudyPlanToolbarProps {
-  terms: Term[];
-  selectedTermId: string;
-  onTermChange: (termId: string) => void;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
   hideEmptyTerms: boolean;
   onToggleHideEmpty: () => void;
   onAddCourse: () => void;
 }
 
 const StudyPlanToolbar: React.FC<StudyPlanToolbarProps> = ({
-  terms,
-  selectedTermId,
-  onTermChange,
+  searchQuery,
+  onSearchChange,
   hideEmptyTerms,
   onToggleHideEmpty,
   onAddCourse,
@@ -22,21 +19,26 @@ const StudyPlanToolbar: React.FC<StudyPlanToolbarProps> = ({
   return (
     <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+        {/* Left: Search Input */}
         <div className="flex flex-col">
-          <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2 ml-1">Current Term</label>
-          <select 
-            value={selectedTermId}
-            onChange={(e) => onTermChange(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-teal-500/20 transition-all min-w-[240px] appearance-none cursor-pointer"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1rem' }}
-          >
-            <option value="">Select a Term</option>
-            {terms.map((term) => (
-              <option key={term.id} value={term.id}>{term.name}</option>
-            ))}
-          </select>
+          <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2 ml-1">Search Courses</label>
+          <div className="relative">
+            <input 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search by course title..."
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl pl-11 pr-5 py-3 outline-none focus:ring-2 focus:ring-teal-500/20 transition-all min-w-[280px]"
+            />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
         </div>
 
+        {/* Center: Hide Empty Toggle */}
         <div className="flex items-center pt-2 sm:pt-4">
           <button 
             onClick={onToggleHideEmpty}
@@ -50,6 +52,7 @@ const StudyPlanToolbar: React.FC<StudyPlanToolbarProps> = ({
         </div>
       </div>
 
+      {/* Right: Add Course Button */}
       <button 
         onClick={onAddCourse}
         className="teal-gradient text-white px-8 py-4 rounded-xl text-sm font-bold shadow-xl shadow-teal-500/25 hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center justify-center space-x-2"
