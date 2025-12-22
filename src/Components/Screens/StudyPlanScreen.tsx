@@ -13,7 +13,6 @@ const StudyPlanScreen: React.FC = () => {
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [studyItems, setStudyItems] = useState<StudyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hideEmptyTerms, setHideEmptyTerms] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -141,10 +140,6 @@ const StudyPlanScreen: React.FC = () => {
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter logic: if hideEmptyTerms is true, and the filtered list is empty, we hide the rows.
-  const isTermEmpty = filteredItems.length === 0;
-  const shouldHideRows = hideEmptyTerms && isTermEmpty;
-
   return (
     <div className="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto">
       {/* Page Header */}
@@ -176,8 +171,6 @@ const StudyPlanScreen: React.FC = () => {
         <StudyPlanToolbar 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          hideEmptyTerms={hideEmptyTerms}
-          onToggleHideEmpty={() => setHideEmptyTerms(!hideEmptyTerms)}
           onAddCourse={handleAddCourse}
         />
 
@@ -189,19 +182,6 @@ const StudyPlanScreen: React.FC = () => {
             </div>
             <h3 className="text-2xl font-black text-slate-800 mb-3">No term selected</h3>
             <p className="text-slate-400 max-w-sm mx-auto font-medium">Please select a term from the menu above to view or build your schedule.</p>
-          </div>
-        ) : shouldHideRows ? (
-           <div className="bg-white rounded-[24px] p-16 sm:p-24 text-center border border-slate-100 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-600 mb-2">Term is hidden</h3>
-            <p className="text-slate-400 font-medium">This term contains no items matching your search or is empty while "Hide empty terms" is active.</p>
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")}
-                className="mt-4 text-teal-600 font-bold hover:text-teal-700 transition-colors"
-              >
-                Clear Search
-              </button>
-            )}
           </div>
         ) : (
           <StudyPlanList 

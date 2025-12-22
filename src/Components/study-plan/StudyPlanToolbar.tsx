@@ -4,16 +4,12 @@ import React from 'react';
 interface StudyPlanToolbarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  hideEmptyTerms: boolean;
-  onToggleHideEmpty: () => void;
   onAddCourse: () => void;
 }
 
 const StudyPlanToolbar: React.FC<StudyPlanToolbarProps> = ({
   searchQuery,
   onSearchChange,
-  hideEmptyTerms,
-  onToggleHideEmpty,
   onAddCourse,
 }) => {
   return (
@@ -36,19 +32,6 @@ const StudyPlanToolbar: React.FC<StudyPlanToolbarProps> = ({
               </svg>
             </div>
           </div>
-        </div>
-
-        {/* Center: Hide Empty Toggle */}
-        <div className="flex items-center pt-2 sm:pt-4">
-          <button 
-            onClick={onToggleHideEmpty}
-            className={`flex items-center space-x-3 text-sm font-bold transition-colors ${hideEmptyTerms ? 'text-teal-600' : 'text-slate-400'}`}
-          >
-            <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${hideEmptyTerms ? 'bg-teal-500' : 'bg-slate-200'}`}>
-              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-300 ${hideEmptyTerms ? 'left-6' : 'left-1'}`} />
-            </div>
-            <span>Hide empty terms</span>
-          </button>
         </div>
       </div>
 
