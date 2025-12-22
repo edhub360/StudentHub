@@ -6,7 +6,6 @@ import { STATUS_LABELS, STATUS_COLORS } from '../../constants/studyPlan.constant
 interface StudyItemRowProps {
   item: StudyItem;
   requirementName: string;
-  termName: string;
   onEdit: (item: StudyItem) => void;
   onDelete: (id: string) => void;
   onToggleLock: (item: StudyItem) => void;
@@ -15,7 +14,6 @@ interface StudyItemRowProps {
 const StudyItemRow: React.FC<StudyItemRowProps> = ({ 
   item, 
   requirementName,
-  termName,
   onEdit, 
   onDelete, 
   onToggleLock 
@@ -27,7 +25,6 @@ const StudyItemRow: React.FC<StudyItemRowProps> = ({
           <span className="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400 self-start">
             {requirementName}
           </span>
-          <span className="text-[10px] text-slate-400 font-medium">{termName}</span>
         </div>
       </td>
       <td className="py-6 px-6">
