@@ -57,11 +57,10 @@ const StudyPlanScreen: React.FC = () => {
     }
   }, []);
 
-  const loadItems = useCallback(async (termId: string) => {
-    if (!termId) return;
+  const loadItems = useCallback(async () => {
     try {
       setIsLoading(true);
-      const items = await api.fetchStudyItems(termId);
+      const items = await api.fetchAllStudyItems();  // <-- no termId
       setStudyItems(items);
     } catch (err: any) {
       handleApiError(err, 'Network error. Please check your connection.');
@@ -70,21 +69,26 @@ const StudyPlanScreen: React.FC = () => {
     }
   }, []);
 
-  // Initial load: terms + requirement categories
+
+  // Initial load: terms + requirement categories + all items
   useEffect(() => {
     void (async () => {
-      await Promise.all([loadTerms(), loadRequirementCategories()]);
+      await Promise.all([
+        loadTerms(),
+        loadRequirementCategories(),
+        loadItems(),
+      ]);
     })();
-  }, [loadTerms, loadRequirementCategories]);
+  }, [loadTerms, loadRequirementCategories, loadItems]);
 
   // Load items when selectedTermId changes
-  useEffect(() => {
-    if (selectedTermId) {
-      void loadItems(selectedTermId);
-    } else {
-      setStudyItems([]);
-    }
-  }, [selectedTermId, loadItems]);
+  // useEffect(() => {
+  //   if (selectedTermId) {
+  //     void loadItems(selectedTermId);
+  //   } else {
+  //     setStudyItems([]);
+  //   }
+  // }, [selectedTermId, loadItems]);
 
   const handleAddCourse = () => {
     if (!selectedTermId) {

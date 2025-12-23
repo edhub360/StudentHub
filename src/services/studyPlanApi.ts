@@ -81,6 +81,16 @@ export async function createTerm(name: string): Promise<Term> {
   return handleResponse<Term>(res);
 }
 
+export async function fetchAllStudyItems(): Promise<StudyItem[]> {
+  const headers = await getHeaders();
+  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/items`, {
+    method: 'GET',
+    headers,
+  });
+  return handleResponse<StudyItem[]>(res);
+}
+
+
 export async function fetchStudyItems(termId: string): Promise<StudyItem[]> {
   const headers = await getHeaders();
   const res = await fetch(
