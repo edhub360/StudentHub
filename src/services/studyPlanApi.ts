@@ -1,94 +1,134 @@
-
-import axios, { AxiosError } from 'axios';
-import { 
-  Term, 
-  StudyItem, 
-  NewStudyItemPayload, 
+import {
+  Term,
+  StudyItem,
+  NewStudyItemPayload,
   UpdateStudyItemPayload,
-  RequirementCategory
+  RequirementCategory,
 } from '../types/studyPlan.types';
 import { STUDY_PLAN_API_BASE_URL } from '../constants/studyPlan.constants';
+import { getValidAccessToken } from '../services/TokenManager';
 
-const api = axios.create({
-  baseURL: STUDY_PLAN_API_BASE_URL,
-});
+// ---- helpers ----
 
-// Setup interceptor for the Bearer token
-export const setupApiAuth = (token: string) => {
-  api.interceptors.request.use((config) => {
-    config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
+const getHeaders = async (isJson = true): Promise<HeadersInit> => {
+  const token = await getValidAccessToken(); // will refresh if expired
+  const headers: HeadersInit = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (isJson) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
 };
 
-export async function fetchTerms(): Promise<Term[]> {
-  try {
-    const response = await api.get('/study-plan/terms');
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
+const handleResponse = async <T = any>(response: Response): Promise<T> => {
+  if (!response.ok) {
+    let message = response.statusText || 'Request failed';
+    try {
+      const data = await response.json();
+      if (data && typeof data === 'object' && 'detail' in data) {
+        message = (data as any).detail || message;
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+    // Surface specific session/401 errors to the caller
+    throw new Error(message);
   }
+
+  if (response.status === 204) {
+    // No Content
+    return null as unknown as T;
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null as unknown as T;
+  }
+};
+
+// ---- API functions ----
+
+export async function fetchTerms(): Promise<Term[]> {
+  const headers = await getHeaders();
+  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/terms`, {
+    method: 'GET',
+    headers,
+  });
+  return handleResponse<Term[]>(res);
 }
 
 export async function fetchRequirementCategories(): Promise<RequirementCategory[]> {
-  try {
-    const response = await api.get('/study-plan/requirements');
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
+  const headers = await getHeaders();
+  const res = await fetch(
+    `${STUDY_PLAN_API_BASE_URL}/study-plan/requirements`,
+    {
+      method: 'GET',
+      headers,
+    }
+  );
+  return handleResponse<RequirementCategory[]>(res);
 }
 
 export async function createTerm(name: string): Promise<Term> {
-  try {
-    const response = await api.post('/study-plan/terms', { name });
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
+  const headers = await getHeaders();
+  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/terms`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name }),
+  });
+  return handleResponse<Term>(res);
 }
 
 export async function fetchStudyItems(termId: string): Promise<StudyItem[]> {
-  try {
-    const response = await api.get(`/study-plan/terms/${termId}/items`);
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
+  const headers = await getHeaders();
+  const res = await fetch(
+    `${STUDY_PLAN_API_BASE_URL}/study-plan/terms/${termId}/items`,
+    {
+      method: 'GET',
+      headers,
+    }
+  );
+  return handleResponse<StudyItem[]>(res);
 }
 
-export async function createStudyItem(payload: NewStudyItemPayload): Promise<StudyItem> {
-  try {
-    const response = await api.post('/study-plan/items', payload);
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
+export async function createStudyItem(
+  payload: NewStudyItemPayload
+): Promise<StudyItem> {
+  const headers = await getHeaders();
+  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/items`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<StudyItem>(res);
 }
 
-export async function updateStudyItem(itemId: string, payload: UpdateStudyItemPayload): Promise<StudyItem> {
-  try {
-    const response = await api.patch(`/study-plan/items/${itemId}`, payload);
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
+export async function updateStudyItem(
+  itemId: string,
+  payload: UpdateStudyItemPayload
+): Promise<StudyItem> {
+  const headers = await getHeaders();
+  const res = await fetch(
+    `${STUDY_PLAN_API_BASE_URL}/study-plan/items/${itemId}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(payload),
+    }
+  );
+  return handleResponse<StudyItem>(res);
 }
 
 export async function deleteStudyItem(itemId: string): Promise<void> {
-  try {
-    await api.delete(`/study-plan/items/${itemId}`);
-  } catch (error) {
-    throw handleApiError(error as AxiosError);
-  }
-}
-
-function handleApiError(error: AxiosError) {
-  if (error.response) {
-    return {
-      status: error.response.status,
-      message: (error.response.data as any)?.detail || "API Error: Request failed.",
-    };
-  }
-  return { status: 500, message: "Network error. Please check your connection." };
+  const headers = await getHeaders();
+  const res = await fetch(
+    `${STUDY_PLAN_API_BASE_URL}/study-plan/items/${itemId}`,
+    {
+      method: 'DELETE',
+      headers,
+    }
+  );
+  await handleResponse(res);
 }
