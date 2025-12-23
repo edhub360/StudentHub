@@ -19,20 +19,22 @@ const StudyPlanScreen: React.FC = () => {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StudyItem | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // --------- NEW: Initialize API auth via TokenManager only ----------
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = await getValidAccessToken();
-        api.setupApiAuth(token);
-      } catch {
+        const token = await getValidAccessToken();   // uses localStorage + refresh
+        api.setupApiAuth(token);                     // sets default Authorization header
+        setIsAuthReady(true);
+      } catch (err) {
         setError("Session expired. Please sign in again.");
       }
     };
     void initAuth();
   }, []);
-
+  // -------------------------------------------------------------------
   const loadTerms = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -56,6 +58,12 @@ const StudyPlanScreen: React.FC = () => {
       // Keep existing error pattern
     }
   }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+    loadTerms();
+    loadRequirementCategories();
+  }, [isAuthReady, loadTerms, loadRequirementCategories]);
 
   const loadItems = useCallback(async (termId: string) => {
     if (!termId) return;
