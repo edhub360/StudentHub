@@ -32,7 +32,7 @@ export async function fetchTerms(): Promise<Term[]> {
 
 export async function fetchRequirementCategories(): Promise<RequirementCategory[]> {
   try {
-    const response = await api.get('/study-plan/requirement-categories');
+    const response = await api.get('/study-plan/requirements');
     return response.data;
   } catch (error) {
     throw handleApiError(error as AxiosError);
