@@ -29,6 +29,7 @@ const StudyPlanScreen: React.FC = () => {
         api.setupApiAuth(token);                     // sets default Authorization header
         setIsAuthReady(true);
       } catch (err) {
+        console.error('Token refresh failed', err);
         setError("Session expired. Please sign in again.");
       }
     };
