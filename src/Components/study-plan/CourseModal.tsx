@@ -150,7 +150,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, onSubmit, in
               type="submit"
               className="flex-[2] bg-teal-600 hover:bg-teal-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              {initialData ? 'Update Course' : 'Add Course'}
+              {initialData ? 'submit' : 'Add Course'}
             </button>
           </div>
         </form>
