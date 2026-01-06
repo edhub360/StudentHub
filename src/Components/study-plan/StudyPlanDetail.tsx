@@ -95,19 +95,6 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
         </div>
 
         <div className="lg:col-span-2 bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-           <div className="flex flex-col">
-              <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Target Term</label>
-              <select 
-                value={selectedTerm}
-                onChange={e => setSelectedTerm(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none"
-              >
-                <option value="FALL 2025">FALL 2025</option>
-                <option value="SPRING 2026">SPRING 2026</option>
-                <option value="FALL 2026">FALL 2026</option>
-                <option value="SPRING 2027">SPRING 2027</option>
-              </select>
-           </div>
            <CourseSelector 
               courses={courses} 
               onSelect={(c) => addMutation.mutate(c)} 

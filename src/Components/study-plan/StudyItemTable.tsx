@@ -25,7 +25,6 @@ const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onTogg
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
               <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 w-1/6">Category</th>
-              <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Term</th>
               <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Code</th>
               <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 w-1/4">Course Title</th>
               <th className="py-5 px-8 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 text-center">Units</th>
