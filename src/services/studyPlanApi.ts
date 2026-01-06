@@ -44,7 +44,7 @@ const request = async (url: string, options: RequestInit = {}) => {
  * Fetches all study plans.
  */
 export const fetchStudyPlans = (): Promise<StudyPlanRead[]> => 
-  request(`${API_BASE}/study-plan`);
+  request(`${API_BASE}/study-plan/`);
 
 /**
  * Fetches a single study plan by ID.
