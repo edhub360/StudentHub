@@ -62,7 +62,7 @@ const StudyPlannerLanding: React.FC<StudyPlannerLandingProps> = ({ onSelectPlan 
         
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="teal-gradient text-white px-10 py-5 rounded-[24px] text-[11px] font-black shadow-2xl shadow-teal-500/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3 uppercase tracking-widest"
+          className="bg-gradient-to-r from-blue-600 to-teal-400 text-white px-10 py-5 rounded-[24px] text-[11px] font-black shadow-2xl shadow-teal-500/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3 uppercase tracking-widest"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
           <span>Create New Roadmap</span>
