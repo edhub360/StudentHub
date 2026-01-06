@@ -1,278 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Term,
-  StudyItem,
-  NewStudyItemPayload,
-  RequirementCategory,
-} from '../../types/studyPlan.types';
-import * as api from '../../services/studyPlanApi';
-import StudyPlanToolbar from '../study-plan/StudyPlanToolbar';
-import StudyPlanList from '../study-plan/StudyPlanList';
-import CourseModal from '../study-plan/CourseModal';
 
+import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import StudyPlannerLanding from '../study-plan/StudyPlannerLanding';
+import StudyPlanDetail from '../study-plan/StudyPlanDetail';
+
+/**
+ * StudyPlanScreen
+ * The master orchestrator for the Study Planner.
+ * It strictly handles the high-level "View State" and ensures 
+ * the Auth context is available for all sub-operations.
+ */
 const StudyPlanScreen: React.FC = () => {
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [requirementCategories, setRequirementCategories] = useState<RequirementCategory[]>([]);
-  const [selectedTermId, setSelectedTermId] = useState<string>('');
-  const [studyItems, setStudyItems] = useState<StudyItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
-  // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<StudyItem | null>(null);
-
-  const handleApiError = (err: any, fallbackMessage: string) => {
-    const msg = typeof err?.message === 'string' ? err.message : '';
-    if (msg.toLowerCase().includes('session expired')) {
-      setError('Session expired. Please sign in again.');
-    } else {
-      setError(fallbackMessage);
-    }
-  };
-
-  const loadTerms = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const fetchedTerms = await api.fetchTerms();
-      setTerms(fetchedTerms);
-      if (fetchedTerms.length > 0 && !selectedTermId) {
-        setSelectedTermId(fetchedTerms[0].id);
-      }
-    } catch (err: any) {
-      handleApiError(err, 'Network error. Please check your connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedTermId]);
-
-  const loadRequirementCategories = useCallback(async () => {
-    try {
-      const data = await api.fetchRequirementCategories();
-      setRequirementCategories(data);
-    } catch (err: any) {
-      // Optional: you can surface an error if needed
-      console.error('Failed to load requirement categories', err);
-    }
-  }, []);
-
-  const loadItems = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const items = await api.fetchAllStudyItems();  // <-- no termId
-      setStudyItems(items);
-    } catch (err: any) {
-      handleApiError(err, 'Network error. Please check your connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-
-  // Initial load: terms + requirement categories + all items
-  useEffect(() => {
-    void (async () => {
-      await Promise.all([
-        loadTerms(),
-        loadRequirementCategories(),
-        loadItems(),
-      ]);
-    })();
-  }, [loadTerms, loadRequirementCategories, loadItems]);
-
-  // Load items when selectedTermId changes
-  // useEffect(() => {
-  //   if (selectedTermId) {
-  //     void loadItems(selectedTermId);
-  //   } else {
-  //     setStudyItems([]);
-  //   }
-  // }, [selectedTermId, loadItems]);
-
-  const handleAddCourse = () => {
-    if (!selectedTermId) {
-      setError('Please select a term before adding a course.');
-      return;
-    }
-    setEditingItem(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditCourse = (item: StudyItem) => {
-    setEditingItem(item);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteCourse = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) return;
-    try {
-      await api.deleteStudyItem(id);
-      setStudyItems((prev) => prev.filter((item) => item.id !== id));
-    } catch (err: any) {
-      handleApiError(err, 'Network error. Failed to delete the item.');
-    }
-  };
-
-  const handleToggleLock = async (item: StudyItem) => {
-    const newStatus = item.status === 'locked' ? 'planned' : 'locked';
-    try {
-      const updated = await api.updateStudyItem(item.id, { status: newStatus });
-      setStudyItems((prev) =>
-        prev.map((i) => (i.id === item.id ? updated : i))
-      );
-    } catch (err: any) {
-      handleApiError(err, 'Network error. Failed to update status.');
-    }
-  };
-
-  const handleModalSubmit = async (payload: NewStudyItemPayload) => {
-    try {
-      if (editingItem) {
-        const updated = await api.updateStudyItem(editingItem.id, payload);
-        setStudyItems((prev) =>
-          prev.map((i) => (i.id === editingItem.id ? updated : i))
-        );
-      } else {
-        const created = await api.createStudyItem(payload);
-        setStudyItems((prev) => [...prev, created]);
-      }
-      setIsModalOpen(false);
-    } catch (err: any) {
-      handleApiError(err, 'Network error. Failed to save the course.');
-    }
-  };
-
-  const currentTerm = terms.find((t) => t.id === selectedTermId) || null;
-
-  // Search filter logic
-  const filteredItems = studyItems.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  return (
-    <div className="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto">
-      {/* Page Header */}
-      <header className="mb-10">
-        <div className="flex items-center space-x-2 text-slate-400 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mb-4">
-          <span>Student Hub</span>
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="3"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-          <span className="text-teal-600">Study Planner</span>
+  // 1. Behavior: Authorization Guard
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh] text-center p-12">
+        <div className="max-w-md bg-white p-12 rounded-[40px] shadow-sm border border-slate-100">
+           <div className="bg-rose-50 text-rose-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+             </svg>
+           </div>
+           <h2 className="text-2xl font-black text-slate-800 mb-4">Access Restricted</h2>
+           <p className="text-slate-500 font-medium mb-8">Please sign in to your Edhub360 account to manage your academic roadmaps.</p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight leading-tight">
-          Study Planner
-        </h1>
-        <p className="text-slate-500 mt-2 text-base sm:text-lg">
-          Build your academic roadmap, one term at a time.
-        </p>
-      </header>
-
-      {/* Network/Error Banner */}
-      {error && (
-        <div className="bg-rose-50 border border-rose-100 text-rose-700 px-6 py-4 rounded-2xl mb-8 flex items-center shadow-sm">
-          <div className="bg-rose-100 p-2 rounded-xl mr-4 text-rose-600">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <span className="font-semibold text-sm sm:text-base">{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="ml-auto p-2 hover:bg-rose-100 rounded-full transition-colors text-rose-400 hover:text-rose-600"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {/* Toolbar Card */}
-        <StudyPlanToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onAddCourse={handleAddCourse}
-        />
-
-        {/* Content Card / List */}
-        {!selectedTermId ? (
-          <div className="bg-white rounded-[24px] p-16 sm:p-24 text-center border border-slate-100 shadow-sm">
-            <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200">
-              <svg
-                className="w-12 h-12"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-black text-slate-800 mb-3">
-              No term selected
-            </h3>
-            <p className="text-slate-400 max-w-sm mx-auto font-medium">
-              Please select a term from the menu above to view or build your
-              schedule.
-            </p>
-          </div>
-        ) : (
-          <StudyPlanList
-            items={filteredItems}
-            isLoading={isLoading}
-            terms={terms}
-            requirementCategories={requirementCategories}
-            onEdit={handleEditCourse}
-            onDelete={handleDeleteCourse}
-            onToggleLock={handleToggleLock}
-          />
-        )}
       </div>
+    );
+  }
 
-      <CourseModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleModalSubmit}
-        initialData={editingItem}
-        selectedTerm={currentTerm}
-      />
+  // 2. Behavior: View Switching (Gallery vs Detail)
+  return (
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {selectedPlanId ? (
+        <StudyPlanDetail 
+          planId={selectedPlanId} 
+          onBack={() => setSelectedPlanId(null)} 
+        />
+      ) : (
+        <StudyPlannerLanding 
+          onSelectPlan={setSelectedPlanId} 
+        />
+      )}
     </div>
   );
 };

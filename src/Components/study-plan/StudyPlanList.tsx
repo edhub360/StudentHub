@@ -16,7 +16,6 @@ interface StudyPlanListProps {
 const StudyPlanList: React.FC<StudyPlanListProps> = ({ 
   items, 
   isLoading, 
-  terms,
   requirementCategories,
   onEdit, 
   onDelete, 
@@ -38,7 +37,7 @@ const StudyPlanList: React.FC<StudyPlanListProps> = ({
            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         </div>
         <h3 className="text-2xl font-black text-slate-800 mb-3">No courses found</h3>
-        <p className="text-slate-400 max-w-sm mx-auto font-medium">No courses match your criteria or this term is currently empty.</p>
+        <p className="text-slate-400 max-w-sm mx-auto font-medium">No courses match your criteria or the plan is currently empty.</p>
       </div>
     );
   }
@@ -46,15 +45,6 @@ const StudyPlanList: React.FC<StudyPlanListProps> = ({
   const requirementById = new Map(
     requirementCategories.map((rc) => [rc.id, rc.name])
   );
-
-  // Group items by term
-  const itemsByTerm = items.reduce<Record<string, StudyItem[]>>((acc, item) => {
-    (acc[item.term_id] = acc[item.term_id] || []).push(item);
-    return acc;
-  }, {});
-
-  // Maintain the order provided by the 'terms' array
-  const displayedTerms = terms.filter(t => itemsByTerm[t.id]);
 
   return (
     <div className="bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden">
@@ -71,35 +61,19 @@ const StudyPlanList: React.FC<StudyPlanListProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {displayedTerms.map((term) => (
-              <React.Fragment key={term.id}>
-                {/* Term Group Header */}
-                <tr className="bg-slate-50/70">
-                  <td colSpan={6} className="py-3 px-6 border-y border-slate-100">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
-                      <span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-600">
-                        {term.name}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-                {/* Courses for this term */}
-                {itemsByTerm[term.id].map((item) => (
-                  <StudyItemRow 
-                    key={item.id} 
-                    item={item} 
-                    requirementName={
-                      (item.requirement_category_id &&
-                        requirementById.get(item.requirement_category_id)) ||
-                      'General Education'
-                    }
-                    onEdit={onEdit} 
-                    onDelete={onDelete} 
-                    onToggleLock={onToggleLock}
-                  />
-                ))}
-              </React.Fragment>
+            {items.map((item) => (
+              <StudyItemRow 
+                key={item.id} 
+                item={item} 
+                requirementName={
+                  (item.requirement_category_id &&
+                    requirementById.get(item.requirement_category_id)) ||
+                  'General Education'
+                }
+                onEdit={onEdit} 
+                onDelete={onDelete} 
+                onToggleLock={onToggleLock}
+              />
             ))}
           </tbody>
         </table>

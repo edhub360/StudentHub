@@ -47,7 +47,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, onSubmit, in
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, term_id: selectedTerm?.id });
+    onSubmit({ ...formData, termname: selectedTerm?.id, duration: formData.units, coursecode: formData.course_code });
   };
 
   return (
@@ -142,15 +142,15 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, onSubmit, in
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-6 bg-slate-50 border border-slate-200 text-slate-900 font-bold hover:bg-slate-100 hover:border-slate-300 rounded-xl transition-all shadow-sm"
+              className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="flex-[2] bg-teal-600 hover:bg-teal-700 text-white py-3 px-6 rounded-xl font-bold shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="flex-[2] teal-gradient text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
-              {initialData ? 'submit' : 'Add Course'}
+              {initialData ? 'Update Course' : 'Add Course'}
             </button>
           </div>
         </form>

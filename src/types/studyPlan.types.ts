@@ -1,13 +1,20 @@
 
-export type StudyStatus = "planned" | "locked" | "completed" | "in_progress";
+export type StudyStatus = 'planned' | 'in_progress' | 'completed' | 'locked';
+// Base interfaces for the UI components
+export interface StudyItem {
+  id: string;
+  course_code: string;
+  title: string;
+  units: number;
+  status: StudyStatus;
+  term_id: string;
+  requirement_category_id?: string;
+  notes?: string;
+}
 
 export interface Term {
   id: string;
   name: string;
-  start_date: string | null;
-  end_date: string | null;
-  position_index: number;
-  is_archived: boolean;
 }
 
 export interface RequirementCategory {
@@ -15,35 +22,61 @@ export interface RequirementCategory {
   name: string;
 }
 
-export interface StudyItem {
+export interface StudyPlan {
   id: string;
-  term_id: string;
-  requirement_category_id: string | null;
-  course_code: string;
-  title: string;
-  units: number;
-  status: StudyStatus;
-  position_index: number;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
+  name: string;
+  description?: string;
+  study_items: StudyItem[];
 }
 
-export interface NewStudyItemPayload {
-  term_id: string;
-  course_code: string;
-  title: string;
-  units: number;
-  status: StudyStatus;
-  notes?: string;
-  requirement_category_id?: string;
+// API Read interfaces
+export interface StudyPlanRead {
+  id: string;
+  name: string;
+  description?: string;
+  coursecount: number;
+  duration: number;
+  is_predefined: boolean;
+  studyitems: StudyItemRead[];
 }
 
-export interface UpdateStudyItemPayload {
-  term_id?: string;
-  course_code?: string;
-  title?: string;
-  units?: number;
+export interface StudyItemRead {
+  itemid: string;
+  userid: string;
+  termname: string;
+  course_category: string;
+  coursecode: string;
+  title: string;
+  duration?: number;
+  positionindex?: number;
   status?: StudyStatus;
-  notes?: string;
+  studyplanid?: string;
+}
+
+export interface Course {
+  id: string;
+  code: string;
+  title: string;
+  category: string;
+  duration: number;
+  units: number;
+}
+
+export interface CreateStudyPlanPayload {
+  name: string;
+  description?: string;
+}
+
+// Alias to fix import errors in screens
+export type NewStudyItemPayload = CreateStudyItemPayload;
+
+export interface CreateStudyItemPayload {
+  termname: string;
+  course_category: string;
+  coursecode: string;
+  title: string;
+  studyplanid: string;
+  duration: number;
+  positionindex: number;
+  status: StudyStatus;
 }

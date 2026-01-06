@@ -1,144 +1,145 @@
-import {
+
+import { 
+  StudyPlanRead, 
+  StudyItemRead, 
+  Course, 
+  CreateStudyPlanPayload, 
+  CreateStudyItemPayload,
   Term,
-  StudyItem,
-  NewStudyItemPayload,
-  UpdateStudyItemPayload,
-  RequirementCategory,
+  RequirementCategory
 } from '../types/studyPlan.types';
-import { STUDY_PLAN_API_BASE_URL } from '../constants/studyPlan.constants';
-import { getValidAccessToken } from '../services/TokenManager';
+import { getValidAccessToken } from './TokenManager';
+import { MOCK_REQUIREMENT_CATEGORIES } from '../constants/studyPlan.constants';
 
-// ---- helpers ----
+const API_BASE = 'https://study-plan-service-91248372939.us-central1.run.app/api/v1';
 
-const getHeaders = async (isJson = true): Promise<HeadersInit> => {
-  const token = await getValidAccessToken(); // will refresh if expired
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${token}`,
+const getHeaders = async () => {
+  const token = await getValidAccessToken();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   };
-  if (isJson) {
-    headers['Content-Type'] = 'application/json';
-  }
-  return headers;
 };
 
-const handleResponse = async <T = any>(response: Response): Promise<T> => {
+const request = async (url: string, options: RequestInit = {}) => {
+  const headers = await getHeaders();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+  });
+
   if (!response.ok) {
-    let message = response.statusText || 'Request failed';
-    try {
-      const data = await response.json();
-      if (data && typeof data === 'object' && 'detail' in data) {
-        message = (data as any).detail || message;
-      }
-    } catch {
-      // ignore JSON parse error
-    }
-    // Surface specific session/401 errors to the caller
-    throw new Error(message);
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.detail || errorBody.message || `Request failed with status ${response.status}`);
   }
 
-  if (response.status === 204) {
-    // No Content
-    return null as unknown as T;
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch {
-    return null as unknown as T;
-  }
+  if (response.status === 204) return null;
+  return response.json();
 };
 
-// ---- API functions ----
+/**
+ * Fetches all study plans.
+ */
+export const fetchStudyPlans = (): Promise<StudyPlanRead[]> => 
+  request(`${API_BASE}/study-plan`);
 
-export async function fetchTerms(): Promise<Term[]> {
-  const headers = await getHeaders();
-  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/terms`, {
-    method: 'GET',
-    headers,
-  });
-  return handleResponse<Term[]>(res);
-}
+/**
+ * Fetches a single study plan by ID.
+ */
+export const fetchStudyPlanById = (id: string): Promise<StudyPlanRead> => 
+  request(`${API_BASE}/study-plan/${id}`);
 
-export async function fetchRequirementCategories(): Promise<RequirementCategory[]> {
-  const headers = await getHeaders();
-  const res = await fetch(
-    `${STUDY_PLAN_API_BASE_URL}/study-plan/requirements`,
-    {
-      method: 'GET',
-      headers,
-    }
-  );
-  return handleResponse<RequirementCategory[]>(res);
-}
+/**
+ * Alias for fetchStudyPlanById used in screens.
+ */
+export const fetchStudyPlan = fetchStudyPlanById;
 
-export async function createTerm(name: string): Promise<Term> {
-  const headers = await getHeaders();
-  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/terms`, {
+/**
+ * Creates a new study plan.
+ */
+export const createStudyPlan = (payload: CreateStudyPlanPayload): Promise<StudyPlanRead> => 
+  request(`${API_BASE}/study-plan`, {
     method: 'POST',
-    headers,
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload)
   });
-  return handleResponse<Term>(res);
-}
 
-export async function fetchAllStudyItems(): Promise<StudyItem[]> {
-  const headers = await getHeaders();
-  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/items`, {
-    method: 'GET',
-    headers,
+/**
+ * Updates an existing study plan.
+ */
+export const updateStudyPlan = (id: string, payload: Partial<CreateStudyPlanPayload>): Promise<StudyPlanRead> =>
+  request(`${API_BASE}/study-plan/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
   });
-  return handleResponse<StudyItem[]>(res);
-}
 
+/**
+ * Deletes a study plan.
+ */
+export const deleteStudyPlan = (id: string): Promise<void> => 
+  request(`${API_BASE}/study-plan/${id}`, { method: 'DELETE' });
 
-export async function fetchStudyItems(termId: string): Promise<StudyItem[]> {
-  const headers = await getHeaders();
-  const res = await fetch(
-    `${STUDY_PLAN_API_BASE_URL}/study-plan/terms/${termId}/items`,
-    {
-      method: 'GET',
-      headers,
-    }
-  );
-  return handleResponse<StudyItem[]>(res);
-}
-
-export async function createStudyItem(
-  payload: NewStudyItemPayload
-): Promise<StudyItem> {
-  const headers = await getHeaders();
-  const res = await fetch(`${STUDY_PLAN_API_BASE_URL}/study-plan/items`, {
+/**
+ * Creates a new study item.
+ */
+export const createStudyItem = (payload: any): Promise<StudyItemRead> => 
+  request(`${API_BASE}/study-items`, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   });
-  return handleResponse<StudyItem>(res);
-}
 
-export async function updateStudyItem(
-  itemId: string,
-  payload: UpdateStudyItemPayload
-): Promise<StudyItem> {
-  const headers = await getHeaders();
-  const res = await fetch(
-    `${STUDY_PLAN_API_BASE_URL}/study-plan/items/${itemId}`,
-    {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(payload),
-    }
-  );
-  return handleResponse<StudyItem>(res);
-}
+/**
+ * Updates an existing study item.
+ */
+export const updateStudyItem = (itemId: string, payload: any): Promise<StudyItemRead> =>
+  request(`${API_BASE}/study-items/${itemId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
 
-export async function deleteStudyItem(itemId: string): Promise<void> {
-  const headers = await getHeaders();
-  const res = await fetch(
-    `${STUDY_PLAN_API_BASE_URL}/study-plan/items/${itemId}`,
-    {
-      method: 'DELETE',
-      headers,
-    }
-  );
-  await handleResponse(res);
-}
+/**
+ * Deletes a study item.
+ */
+export const deleteStudyItem = (itemId: string): Promise<void> => 
+  request(`${API_BASE}/study-items/${itemId}`, { method: 'DELETE' });
+
+/**
+ * Fetches all courses.
+ */
+export const fetchCourses = (): Promise<Course[]> => 
+  request(`${API_BASE}/courses`);
+
+/**
+ * Fetches available academic terms.
+ */
+export const fetchTerms = async (): Promise<Term[]> => {
+  return [
+    { id: 'FALL 2025', name: 'Fall 2025' },
+    { id: 'SPRING 2026', name: 'Spring 2026' },
+    { id: 'FALL 2026', name: 'Fall 2026' },
+    { id: 'SPRING 2027', name: 'Spring 2027' },
+  ];
+};
+
+/**
+ * Fetches available requirement categories.
+ */
+export const fetchRequirementCategories = async (): Promise<RequirementCategory[]> => {
+  return MOCK_REQUIREMENT_CATEGORIES;
+};
+
+/**
+ * Helper to map API Read model to UI StudyItem model.
+ */
+export const mapReadToStudyItem = (read: StudyItemRead): any => ({
+  id: read.itemid,
+  course_code: read.coursecode,
+  title: read.title,
+  units: read.duration || 0,
+  status: read.status || 'planned',
+  term_id: read.termname,
+  requirement_category_id: read.course_category,
+  notes: '',
+});
