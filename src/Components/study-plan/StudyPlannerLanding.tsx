@@ -51,7 +51,7 @@ const StudyPlannerLanding: React.FC<StudyPlannerLandingProps> = ({ onSelectPlan 
     <div className="p-8 md:p-12 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
       <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-600 tracking-tight leading-tight">My Study Plans</h1>
+          <h1 className="text-4xl sm:text-3xl font-black text-slate-700 tracking-tight leading-tight">My Study Plans</h1>
           <p className="text-slate-500 mt-3 text-lg font-medium max-w-2xl leading-relaxed">Design your academic future. Track milestones, manage course loads, and visualize your path to success.</p>
         </div>
         
