@@ -27,26 +27,26 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
       // 1. Create the new plan shell
       const newPlan = await api.createStudyPlan({ name, description });
       
-      // 2. If a template is selected, perform deep copy of items
+      // 2. Copy from CACHED plans (no API call!)
       if (selectedTemplateId) {
-        const templatePlan = await api.fetchStudyPlanById(selectedTemplateId);
-        const templateItems = templatePlan.studyitems || [];
+        // ✅ Use plans from useQuery (already loaded, has auth)
+        const templatePlan = plans.find(p => p.id === selectedTemplateId);
         
-        // Use a sequential approach or Promise.all for copying items
-        const copyPromises = templateItems.map((item, index) => 
-          api.createStudyItem({
-            studyplanid: newPlan.id,
-            coursecode: item.coursecode,
-            title: item.title,
-            course_category: item.course_category,
-            duration: item.duration || 0,
-            termname: item.termname,
-            status: 'planned', // Reset status for the new plan
-            positionindex: item.positionindex ?? index
-          })
-        );
-        
-        await Promise.all(copyPromises);
+        if (templatePlan?.studyitems?.length) {
+          const copyPromises = templatePlan.studyitems.map((item, index) => 
+            api.createStudyItem({
+              studyplanid: newPlan.id,
+              coursecode: item.coursecode,
+              title: item.title,
+              course_category: item.course_category,
+              duration: item.duration || 0,
+              termname: item.termname,
+              status: 'planned',
+              positionindex: item.positionindex ?? index
+            })
+          );
+          await Promise.all(copyPromises);
+        }
       }
       
       return newPlan;
@@ -59,6 +59,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
       alert(`Failed to build roadmap: ${error.message}`);
     }
   });
+
 
   const handleClose = () => {
     setName('');
