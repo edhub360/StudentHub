@@ -140,7 +140,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
             <button 
               type="submit"
               disabled={mutation.isPending || !name.trim()}
-              className="flex-1bg-gradient-to-r from-blue-500 to-teal-500 text-white py-5 rounded-[24px] font-black shadow-xl shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-teal-500 text-white py-5 rounded-[24px] font-black shadow-xl shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
             >
               {mutation.isPending ? (
                 <>

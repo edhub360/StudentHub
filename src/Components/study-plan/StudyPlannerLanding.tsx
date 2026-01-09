@@ -51,7 +51,7 @@ const StudyPlannerLanding: React.FC<StudyPlannerLandingProps> = ({ onSelectPlan 
     <div className="p-8 md:p-12 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
       <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div>
-          <h1 className="text-3xl sm:text-3xl font-black text-slate-800 tracking-tight leading-tight">My Study Plans</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight leading-tight">My Study Plans</h1>
           <p className="text-slate-500 mt-3 text-lg font-medium max-w-2xl leading-relaxed">Design your academic future. Track milestones, manage course loads, and visualize your path to success.</p>
         </div>
         
@@ -59,7 +59,7 @@ const StudyPlannerLanding: React.FC<StudyPlannerLandingProps> = ({ onSelectPlan 
           onClick={() => setIsModalOpen(true)}
           className="bg-gradient-to-r from-blue-600 to-teal-400 text-white px-10 py-5 rounded-[24px] text-[11px] font-black shadow-2xl shadow-teal-500/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3 uppercase tracking-widest"
         >
-          <span>Create New Roadmap</span>
+          <span>Create Study Plan</span>
         </button>
       </header>
 
