@@ -14,37 +14,57 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 1. Data Fetching - Only fetch the specific plan and its items
-  const { data: plan, isLoading, isError, error } = useQuery({
+  // 1. Dual Data Fetching - Metadata and Items separately
+  const { data: plan, isLoading: isPlanLoading, isError: isPlanError, error: planError } = useQuery({
     queryKey: ['study-plan', planId],
     queryFn: () => api.fetchStudyPlanById(planId)
   });
 
-  // 2. Mutations
+  const { data: studyItems = [], isLoading: isItemsLoading } = useQuery({
+    queryKey: ['study-items', planId],
+    queryFn: () => api.fetchStudyItemsByPlanId(planId)
+  });
+
+  // 2. Mutations with complete cache invalidation
   const deleteMutation = useMutation({
     mutationFn: api.deleteStudyItem,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['study-plan', planId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-plan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['study-items', planId] });
+    },
   });
 
   const lockMutation = useMutation({
     mutationFn: ({ id, status }: { id: string, status: any }) => 
       api.updateStudyItem(id, { status: status === 'locked' ? 'planned' : 'locked' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['study-plan', planId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['study-plan', planId] });
+      queryKey: queryClient.invalidateQueries({ queryKey: ['study-items', planId] });
+    },
   });
 
-  // 3. Search Logic
-  const filteredItems = plan?.studyitems?.filter((item: StudyItemRead) => 
+  // 3. Search Logic - Now targeting studyItems directly
+  const filteredItems = studyItems.filter((item: StudyItemRead) => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.coursecode.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  if (isLoading) return <div className="p-12 animate-pulse space-y-8"><div className="h-10 w-64 bg-slate-200 rounded-lg"></div><div className="h-96 bg-white rounded-3xl"></div></div>;
+  const isGlobalLoading = isPlanLoading || isItemsLoading;
 
-  if (isError) {
+  if (isGlobalLoading) {
+    return (
+      <div className="p-12 animate-pulse space-y-8">
+        <div className="h-10 w-64 bg-slate-200 rounded-lg"></div>
+        <div className="h-96 bg-white rounded-3xl"></div>
+      </div>
+    );
+  }
+
+  if (isPlanError) {
     return (
       <div className="p-12 text-center">
-        <h3 className="text-xl font-bold text-rose-600">Failed to load plan</h3>
-        <p className="text-slate-500 mt-2">{(error as Error).message}</p>
+        <h3 className="text-xl font-bold text-rose-600">Failed to load roadmap</h3>
+        <p className="text-slate-500 mt-2">{(planError as Error).message}</p>
         <button onClick={onBack} className="mt-6 text-teal-600 font-bold underline">Go Back</button>
       </div>
     );
@@ -56,29 +76,29 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
         <div className="flex-1">
           <button onClick={onBack} className="flex items-center space-x-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6 hover:text-teal-600 transition-colors group">
             <svg className="w-3 h-3 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
-            <span>Back to Plans</span>
+            <span>Back to Gallery</span>
           </button>
           <div className="flex items-center space-x-4 mb-3">
             <h1 className="text-3xl font-black text-slate-800 tracking-tight">{plan?.name}</h1>
             <span className="px-3 py-1 bg-teal-50 text-teal-600 text-[10px] font-black uppercase rounded-full border border-teal-100">Editor</span>
           </div>
-          <p className="text-slate-500 text-lg font-medium max-w-2xl">{plan?.description || "Manage your curriculum roadmap below."}</p>
+          <p className="text-slate-500 text-lg font-medium max-w-2xl leading-relaxed">{plan?.description || "Visualizing your academic success path."}</p>
         </div>
       </header>
 
-      {/* Simplified Toolbar */}
+      {/* Toolbar */}
       <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm mb-8">
         <div className="max-w-md">
-          <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-3 block">Quick Filter Items</label>
+          <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-3 block">Filter Roadmap</label>
           <div className="relative">
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title or code..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
             />
-            <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <svg className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
         </div>
       </div>

@@ -53,6 +53,13 @@ export const fetchStudyPlanById = (id: string): Promise<StudyPlanRead> =>
   request(`${API_BASE}/study-plan/${id}`);
 
 /**
+ * Fetches study items for a study plan by PlanID.
+ */
+export const fetchStudyItemsByPlanId = (id: string): Promise<StudyItemRead[]> => 
+  request(`${API_BASE}/study-plan/${id}/items`);
+
+
+/**
  * Alias for fetchStudyPlanById used in screens.
  */
 export const fetchStudyPlan = fetchStudyPlanById;
