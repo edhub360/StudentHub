@@ -25,6 +25,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
     queryFn: () => api.fetchStudyItemsByPlanId(planId)
   });
 
+
   // 2. Mutations with complete cache invalidation
   const deleteMutation = useMutation({
     mutationFn: api.deleteStudyItem,
@@ -43,8 +44,20 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
     },
   });
 
+  const mappedStudyItems = studyItems.map(item => ({
+    ...item,
+    itemid: item.itemid,
+    termname: item.termname,
+    coursecode: item.coursecode,
+    title: item.title,           
+    course_category: item.course_category,
+    positionindex: item.positionindex,
+    duration: item.duration || 0,
+    status: item.status
+    }));
+
   // 3. Search Logic - Now targeting studyItems directly
-  const filteredItems = studyItems.filter((item: StudyItemRead) => 
+  const filteredItems = mappedStudyItems.filter((item: StudyItemRead) => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.coursecode.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
