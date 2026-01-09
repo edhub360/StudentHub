@@ -40,7 +40,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
       api.updateStudyItem(id, { status: status === 'locked' ? 'planned' : 'locked' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-plan', planId] });
-      queryKey: queryClient.invalidateQueries({ queryKey: ['study-items', planId] });
+      queryClient.invalidateQueries({ queryKey: ['study-items', planId] });
     },
   });
 
