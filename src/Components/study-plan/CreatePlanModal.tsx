@@ -82,7 +82,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
       <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-xl relative animate-in fade-in zoom-in duration-300 overflow-hidden border border-white/20">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-teal-500 px-10 py-10 text-white relative">
+        <div className="bg-teal-500 px-10 py-10 text-white relative">
            <h2 className="text-3xl font-black tracking-tight mb-2">Select Study Plan</h2>
            <p className="text-teal-50 text-sm font-medium opacity-80 italic">Clone a curriculum or start fresh with your own design.</p>
            

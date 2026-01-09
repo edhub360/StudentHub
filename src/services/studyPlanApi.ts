@@ -61,7 +61,7 @@ export const fetchStudyPlan = fetchStudyPlanById;
  * Creates a new study plan.
  */
 export const createStudyPlan = (payload: CreateStudyPlanPayload): Promise<StudyPlanRead> => 
-  request(`${API_BASE}/study-plan`, {
+  request(`${API_BASE}/study-plan/`, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -85,7 +85,7 @@ export const deleteStudyPlan = (id: string): Promise<void> =>
  * Creates a new study item.
  */
 export const createStudyItem = (payload: any): Promise<StudyItemRead> => 
-  request(`${API_BASE}/study-items`, {
+  request(`${API_BASE}/study-items/`, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -109,7 +109,7 @@ export const deleteStudyItem = (itemId: string): Promise<void> =>
  * Fetches all courses.
  */
 export const fetchCourses = (): Promise<Course[]> => 
-  request(`${API_BASE}/courses`);
+  request(`${API_BASE}/courses/`);
 
 /**
  * Fetches available academic terms.
