@@ -11,12 +11,15 @@ interface StudyItemTableProps {
 
 const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onToggleLock }) => {
   // Sort items by term and then position index to maintain a logical flow even without headers
-  const sortedItems = [...items].sort((a, b) => {
-    const termA = a.termname.toUpperCase();
-    const termB = b.termname.toUpperCase();
+  const sortedItems = [...items]
+  .filter(item => item && item.termname && item.coursecode)  // Filter invalid items
+  .sort((a, b) => {
+    const termA = (a.termname || '').toUpperCase();
+    const termB = (b.termname || '').toUpperCase();
     if (termA !== termB) return termA.localeCompare(termB);
     return (a.positionindex || 0) - (b.positionindex || 0);
   });
+
 
   return (
     <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
