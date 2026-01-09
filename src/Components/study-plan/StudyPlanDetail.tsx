@@ -46,12 +46,12 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
 
   const mappedStudyItems = studyItems.map(item => ({
     ...item,
-    itemid: item.itemid,
-    termname: item.termname,
-    coursecode: item.coursecode,
+    itemid: item.item_id,
+    termname: item.term_name,
+    coursecode: item.course_code,
     title: item.title,           
     course_category: item.course_category,
-    positionindex: item.positionindex,
+    positionindex: item.position_index,
     duration: item.duration || 0,
     status: item.status
     }));
@@ -59,7 +59,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
   // 3. Search Logic - Now targeting studyItems directly
   const filteredItems = mappedStudyItems.filter((item: StudyItemRead) => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.coursecode.toLowerCase().includes(searchQuery.toLowerCase())
+    item.course_code.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   const isGlobalLoading = isPlanLoading || isItemsLoading;
@@ -119,7 +119,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
       <StudyItemTable 
         items={filteredItems} 
         onDelete={(id) => deleteMutation.mutate(id)} 
-        onToggleLock={(item) => lockMutation.mutate({ id: item.itemid, status: item.status })}
+        onToggleLock={(item) => lockMutation.mutate({ id: item.item_id, status: item.status })}
       />
     </div>
   );

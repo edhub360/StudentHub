@@ -141,12 +141,12 @@ export const fetchRequirementCategories = async (): Promise<RequirementCategory[
  * Helper to map API Read model to UI StudyItem model.
  */
 export const mapReadToStudyItem = (read: StudyItemRead): any => ({
-  id: read.itemid,
-  course_code: read.coursecode,
+  id: read.item_id,
+  course_code: read.course_code,
   title: read.title,
   units: read.duration || 0,
   status: read.status || 'planned',
-  term_id: read.termname,
+  term_id: read.term_name,
   requirement_category_id: read.course_category,
   notes: '',
 });

@@ -36,13 +36,13 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
           const copyPromises = templatePlan.studyitems.map((item, index) => 
             api.createStudyItem({
               studyplanid: newPlan.id,
-              coursecode: item.coursecode,
+              coursecode: item.course_code,
               title: item.title,
               course_category: item.course_category,
               duration: item.duration || 0,
-              termname: item.termname,
+              termname: item.term_name,
               status: 'planned',
-              positionindex: item.positionindex ?? index
+              positionindex: item.position_index ?? index
             })
           );
           await Promise.all(copyPromises);

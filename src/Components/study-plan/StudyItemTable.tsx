@@ -12,12 +12,12 @@ interface StudyItemTableProps {
 const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onToggleLock }) => {
   // Sort items by term and then position index to maintain a logical flow even without headers
   const sortedItems = [...items]
-  .filter(item => item && item.termname && item.coursecode)  // Filter invalid items
+  .filter(item => item && item.term_name && item.course_code)  // Filter invalid items
   .sort((a, b) => {
-    const termA = (a.termname || '').toUpperCase();
-    const termB = (b.termname || '').toUpperCase();
+    const termA = (a.term_name || '').toUpperCase();
+    const termB = (b.term_name || '').toUpperCase();
     if (termA !== termB) return termA.localeCompare(termB);
-    return (a.positionindex || 0) - (b.positionindex || 0);
+    return (a.position_index || 0) - (b.position_index || 0);
   });
 
 
@@ -44,7 +44,7 @@ const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onTogg
               </tr>
             ) : (
               sortedItems.map(item => (
-                <tr key={item.itemid} className="hover:bg-slate-50/80 transition-colors group">
+                <tr key={item.item_id} className="hover:bg-slate-50/80 transition-colors group">
                   <td className="py-6 px-8">
                     <span className="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {item.course_category}
@@ -52,10 +52,10 @@ const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onTogg
                   </td>
                   <td className="py-6 px-8">
                     <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">
-                      {item.termname}
+                      {item.term_name}
                     </span>
                   </td>
-                  <td className="py-6 px-8 font-black text-slate-800 text-sm">{item.coursecode}</td>
+                  <td className="py-6 px-8 font-black text-slate-800 text-sm">{item.course_code}</td>
                   <td className="py-6 px-8 text-slate-600 font-semibold text-sm">{item.title}</td>
                   <td className="py-6 px-8 text-center">
                     <span className="text-slate-500 font-bold text-sm bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{item.duration}</span>
@@ -76,7 +76,7 @@ const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onTogg
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                       </button>
                       <button 
-                        onClick={() => onDelete(item.itemid)} 
+                        onClick={() => onDelete(item.item_id)} 
                         className="p-2 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all"
                         title="Delete Course"
                       >

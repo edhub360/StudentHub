@@ -41,14 +41,14 @@ export interface StudyPlanRead {
 }
 
 export interface StudyItemRead {
-  itemid: string;
+  item_id: string;
   userid: string;
-  termname: string;
+  term_name: string;
   course_category: string;
-  coursecode: string;
+  course_code: string;
   title: string;
   duration?: number;
-  positionindex?: number;
+  position_index?: number;
   status?: StudyStatus;
   studyplanid?: string;
 }
