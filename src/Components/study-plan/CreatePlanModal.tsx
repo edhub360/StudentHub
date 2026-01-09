@@ -83,7 +83,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
         
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-teal-500 px-10 py-10 text-white relative">
-           <h2 className="text-3xl font-black tracking-tight mb-2">Build New Roadmap</h2>
+           <h2 className="text-3xl font-black tracking-tight mb-2">Select Study Plan</h2>
            <p className="text-teal-50 text-sm font-medium opacity-80 italic">Clone a curriculum or start fresh with your own design.</p>
            
            <button onClick={handleClose} className="absolute top-8 right-8 p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -150,7 +150,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
-                  <span>Create Roadmap</span>
+                  <span>Submit</span>
                 </>
               )}
             </button>
