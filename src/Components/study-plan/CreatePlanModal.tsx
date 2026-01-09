@@ -82,7 +82,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
       <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-xl relative animate-in fade-in zoom-in duration-300 overflow-hidden border border-white/20">
         
         {/* Header */}
-        <div className="teal-gradient px-10 py-10 text-white relative">
+        <div className="bg-gradient-to-r from-blue-500 to-teal-500 px-10 py-10 text-white relative">
            <h2 className="text-3xl font-black tracking-tight mb-2">Build New Roadmap</h2>
            <p className="text-teal-50 text-sm font-medium opacity-80 italic">Clone a curriculum or start fresh with your own design.</p>
            
@@ -140,7 +140,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
             <button 
               type="submit"
               disabled={mutation.isPending || !name.trim()}
-              className="flex-[2] teal-gradient text-white py-5 rounded-[24px] font-black shadow-xl shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
+              className="bg-gradient-to-r from-blue-500 to-teal-500 text-white py-5 rounded-[24px] font-black shadow-xl shadow-teal-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-[11px] uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
             >
               {mutation.isPending ? (
                 <>
