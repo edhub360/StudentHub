@@ -22,44 +22,30 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
     enabled: isOpen
   });
 
+  
   const mutation = useMutation({
     mutationFn: async () => {
-      // 1. Create the new plan shell
-      const newPlan = await api.createStudyPlan({ name, description });
-      
-      // 2. Copy from CACHED plans (no API call!)
       if (selectedTemplateId) {
-        // ✅ Use plans from useQuery (already loaded, has auth)
-        const templatePlan = plans.find(p => p.id === selectedTemplateId);
-        
-        if (templatePlan?.studyitems?.length) {
-          const copyPromises = templatePlan.studyitems.map((item, index) => 
-            api.createStudyItem({
-              studyplanid: newPlan.id,
-              coursecode: item.course_code,
-              title: item.title,
-              course_category: item.course_category,
-              duration: item.duration || 0,
-              termname: item.term_name,
-              status: 'planned',
-              positionindex: item.position_index ?? index
-            })
-          );
-          await Promise.all(copyPromises);
-        }
+        // ✅ COPY from template (single API call)
+        return await api.createStudyPlanFromPredefined(selectedTemplateId, { 
+          name, 
+          description 
+        });
+      } else {
+        // ✅ Create empty plan (regular endpoint)
+        return await api.createStudyPlan({ name, description });
       }
-      
-      return newPlan;
     },
-    onSuccess: () => {
+    onSuccess: (newPlan) => {
       queryClient.invalidateQueries({ queryKey: ['study-plans'] });
+      // ✅ Navigate to NEW plan detail
+      window.location.href = `/study-plan/${newPlan.id}`;  // or useNavigate()
       handleClose();
     },
     onError: (error: Error) => {
-      alert(`Failed to build roadmap: ${error.message}`);
+      alert(`Failed to create roadmap: ${error.message}`);
     }
   });
-
 
   const handleClose = () => {
     setName('');
