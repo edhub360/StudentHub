@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '../../services/studyPlanApi';
 import StudyPlanSelector from './StudyPlanSelector';
+import { useNavigate } from 'react-router-dom';
+import { StudyPlanRead } from '../../types/studyPlan.types';
+
 
 interface CreatePlanModalProps {
   isOpen: boolean;
@@ -11,6 +14,7 @@ interface CreatePlanModalProps {
 
 const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -36,12 +40,18 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
         return await api.createStudyPlan({ name, description });
       }
     },
-    onSuccess: (newPlan) => {
+    onSuccess: (newPlan: StudyPlanRead) => {
       queryClient.invalidateQueries({ queryKey: ['study-plans'] });
-      // ✅ Navigate to NEW plan detail
-      window.location.href = `/study-plan/${newPlan.id}`;  // or useNavigate()
+      
+      // ✅ React Router (best)
+      navigate(`/study-plan/${newPlan.id}`);
+      
+      // OR Vanilla JS (if no router)
+      // window.location.pathname = `/study-plan/${newPlan.id}`;
+      
       handleClose();
     },
+
     onError: (error: Error) => {
       alert(`Failed to create roadmap: ${error.message}`);
     }
