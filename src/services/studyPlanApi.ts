@@ -74,6 +74,16 @@ export const createStudyPlan = (payload: CreateStudyPlanPayload): Promise<StudyP
   });
 
 /**
+ * Creates a new study plan by copying from a predefined plan template.
+ * Only name + description required; copies all study items automatically.
+ */
+export const createStudyPlanFromPredefined = (predefinedPlanId: string, payload: CreateStudyPlanPayload): Promise<StudyPlanRead> => 
+  request(`${API_BASE}/study-plan/${predefinedPlanId}/from-predefined`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+/**
  * Updates an existing study plan.
  */
 export const updateStudyPlan = (id: string, payload: Partial<CreateStudyPlanPayload>): Promise<StudyPlanRead> =>

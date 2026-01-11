@@ -89,7 +89,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
         <div className="flex-1">
           <button onClick={onBack} className="flex items-center space-x-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6 hover:text-teal-600 transition-colors group">
             <svg className="w-3 h-3 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
-            <span>Back to Gallery</span>
+            <span>Back to Plans</span>
           </button>
           <div className="flex items-center space-x-4 mb-3">
             <h1 className="text-3xl font-black text-slate-800 tracking-tight">{plan?.name}</h1>
