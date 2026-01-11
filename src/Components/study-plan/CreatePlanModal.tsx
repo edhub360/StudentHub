@@ -106,7 +106,7 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({ isOpen, onClose }) =>
           {/* Template Selection Section */}
           <div className="pt-4 border-t border-slate-50">
             <StudyPlanSelector 
-              plans={plans}
+              plans={plans.filter(p => p.is_predefined)}
               selectedId={selectedTemplateId}
               onSelect={setSelectedTemplateId}
               isLoading={isLoadingTemplates}
