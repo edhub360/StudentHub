@@ -110,7 +110,7 @@ export const updateStudyItem = (itemId: string, payload: any): Promise<StudyItem
  * Deletes a study item.
  */
 export const deleteStudyItem = (itemId: string): Promise<void> => 
-  request(`${API_BASE}/study-items/${itemId}`, { method: 'DELETE' });
+  request(`${API_BASE}/study-items/${itemId}/`, { method: 'DELETE' });
 
 /**
  * Fetches all courses.
