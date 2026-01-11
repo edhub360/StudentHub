@@ -10,16 +10,15 @@ interface StudyItemTableProps {
 }
 
 const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onToggleLock }) => {
-  // Sort items by term and then position index to maintain a logical flow even without headers
+  // Sort by coursecode first, then title (no termname)
   const sortedItems = [...items]
-  .filter(item => item && item.term_name && item.course_code)  // Filter invalid items
-  .sort((a, b) => {
-    const termA = (a.term_name || '').toUpperCase();
-    const termB = (b.term_name || '').toUpperCase();
-    if (termA !== termB) return termA.localeCompare(termB);
-    return (a.position_index || 0) - (b.position_index || 0);
-  });
-
+    .filter(item => item && item.course_code && item.title)  // Only valid items
+    .sort((a, b) => {
+      const codeA = (a.course_code || '').toUpperCase();
+      const codeB = (b.course_code || '').toUpperCase();
+      if (codeA !== codeB) return codeA.localeCompare(codeB);
+      return (a.title || '').localeCompare(b.title || '');
+    });
 
   return (
     <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
@@ -48,11 +47,6 @@ const StudyItemTable: React.FC<StudyItemTableProps> = ({ items, onDelete, onTogg
                   <td className="py-6 px-8">
                     <span className="inline-flex px-3 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {item.course_category}
-                    </span>
-                  </td>
-                  <td className="py-6 px-8">
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">
-                      {item.term_name}
                     </span>
                   </td>
                   <td className="py-6 px-8 font-black text-slate-800 text-sm">{item.course_code}</td>
