@@ -1,9 +1,12 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Standardizing to CamelCase to resolve naming conflicts
 import * as api from '../../services/studyPlanApi';
 import StudyItemTable from './StudyItemTable';
+// Standardizing to CamelCase to resolve naming conflicts
 import { StudyItemRead } from '../../types/studyPlan.types';
+import CourseSelector from './CourseSelector';
 
 interface StudyPlanDetailProps {
   planId: string;
@@ -25,7 +28,6 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
     queryFn: () => api.fetchStudyItemsByPlanId(planId)
   });
 
-
   // 2. Mutations with complete cache invalidation
   const deleteMutation = useMutation({
     mutationFn: api.deleteStudyItem,
@@ -44,20 +46,8 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
     },
   });
 
-  const mappedStudyItems = studyItems.map(item => ({
-    ...item,
-    itemid: item.item_id,
-    termname: item.term_name,
-    coursecode: item.course_code,
-    title: item.title,           
-    course_category: item.course_category,
-    positionindex: item.position_index,
-    duration: item.duration || 0,
-    status: item.status
-    }));
-
   // 3. Search Logic - Now targeting studyItems directly
-  const filteredItems = mappedStudyItems.filter((item: StudyItemRead) => 
+  const filteredItems = studyItems.filter((item: StudyItemRead) => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.course_code.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
@@ -89,7 +79,7 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
         <div className="flex-1">
           <button onClick={onBack} className="flex items-center space-x-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6 hover:text-teal-600 transition-colors group">
             <svg className="w-3 h-3 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
-            <span>Back to Plans</span>
+            <span>Back to Gallery</span>
           </button>
           <div className="flex items-center space-x-4 mb-3">
             <h1 className="text-3xl font-black text-slate-800 tracking-tight">{plan?.name}</h1>
@@ -99,20 +89,24 @@ const StudyPlanDetail: React.FC<StudyPlanDetailProps> = ({ planId, onBack }) => 
         </div>
       </header>
 
-      {/* Toolbar */}
-      <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm mb-8">
-        <div className="max-w-md">
+      {/* Toolbar Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
           <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black mb-3 block">Filter Roadmap</label>
           <div className="relative">
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by title or code..."
+              placeholder="Search existing items..."
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
             />
             <svg className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-end">
+           <CourseSelector studyPlanId={planId} />
         </div>
       </div>
 
