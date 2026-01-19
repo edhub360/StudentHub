@@ -3,12 +3,14 @@ import {
   StudyPlanRead, 
   StudyItemRead, 
   Course, 
+  CourseSearchResult,
   CreateStudyPlanPayload, 
   CreateStudyItemPayload,
   Term,
   RequirementCategory
 } from '../types/studyPlan.types';
 import { getValidAccessToken } from './TokenManager';
+// Standardizing to CamelCase to resolve naming conflicts
 import { MOCK_REQUIREMENT_CATEGORIES } from '../constants/studyPlan.constants';
 
 const API_BASE = 'https://study-plan-service-91248372939.us-central1.run.app/api/v1';
@@ -47,17 +49,33 @@ export const fetchStudyPlans = (): Promise<StudyPlanRead[]> =>
   request(`${API_BASE}/study-plan/`);
 
 /**
- * Fetches a single study plan by ID.
+ * Fetches a single study plan metadata by ID.
  */
 export const fetchStudyPlanById = (id: string): Promise<StudyPlanRead> => 
   request(`${API_BASE}/study-plan/${id}`);
 
 /**
- * Fetches study items for a study plan by PlanID.
+ * Fetches study items belonging to a specific plan.
  */
 export const fetchStudyItemsByPlanId = (id: string): Promise<StudyItemRead[]> => 
   request(`${API_BASE}/study-plan/${id}/items`);
 
+/**
+ * Search for courses by query.
+ * GET /study-plan/courses?q=
+ */
+export const fetchCoursesBySearch = (query: string): Promise<CourseSearchResult[]> => 
+  request(`${API_BASE}/study-plan/courses?q=${encodeURIComponent(query)}`);
+
+/**
+ * Adds a new study item to a plan.
+ * POST /study-plan/items
+ */
+export const addStudyItem = (payload: any): Promise<StudyItemRead> =>
+  request(`${API_BASE}/study-plan/items/`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
 
 /**
  * Alias for fetchStudyPlanById used in screens.
@@ -69,16 +87,6 @@ export const fetchStudyPlan = fetchStudyPlanById;
  */
 export const createStudyPlan = (payload: CreateStudyPlanPayload): Promise<StudyPlanRead> => 
   request(`${API_BASE}/study-plan/`, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
-
-/**
- * Creates a new study plan by copying from a predefined plan template.
- * Only name + description required; copies all study items automatically.
- */
-export const createStudyPlanFromPredefined = (predefinedPlanId: string, payload: CreateStudyPlanPayload): Promise<StudyPlanRead> => 
-  request(`${API_BASE}/study-plan/${predefinedPlanId}/from-predefined`, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -99,7 +107,17 @@ export const deleteStudyPlan = (id: string): Promise<void> =>
   request(`${API_BASE}/study-plan/${id}`, { method: 'DELETE' });
 
 /**
- * Creates a new study item.
+ * Creates a new study plan by copying from a predefined plan template.
+ * Only name + description required; copies all study items automatically.
+ */
+export const createStudyPlanFromPredefined = (predefinedPlanId: string, payload: CreateStudyPlanPayload): Promise<StudyPlanRead> =>
+  request(`${API_BASE}/study-plan/${predefinedPlanId}/from-predefined`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+/**
+ * Creates a new study item (Original endpoint).
  */
 export const createStudyItem = (payload: any): Promise<StudyItemRead> => 
   request(`${API_BASE}/study-items/`, {
@@ -120,13 +138,13 @@ export const updateStudyItem = (itemId: string, payload: any): Promise<StudyItem
  * Deletes a study item.
  */
 export const deleteStudyItem = (itemId: string): Promise<void> => 
-  request(`${API_BASE}/study-plan/items/${itemId}`, { method: 'DELETE' });
+  request(`${API_BASE}/study-items/${itemId}`, { method: 'DELETE' });
 
 /**
- * Fetches all courses.
+ * Fetches all courses (Static list).
  */
 export const fetchCourses = (): Promise<Course[]> => 
-  request(`${API_BASE}/courses/`);
+  request(`${API_BASE}/courses`);
 
 /**
  * Fetches available academic terms.

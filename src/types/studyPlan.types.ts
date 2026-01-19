@@ -80,3 +80,18 @@ export interface CreateStudyItemPayload {
   positionindex: number;
   status: StudyStatus;
 }
+/**
+ * Updated Course Interface for Search 
+ */
+export interface CourseSearchResult {
+  course_id: string;
+  course_code: string;
+  course_title: string;
+  course_category: string;
+  course_duration: number;
+}
+
+export interface CreateStudyPlanPayload {
+  name: string;
+  description?: string;
+}
