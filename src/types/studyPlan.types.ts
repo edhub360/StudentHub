@@ -70,6 +70,7 @@ export interface CreateStudyPlanPayload {
 // Alias to fix import errors in screens
 export type NewStudyItemPayload = CreateStudyItemPayload;
 
+// Payload for creating a new Study Item
 export interface CreateStudyItemPayload {
   term_name: string;
   course_category: string;
@@ -80,6 +81,7 @@ export interface CreateStudyItemPayload {
   position_index: number;
   status: StudyStatus;
 }
+
 /**
  * Updated Course Interface for Search 
  */
