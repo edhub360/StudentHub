@@ -22,16 +22,19 @@ export const fetchCourses = async (params: CourseQueryParams): Promise<Paginated
 
     // Filter by Search Query
     if (params.q) {
-      const q = params.q.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.course_title.toLowerCase().includes(q) || 
-        c.short_description.toLowerCase().includes(q)
+      const q = (params.q || '').toLowerCase();
+      filtered = filtered.filter(c =>
+        (c.course_title || '').toLowerCase().includes(q) ||
+        (c.short_description || '').toLowerCase().includes(q)
       );
     }
 
     // Filter by Complexity
     if (params.complexity) {
-       filtered = filtered.filter(c => c.course_complexity.toLowerCase() === params.complexity?.toLowerCase());
+      const complexity = (params.complexity || '').toLowerCase();
+      filtered = filtered.filter(
+        c => (c.course_complexity || '').toLowerCase() === complexity
+      );
     }
 
     // Filter by Duration

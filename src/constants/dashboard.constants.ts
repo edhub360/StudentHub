@@ -8,13 +8,13 @@ import {
 
 export const STATIC_DASHBOARD_DATA = {
   weeklyActivity: [
-    { day: 'Mon', hours: 2 },
-    { day: 'Tue', hours: 3.5 },
-    { day: 'Wed', hours: 1.5 },
-    { day: 'Thu', hours: 2 },
-    { day: 'Fri', hours: 4 },
-    { day: 'Sat', hours: 3 },
-    { day: 'Sun', hours: 1 },
+    { day: 'Mon', minutes: 120 },
+    { day: 'Tue', minutes: 210 },
+    { day: 'Wed', minutes: 90 },
+    { day: 'Thu', minutes: 120 },
+    { day: 'Fri', minutes: 240 },
+    { day: 'Sat', minutes: 180 },
+    { day: 'Sun', minutes: 60 },
   ] as WeeklyActivityDay[],
   subjectMastery: [
     { subjectId: '1', name: 'Mathematics', percent: 85, color: 'blue' },

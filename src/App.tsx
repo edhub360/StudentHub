@@ -18,7 +18,6 @@ import Footer from "./Components/Footer";
 import ChatScreen from './Components/Screens/ChatScreen';
 import UploadScreen from './Components/Screens/UploadScreen';
 import QuizScreen from './Components/Screens/QuizScreen';
-import ProgressScreen from './Components/Screens/ProgressScreen';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
@@ -30,12 +29,13 @@ import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
-import DashboardScreen from './Components/Screens/DashboardScreen';
+import DashboardScreen, {TabId} from './Components/Screens/DashboardScreen';
+import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
-  id: string;
+  id: TabId;
   label: string;
   icon: React.ComponentType<any>;
 }
@@ -58,9 +58,10 @@ interface UserStatus {
   subscription: any;
 }
 
+
 const App: React.FC = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
   // ✅ Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
@@ -171,8 +172,8 @@ const handleLoginSuccess = (
     { id: 'flashcards', label: 'Flashcards', icon: FileText },
     { id: 'quiz', label: 'Quiz Mode', icon: Brain },
     { id: 'courses', label: 'Courses', icon: BookOpen },
+    { id: 'study planner', label: 'Study Planner', icon: BarChart3 },
     { id: 'notes', label: 'Notes', icon: BookOpen },
-    { id: 'progress', label: 'Progress', icon: BarChart3 },
     { id: 'upload', label: 'Screenshot Solve', icon: Upload },
   ];
 
@@ -249,7 +250,7 @@ const handleLoginSuccess = (
   const renderContent = () => {
     switch (activeTab) {
       case 'home': 
-        return <DashboardScreen />;
+        return <DashboardScreen setActiveTab={setActiveTab} />;
       case "chat":
         return (
           <ChatScreen
@@ -268,23 +269,18 @@ const handleLoginSuccess = (
       case 'courses': 
         return <CourseScreen />;
 
+      case 'study planner':                         // <-- new
+      return <StudyPlanScreen />;
+
       case 'notes': 
         return <NotebookScreen />;
-      case 'progress': 
-        return <ProgressScreen />;
+        
       case 'upload':
         return (
-          <UploadScreen
-            uploadedImage={uploadedImage}
-            dragActive={dragActive}
-            setDragActive={setDragActive}
-            setUploadedImage={setUploadedImage}
-            handleDrop={handleDrop}
-            handleImageUpload={handleImageUpload}
-          />
+          <UploadScreen />
         );
       default: 
-        return <DashboardScreen />;
+        return <DashboardScreen setActiveTab={setActiveTab} />;
     }
   };
 

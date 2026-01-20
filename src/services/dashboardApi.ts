@@ -1,4 +1,4 @@
-import { QuizDashboardSummary } from '../types/dashboard.types';
+import { QuizDashboardSummary, WeeklyActivityResponse } from '../types/dashboard.types';
 
 const API_BASE_URL = 'https://quiz-backend-91248372939.us-central1.run.app'; // Adjust as needed for your backend environment
 
@@ -27,4 +27,12 @@ export async function fetchDashboardSummary(userId: string): Promise<QuizDashboa
     console.error("Failed to fetch dashboard summary", error);
     throw error;
   }
+}
+
+export async function fetchWeeklyActivity(userId: string): Promise<WeeklyActivityResponse> {
+  const response = await fetch(`${API_BASE_URL}/dashboard/weekly-activity?user_id=${userId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch weekly activity: ${response.statusText}`);
+  }
+  return response.json();
 }

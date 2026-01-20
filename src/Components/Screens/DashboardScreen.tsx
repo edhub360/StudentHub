@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchDashboardSummary } from '../../services/dashboardApi';
-import { QuizDashboardSummary } from '../../types/dashboard.types';
+import { fetchDashboardSummary, fetchWeeklyActivity } from '../../services/dashboardApi';
+import { QuizDashboardSummary, WeeklyActivityDay } from '../../types/dashboard.types';
 import { STATIC_DASHBOARD_DATA } from '../../constants/dashboard.constants';
 import { StatCard } from '../Dashboard/StatCard';
 import { WeeklyActivityCard } from '../Dashboard/WeeklyActivityCard';
@@ -15,33 +15,58 @@ import {
   Clock, 
   Hourglass, 
   Medal, 
-  TrendingUp,
-  Bell
+  TrendingUp
 } from 'lucide-react';
 
+export type TabId = 'home' | 'chat' | 'flashcards' | 'quiz' | 'courses' | 'study planner' | 'notes' | 'upload';
+
 interface DashboardScreenProps {
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: TabId) => void;
 }
 
-const DashboardScreen: React.FC = () => {
+const DashboardScreen: React.FC<DashboardScreenProps> = ({ setActiveTab }) => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<QuizDashboardSummary | null>(null);
+  const [weeklyActivityData, setWeeklyActivityData] = useState<WeeklyActivityDay[]>(STATIC_DASHBOARD_DATA.weeklyActivity);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
       setLoading(true);
-      fetchDashboardSummary(user.id)
-        .then(data => {
-          setSummary(data);
-          setLoading(false);
-        })
-        .catch(err => {
+      
+      const loadData = async () => {
+        try {
+          // Fetch summary and weekly activity in parallel
+          const [summaryData, activityData] = await Promise.all([
+            fetchDashboardSummary(user.id),
+            fetchWeeklyActivity(user.id).catch(err => {
+              console.warn("Failed to fetch weekly activity, falling back to static data", err);
+              return null;
+            })
+          ]);
+
+          setSummary(summaryData);
+
+          // Transform backend weekly activity if available
+          if (activityData) {
+            const formattedActivity: WeeklyActivityDay[] = activityData.days.map(day => ({
+              // Convert "2025-12-15" to "Mon"
+              day: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }) as WeeklyActivityDay['day'],
+              // Convert seconds to minutes
+              minutes: Math.round(day.studyTimeSeconds / 60)
+            }));
+            setWeeklyActivityData(formattedActivity);
+          }
+        } catch (err) {
           console.error(err);
           setError("Failed to load dashboard data");
+        } finally {
           setLoading(false);
-        });
+        }
+      };
+
+      loadData();
     }
   }, [user?.id]);
 
@@ -74,16 +99,33 @@ const DashboardScreen: React.FC = () => {
   const goalCompletionPercent = 75; 
 
   const handleQuickAction = (id: string) => {
-    console.log(`Navigating to action: ${id}`);
+    console.log('Dashboard handleQuickAction', id);
+    switch (id) {
+      case 'take-quiz': 
+        setActiveTab('quiz');
+        break;
+      case 'ask-ai':
+        setActiveTab('chat');
+        break;
+      case 'scan-solve':
+        setActiveTab('upload');
+        break;
+      case 'flashcards':
+        setActiveTab('flashcards');
+        break;
+      default:
+        console.warn('Unknown quick action id', id);
+        break;
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8 pb-12 bg-slate-50 min-h-screen">
       
       {/* Hero Welcome Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 to-teal-500 p-8 shadow-lg text-white">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-600 to-teal-500 p-8 shadow-lg text-white">
         <div className="relative z-10">
-          <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.name || "Student"}!</h2>
+          <h2 className="text-3xl font-bold mb-2">Welcome, {user?.name || "Student"}!</h2>
           <p className="text-teal-50 text-lg opacity-90">Ready to continue your learning journey?</p>
         </div>
         {/* Decorative background circle */}
@@ -139,7 +181,7 @@ const DashboardScreen: React.FC = () => {
 
       {/* Middle Row: Charts */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WeeklyActivityCard data={STATIC_DASHBOARD_DATA.weeklyActivity} />
+        <WeeklyActivityCard data={weeklyActivityData} />
         <SubjectMasteryCard subjects={STATIC_DASHBOARD_DATA.subjectMastery} />
       </section>
 

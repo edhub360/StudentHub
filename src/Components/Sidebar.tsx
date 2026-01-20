@@ -1,8 +1,10 @@
+import React from "react";
 import { ChevronLeft, ChevronRightIcon } from "lucide-react";
 import Logo from '../images/logo.edhub.png';
+import { TabId } from "./Screens/DashboardScreen";
 
 interface NavigationItem {
-  id: string;
+  id: TabId;
   label: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
@@ -12,8 +14,8 @@ interface SidebarProps {
   setSidebarCollapsed: (val: boolean) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (val: boolean) => void;
-  activeTab: string;
-  setActiveTab: (val: string) => void;
+  activeTab: TabId;
+  setActiveTab: React.Dispatch<React.SetStateAction<TabId>>;
   navigation: NavigationItem[];
 }
 
