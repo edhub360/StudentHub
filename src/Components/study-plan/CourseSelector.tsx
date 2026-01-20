@@ -29,9 +29,9 @@ const CourseSelector: React.FC<CourseSelectorProps> = ({ studyPlanId }) => {
         course_code: course.course_code,          
         course_category: course.course_category, 
         title: course.course_title,
-        duration: course.course_duration ?? 0,
+        duration: course.course_duration,
         term_name: "FALL 2025",                    
-        position_index: Date.now(),                
+        position_index: 99,                
         status: 'planned',
       }),
     onSuccess: () => {
