@@ -23,16 +23,17 @@ const CourseSelector: React.FC<CourseSelectorProps> = ({ studyPlanId }) => {
 
   // Add Item Mutation
   const addMutation = useMutation({
-    mutationFn: (course: CourseSearchResult) => api.addStudyItem({
-      studyplanid: studyPlanId,
-      coursecode: course.course_code,
-      title: course.course_title,
-      course_category: course.course_category,
-      duration: course.course_duration,
-      termname: "FALL 2025", // Default target term for quick adds
-      status: 'planned',
-      positionindex: 99
-    }),
+    mutationFn: (course: CourseSearchResult) =>
+      api.addStudyItem({
+        study_plan_id: studyPlanId,               
+        course_code: course.course_code,          
+        course_category: course.course_category, 
+        title: course.course_title,
+        duration: course.course_duration ?? 0,
+        term_name: "FALL 2025",                    
+        position_index: Date.now(),                
+        status: 'planned',
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-items', studyPlanId] });
       queryClient.invalidateQueries({ queryKey: ['study-plan', studyPlanId] });
@@ -40,9 +41,10 @@ const CourseSelector: React.FC<CourseSelectorProps> = ({ studyPlanId }) => {
       setIsOpen(false);
     },
     onError: (err: any) => {
-      alert(`Failed to add course: ${err.message}`);
+      alert(`Failed to add course: ${err?.response?.data?.detail ?? err.message}`);
     }
   });
+
 
   // Click outside handler
   useEffect(() => {
