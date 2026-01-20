@@ -71,13 +71,13 @@ export interface CreateStudyPlanPayload {
 export type NewStudyItemPayload = CreateStudyItemPayload;
 
 export interface CreateStudyItemPayload {
-  termname: string;
+  term_name: string;
   course_category: string;
-  coursecode: string;
+  course_code: string;
   title: string;
-  studyplanid: string;
+  study_plan_id: string;
   duration: number;
-  positionindex: number;
+  position_index: number;
   status: StudyStatus;
 }
 /**
@@ -91,7 +91,4 @@ export interface CourseSearchResult {
   course_duration: number;
 }
 
-export interface CreateStudyPlanPayload {
-  name: string;
-  description?: string;
-}
+
