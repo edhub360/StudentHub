@@ -108,7 +108,7 @@ export const fetchCoursesBySearch = async (query: string): Promise<CourseSearchR
  * POST /study-plan/items
  */
 export const addStudyItem = (payload: any): Promise<StudyItemRead> =>
-  request(`${API_BASE}/study-plan/items/`, {
+  request(`${API_BASE}/study-plan/items`, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
