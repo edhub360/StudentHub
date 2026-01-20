@@ -99,7 +99,7 @@ export const fetchCoursesBySearch = async (query: string): Promise<CourseSearchR
   }
 
   return request(
-    `${API_BASE}/study-plan/courses?q=${encodeURIComponent(q)}`
+    `${API_BASE}/study-plan/courses?search=${encodeURIComponent(q)}`
   );
 };
 
