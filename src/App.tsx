@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  MessageCircle, 
-  FileText, 
-  Brain, 
-  BarChart3, 
+import {
+  Home,
+  MessageCircle,
+  FileText,
+  Brain,
+  BarChart3,
   Upload,
   BookOpen,
   Image as ImageIcon,
@@ -25,11 +25,13 @@ import ForgotPasswordScreen from './Components/Screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './Components/Screens/ResetPasswordScreen';
 import PrivacyPolicy from './Components/Screens/PrivacyPolicy';
 import TermsOfService from './Components/Screens/TermsOfService';
+import SubscriptionSuccess from './Components/Screens/SubscriptionSuccess';
+import SubscriptionCancel from './Components/Screens/SubscriptionCancel';
 import { sendChatMessage } from './services/chatapi';
 import { FlashcardScreen } from './Components/Screens/FlashcardScreen';
 import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
-import DashboardScreen, {TabId} from './Components/Screens/DashboardScreen';
+import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
@@ -45,7 +47,7 @@ interface ChatMessage {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  file?: {    
+  file?: {
     name: string;
     size: number;
     type: string;
@@ -75,69 +77,69 @@ const App: React.FC = () => {
   //const [activeTab, setActiveTab] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
-useEffect(() => {
-  if (!isLoggedIn || !userId) return;
+  useEffect(() => {
+    if (!isLoggedIn || !userId) return;
 
-  const storedUserRaw = localStorage.getItem('user');
-  const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
-  const hasSubscription = !!(storedUser && storedUser.subscription_tier);
+    const storedUserRaw = localStorage.getItem('user');
+    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+    const hasSubscription = !!(storedUser && storedUser.subscription_tier);
 
-  if (!hasSubscription) {
-    setShowSubscriptionPage(true);
-    setUserStatus({
-      has_seen_subscription: false,
-      has_active_subscription: false,
-      subscription: null,
-    });
-  } else {
-    setShowSubscriptionPage(false);
-    setUserStatus({
-      has_seen_subscription: true,
-      has_active_subscription: true,
-      subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
-    });
-  }
-}, [isLoggedIn, userId]);
+    if (!hasSubscription) {
+      setShowSubscriptionPage(true);
+      setUserStatus({
+        has_seen_subscription: false,
+        has_active_subscription: false,
+        subscription: null,
+      });
+    } else {
+      setShowSubscriptionPage(false);
+      setUserStatus({
+        has_seen_subscription: true,
+        has_active_subscription: true,
+        subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
+      });
+    }
+  }, [isLoggedIn, userId]);
 
-//login integration code
+  //login integration code
 
-const handleLoginSuccess = (
-  token: string,
-  newUserId: string,
-  hasSubscription: boolean
-) => {
-  console.log('✅ Login success:', { userId: newUserId, hasSubscription });
+  const handleLoginSuccess = (
+    token: string,
+    newUserId: string,
+    hasSubscription: boolean
+  ) => {
+    console.log('✅ Login success:', { userId: newUserId, hasSubscription });
 
-  localStorage.setItem('token', token);
-  localStorage.setItem('user_id', newUserId);
-  localStorage.setItem('isLoggedIn', 'true');
-  setIsLoggedIn(true);
-  setUserId(newUserId);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user_id', newUserId);
+    localStorage.setItem('isLoggedIn', 'true');
+    setIsLoggedIn(true);
+    setUserId(newUserId);
 
-  if (hasSubscription) {
-    console.log('✅ Has subscription - Going to dashboard');
-    setShowSubscriptionPage(false);
-    setUserStatus({
-      has_seen_subscription: true,
-      has_active_subscription: true,
-      subscription: { plan_id: 'free', status: 'active' },
-    });
-  } else {
-    console.log('📋 No subscription - Showing subscription page');
-    setShowSubscriptionPage(true);
-    setUserStatus({
-      has_seen_subscription: false,
-      has_active_subscription: false,
-      subscription: null,
-    });
-  }
-};
+    if (hasSubscription) {
+      console.log('✅ Has subscription - Going to dashboard');
+      setShowSubscriptionPage(false);
+      setUserStatus({
+        has_seen_subscription: true,
+        has_active_subscription: true,
+        subscription: { plan_id: 'free', status: 'active' },
+      });
+    } else {
+      console.log('📋 No subscription - Showing subscription page');
+      setShowSubscriptionPage(true);
+      setUserStatus({
+        has_seen_subscription: false,
+        has_active_subscription: false,
+        subscription: null,
+      });
+    }
+  };
 
 
   // ✅ Handle Logout
@@ -184,22 +186,22 @@ const handleLoginSuccess = (
       console.warn("Chat input is empty; not sending.");
       return;
     }
-  
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       text: chatInput,
       isUser: true,
       timestamp: new Date(),
     };
-  
+
     setChatMessages((prev) => [...prev, userMessage]);
     setChatInput("");
     setIsLoading(true); // 🔑 start loading
-  
+
     try {
       console.log("Calling sendChatMessage with input:", chatInput);
       const data = await sendChatMessage(chatInput);
-      
+
       console.log("API responded with:", data);
 
       if (!data.answer) {
@@ -212,7 +214,7 @@ const handleLoginSuccess = (
         isUser: false,
         timestamp: new Date(),
       };
-  
+
       setChatMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Error in handleSendMessage:", error);
@@ -240,16 +242,16 @@ const handleLoginSuccess = (
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    
+
     const files = e.dataTransfer.files;
     if (files[0]) {
       handleImageUpload(files[0]);
     }
   };
-    
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': 
+      case 'home':
         return <DashboardScreen setActiveTab={setActiveTab} />;
       case "chat":
         return (
@@ -265,21 +267,21 @@ const handleLoginSuccess = (
 
       case 'quiz':
         return <QuizScreen />;
-        
-      case 'courses': 
+
+      case 'courses':
         return <CourseScreen />;
 
       case 'study planner':                         // <-- new
-      return <StudyPlanScreen />;
+        return <StudyPlanScreen />;
 
-      case 'notes': 
+      case 'notes':
         return <NotebookScreen />;
-        
+
       case 'upload':
         return (
           <UploadScreen />
         );
-      default: 
+      default:
         return <DashboardScreen setActiveTab={setActiveTab} />;
     }
   };
@@ -301,6 +303,15 @@ const handleLoginSuccess = (
 
   if (pathname === '/terms-of-service') {
     return <TermsOfService />;
+  }
+
+  // ✅ Subscription Routes
+  if (pathname === '/subscription/success') {
+    return <SubscriptionSuccess />;
+  }
+
+  if (pathname === '/subscription/cancel') {
+    return <SubscriptionCancel />;
   }
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
@@ -351,9 +362,8 @@ const handleLoginSuccess = (
         />
       )}
 
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+        }`}>
         <Header
           sidebarCollapsed={sidebarCollapsed}
           mobileMenuOpen={mobileMenuOpen}
