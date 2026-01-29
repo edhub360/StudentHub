@@ -91,10 +91,16 @@ export const activateSubscription = async (): Promise<ActivateSubscriptionRespon
 
 // ========== UTILITY FUNCTIONS ==========
 
+// ========== UTILITY FUNCTIONS ==========
+
 export const formatPrice = (amount: number, currency: string): string => {
   const symbol = currency === 'INR' ? '₹' : '$';
-  return `${symbol}${(amount / 100).toFixed(2)}`;
+  // If amount is already in rupees (< 1000), don't divide
+  // If amount is in paise (> 1000), divide by 100
+  const displayAmount = amount < 1000 ? amount : amount / 100;
+  return `${symbol}${displayAmount.toLocaleString('en-IN')}`;
 };
+
 
 export const getPriceByPeriod = (plan: Plan, period: BillingPeriod) => {
   return plan.prices.find(p => p.billing_period === period && p.is_active);
