@@ -306,11 +306,11 @@ const App: React.FC = () => {
   }
 
   // ✅ Subscription Routes
-  if (pathname === '/subscription/success') {
+  if (pathname === '/success') {
     return <SubscriptionSuccess />;
   }
 
-  if (pathname === '/subscription/cancel') {
+  if (pathname === '/cancel') {
     return <SubscriptionCancel />;
   }
 
