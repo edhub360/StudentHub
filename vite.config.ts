@@ -8,13 +8,4 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   base: '/StudentHub/',
-  server: {
-    proxy: {
-      '/api/proxy': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/proxy/, ''),
-      },
-    },
-  },
 });
