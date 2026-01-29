@@ -287,7 +287,8 @@ const App: React.FC = () => {
   };
 
 
-  const pathname = location.pathname;
+  // Remove the /StudentHub prefix logic since HashRouter handles it differently
+const pathname = location.pathname || '/';
 
   if (pathname === '/forgot-password') {
     return <ForgotPasswordScreen />;
