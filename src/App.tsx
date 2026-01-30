@@ -287,8 +287,11 @@ const App: React.FC = () => {
   };
 
 
-  // Remove the /StudentHub prefix logic since HashRouter handles it differently
-const pathname = location.pathname || '/';
+  // ✅ For HashRouter, use location.pathname (HashRouter handles this correctly)
+  const pathname = location.pathname || '/';
+
+  // Debug log to see what pathname we're getting
+  console.log('🔍 Current pathname:', pathname);
 
   if (pathname === '/forgot-password') {
     return <ForgotPasswordScreen />;
@@ -306,14 +309,18 @@ const pathname = location.pathname || '/';
     return <TermsOfService />;
   }
 
-  // ✅ Subscription Routes
+  // ✅ Subscription Success Route
   if (pathname === '/success') {
+    console.log('✅ Showing SubscriptionSuccess page');
     return <SubscriptionSuccess />;
   }
 
+  // ✅ Subscription Cancel Route
   if (pathname === '/cancel') {
+    console.log('✅ Showing SubscriptionCancel page');
     return <SubscriptionCancel />;
   }
+
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage && userId) {
