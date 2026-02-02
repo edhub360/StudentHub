@@ -22,7 +22,7 @@ const SubscriptionSuccess: React.FC = () => {
       // ✅ Fetch user profile from auth service
       const token = localStorage.getItem('token');
       const response = await fetch(
-        'https://subscription-service-91248372939.us-central1.run.app/profile',
+        'https://login-service-91248372939.us-central1.run.app/auth/me',
         {
           headers: {
             'Authorization': `Bearer ${token}`
