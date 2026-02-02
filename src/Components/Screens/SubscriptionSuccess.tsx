@@ -13,47 +13,53 @@ const SubscriptionSuccess: React.FC = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<'pending' | 'verified' | 'failed'>('pending');
 
   useEffect(() => {
-    const verifyAndUpdateSubscription = async () => {
-      try {
-        console.log('🔍 Verifying subscription...');
-        
-        // Wait 3 seconds for webhook to process
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Fetch subscription from backend
-        const subscription = await getUserSubscription();
-        console.log('📋 Subscription data:', subscription);
-        
-        if (subscription && subscription.status === 'active') {
-          // ✅ Update localStorage with subscription info
-          const storedUserRaw = localStorage.getItem('user');
-          if (storedUserRaw) {
-            const storedUser = JSON.parse(storedUserRaw);
-            storedUser.subscription_tier = subscription.plan_id;
-            localStorage.setItem('user', JSON.stringify(storedUser));
+  const verifyAndUpdateSubscription = async () => {
+    try {
+      console.log('🔍 Verifying subscription...');
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // ✅ Fetch user profile from auth service
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        'https://backend-service-91248372939.us-central1.run.app/profile',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
-          
-          // Also update subscription_tier separately
-          localStorage.setItem('subscription_tier', subscription.plan_id);
-          
-          console.log('✅ Subscription verified and localStorage updated!');
+        }
+      );
+      
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('✅ User data fetched:', userData);
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        if (userData.subscription_tier) {
+          localStorage.setItem('subscription_tier', userData.subscription_tier);
+          console.log('✅ Subscription verified:', userData.subscription_tier);
           setSubscriptionStatus('verified');
         } else {
-          console.warn('⚠️ Subscription not active yet, might still be processing');
-          setError('Subscription is being processed. Please check back in a moment.');
+          setError('Subscription is being processed.');
           setSubscriptionStatus('failed');
         }
-      } catch (err) {
-        console.error('❌ Verification failed:', err);
-        setError('Could not verify subscription. Please check your account.');
+      } else {
+        setError('Could not verify subscription.');
         setSubscriptionStatus('failed');
-      } finally {
-        setVerifying(false);
       }
-    };
-    
-    verifyAndUpdateSubscription();
+    } catch (err) {
+      console.error('❌ Verification failed:', err);
+      setError('Could not verify subscription.');
+      setSubscriptionStatus('failed');
+    } finally {
+      setVerifying(false);
+    }
+  };
+  
+  verifyAndUpdateSubscription();
   }, []);
+
 
   useEffect(() => {
     // Only start countdown after verification completes

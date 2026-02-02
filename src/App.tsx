@@ -90,7 +90,14 @@ const App: React.FC = () => {
     const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
     const hasSubscription = !!(storedUser && storedUser.subscription_tier);
 
+    console.log('🔍 Checking subscription status:', {
+      pathname: location.pathname,
+      hasSubscription,
+      subscription_tier: storedUser?.subscription_tier
+    });
+
     if (!hasSubscription) {
+      console.log('❌ No subscription - showing subscription page');
       setShowSubscriptionPage(true);
       setUserStatus({
         has_seen_subscription: false,
@@ -98,6 +105,7 @@ const App: React.FC = () => {
         subscription: null,
       });
     } else {
+      console.log('✅ Has subscription - showing dashboard');
       setShowSubscriptionPage(false);
       setUserStatus({
         has_seen_subscription: true,
@@ -105,7 +113,7 @@ const App: React.FC = () => {
         subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
       });
     }
-  }, [isLoggedIn, userId]);
+  }, [isLoggedIn, userId, location.pathname]);
 
   //login integration code
 
