@@ -288,7 +288,7 @@ const App: React.FC = () => {
 
 
   // ✅ For HashRouter, use location.pathname (HashRouter handles this correctly)
-  const pathname = location.pathname || '/';
+  const pathname = location.pathname.replace('/StudentHub', '') || '/';
 
   // Debug log to see what pathname we're getting
   console.log('🔍 Current pathname:', pathname);
