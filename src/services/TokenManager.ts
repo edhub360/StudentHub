@@ -73,3 +73,21 @@ export async function getValidAccessToken(): Promise<string> {
     throw new Error('Session expired. Please sign in again.');
   }
 }
+
+export function getUserId(): string | null {
+  const { accessToken } = getStoredTokens();
+  if (!accessToken) return null;
+
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length !== 3) return null;
+
+    const payloadJson = atob(
+      parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    );
+    const payload = JSON.parse(payloadJson);
+    return payload.user_id || payload.sub || null;
+  } catch {
+    return null;
+  }
+}
