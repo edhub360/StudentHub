@@ -135,9 +135,13 @@ export const fetchQuizzes = async (): Promise<QuizListItem[]> => {
 /**
  * NEW API: Get specific quiz with all questions
  */
-export const fetchQuizDetail = async (quizId: string): Promise<QuizDetail | null> => {
+export const fetchQuizDetail = async (
+  quizId: string, 
+  limit?: number
+): Promise<QuizDetail> => {
   try {
-    const response = await apiClient.get<QuizDetail>(`/quizzes/${quizId}`);
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await apiClient.get(`/quizzes/${quizId}${params}`);
     return response.data;
   } catch (error) {
     handleApiError(error);
@@ -145,6 +149,7 @@ export const fetchQuizDetail = async (quizId: string): Promise<QuizDetail | null
     return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZ_DETAIL), 800));
   }
 };
+
 
 /**
  * NEW API: Submit quiz attempt

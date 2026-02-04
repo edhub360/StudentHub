@@ -62,25 +62,23 @@ const QuizScreen: React.FC = () => {
   const handleStartQuiz = async (quizId: string) => {
     setView(ViewState.LOADING);
     try {
-      // NEW: Fetch quiz with questions from backend
-      const quiz = await fetchQuizDetail(quizId);
+      // Fetch 5-10 random questions (you can make this configurable)
+      const randomLimit = Math.floor(Math.random() * 6) + 5; // Random between 5-10
+      const quiz = await fetchQuizDetail(quizId, randomLimit);
       
       if (!quiz) {
         throw new Error('Quiz not found');
       }
-
+      
       if (!quiz.questions || quiz.questions.length === 0) {
         setError('This quiz has no questions available.');
         setView(ViewState.ERROR);
         return;
       }
-
-      setActiveQuiz(quiz);
       
-      // NEW: Process questions (shuffle options, normalize format)
+      setActiveQuiz(quiz);
       const processed = processQuestions(quiz.questions);
       setProcessedQuestions(processed);
-      
       setView(ViewState.PLAYING);
     } catch (err) {
       console.error(err);
