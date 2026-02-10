@@ -114,9 +114,11 @@ export const processQuestions = (questions: QuizQuestion[]): ProcessedQuestion[]
 /**
  * NEW API: Get all active quizzes
  */
-export const fetchQuizzes = async (): Promise<QuizListItem[]> => {
+export const fetchQuizzes = async (page: number = 1, pageSize: number = 10): Promise<QuizListItem[]> => {
   try {
-    const response = await apiClient.get<QuizListItem[]>('/quizzes');
+    const response = await apiClient.get('/quizzes', {
+      params: { limit: page, pageSize }
+    });
 
     if (!Array.isArray(response.data)) {
       console.warn("API returned non-array data for quizzes:", response.data);

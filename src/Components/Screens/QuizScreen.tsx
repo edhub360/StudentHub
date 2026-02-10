@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { QuizList } from '../Quiz/QuizList';
 import { QuizPlayer } from '../Quiz/QuizPlayer';
 import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
+import { QuizButton } from '../Quiz/QuizButton';
 
 const QuizScreen: React.FC = () => {
   // Get real logged-in user from auth context
@@ -32,16 +33,20 @@ const QuizScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  useEffect(() => {
-    loadQuizzes();
-  }, []);
+  // pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const loadQuizzes = async () => {
+  useEffect(() => {
+    loadQuizzes(page);
+  }, [page]);
+
+  const loadQuizzes = async (pageNum: number) => {
     setView(ViewState.LOADING);
     setError(null);
     try {
       // NEW: No user_id needed - fetches global quizzes
-      const data = await fetchQuizzes();
+      const data = await fetchQuizzes(pageNum, pageSize);
       
       // Check if we are receiving the mock data
       if (Array.isArray(data) && data.length > 0 && data[0].quiz_id.startsWith('mock-')) {
@@ -135,7 +140,17 @@ const QuizScreen: React.FC = () => {
     setActiveQuiz(null);
     setProcessedQuestions([]);
     setLastResult(null);
-    loadQuizzes();
+    loadQuizzes(page);
+  };
+
+  const handlePrevPage = () => {
+    setPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    // disable Next when fewer than pageSize items returned
+    if (quizzes.length < pageSize) return;
+    setPage((p) => p + 1);
   };
 
   return (
@@ -164,7 +179,7 @@ const QuizScreen: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Error Loading Quizzes</h2>
               <p className="text-gray-600 mb-6">{error}</p>
               <button
-                onClick={loadQuizzes}
+                onClick={() => loadQuizzes(page)}
                 className="px-6 py-3 bg-cyan-500 text-white font-semibold rounded-lg hover:bg-cyan-600 transition-colors"
               >
                 Try Again
@@ -174,7 +189,31 @@ const QuizScreen: React.FC = () => {
         )}
 
         {view === ViewState.LIST && (
-          <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
+          <>
+            <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
+            {/* pagination controls */}
+            <div className="flex items-center justify-between mt-6">
+              <QuizButton
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={handlePrevPage}
+              >
+                ← Previous
+              </QuizButton>
+
+              <span className="text-sm text-white/80">Page {page}</span>
+
+              <QuizButton
+                variant="outline"
+                size="sm"
+                disabled={quizzes.length < pageSize}
+                onClick={handleNextPage}
+              >
+                Next →
+              </QuizButton>
+            </div>
+          </>    
         )}
 
         {view === ViewState.PLAYING && activeQuiz && processedQuestions.length > 0 && (
