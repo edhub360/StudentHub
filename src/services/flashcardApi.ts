@@ -30,21 +30,39 @@ interface DeckDetailResponse extends FlashcardDeckDetail {
 
 /**
  * Fetch paginated flashcard decks
- * @param offset - Number of decks to skip (default: 0)
- * @param limit - Number of decks to return (default: 10)
+ * offset - Number of decks to skip (default: 0)
+ * limit - Number of decks to return (default: 10)
  */
+
 export const fetchDecks = async (offset: number = 0, limit: number = 10): Promise<DecksResponse> => {
   try {
     const response = await api.get('/flashcard-decks', {
       params: { offset, limit }
     });
-    return response.data;
+    
+    const data = response.data;
+    
+    // ✅ Handle both old (array) and new (object with pagination) formats
+    if (Array.isArray(data)) {
+      // Old format - wrap it
+      return {
+        decks: data,
+        pagination: {
+          total: data.length,
+          offset: 0,
+          limit: data.length,
+          has_more: false
+        }
+      };
+    }
+    
+    // New paginated format
+    return data;
+    
   } catch (error) {
     console.warn("API Error, using mock data for Decks:", error);
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Return mock data with pagination
     return {
       decks: MOCK_DECKS.slice(offset, offset + limit),
       pagination: {
@@ -59,9 +77,6 @@ export const fetchDecks = async (offset: number = 0, limit: number = 10): Promis
 
 /**
  * Fetch flashcard deck detail with paginated cards
- * @param deckId - Deck identifier
- * @param offset - Number of cards to skip (default: 0)
- * @param limit - Number of cards to return (default: 20)
  */
 export const fetchDeckDetail = async (
   deckId: string, 
@@ -72,7 +87,26 @@ export const fetchDeckDetail = async (
     const response = await api.get(`/flashcard-decks/${deckId}`, {
       params: { offset, limit }
     });
-    return response.data;
+    
+    const data = response.data;
+    
+    // ✅ Handle both old and new formats
+    if (!data.pagination) {
+      // Old format - add pagination metadata
+      return {
+        ...data,
+        pagination: {
+          total: data.cards?.length || 0,
+          offset: 0,
+          limit: data.cards?.length || 0,
+          has_more: false
+        }
+      };
+    }
+    
+    // New paginated format
+    return data;
+    
   } catch (error) {
     console.warn(`API Error for deck ${deckId}, using mock data:`, error);
     await new Promise(resolve => setTimeout(resolve, 600));
@@ -92,7 +126,6 @@ export const fetchDeckDetail = async (
       };
     }
     
-    // Fallback for ID not in mock
     const fallbackDeck = MOCK_DECK_DETAILS["1"];
     const fallbackCards = fallbackDeck.cards.slice(offset, offset + limit);
     return {
@@ -107,6 +140,7 @@ export const fetchDeckDetail = async (
     };
   }
 };
+
 
 /**
  * Sends flashcard analytics data to the backend.
