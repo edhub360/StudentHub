@@ -85,7 +85,7 @@ export default function SettingsScreen() {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Security</h2>
         <button 
-          onClick={() => navigate('/reset-password')}  /* ← CHANGED FROM <a> */
+          onClick={() => navigate('/forgot-password')}  /* ← CHANGED FROM <a> */
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
         >
           🔒 Change Password
