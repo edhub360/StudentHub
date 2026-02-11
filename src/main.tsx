@@ -11,7 +11,7 @@ const queryClient = new QueryClient();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/StudentHub">
+      <BrowserRouter basename="/">
         <AuthProvider>
           <App />
         </AuthProvider>
