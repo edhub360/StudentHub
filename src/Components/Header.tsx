@@ -1,6 +1,9 @@
 import { Menu, Bell, Settings, User, LogOut, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { TabId } from './Screens/DashboardScreen';
+import { useNavigate } from 'react-router-dom'; 
+
+const navigate = useNavigate();
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -8,6 +11,7 @@ interface HeaderProps {
   setMobileMenuOpen: (val: boolean) => void;
   activeTab: TabId;
   onLogout: () => void;
+  setActiveTab: (tab: TabId) => void;
 }
 
 
@@ -17,6 +21,7 @@ export default function Header({
   setMobileMenuOpen,
   activeTab,
   onLogout,
+  setActiveTab
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -115,6 +120,7 @@ export default function Header({
                     onClick={() => {
                       setShowProfileMenu(false);
                       // TODO: Add settings navigation
+                      setActiveTab('settings' as TabId);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >

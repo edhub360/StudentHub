@@ -116,8 +116,9 @@ export const processQuestions = (questions: QuizQuestion[]): ProcessedQuestion[]
  */
 export const fetchQuizzes = async (page: number = 1, pageSize: number = 10): Promise<QuizListItem[]> => {
   try {
+    const offset = (page - 1) * pageSize;  //  Calculate offset
     const response = await apiClient.get('/quizzes', {
-      params: { limit: page, pageSize }
+      params: { offset, limit: pageSize }
     });
 
     if (!Array.isArray(response.data)) {

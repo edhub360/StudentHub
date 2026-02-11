@@ -33,6 +33,7 @@ import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
 import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
+import SettingsScreen from './Components/Screens/SettingsScreen';
 
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -289,6 +290,9 @@ const App: React.FC = () => {
         return (
           <UploadScreen />
         );
+
+      case 'settings':
+        return <SettingsScreen />;
       default:
         return <DashboardScreen setActiveTab={setActiveTab} />;
     }
@@ -386,6 +390,7 @@ const App: React.FC = () => {
           setMobileMenuOpen={setMobileMenuOpen}
           activeTab={activeTab}
           onLogout={handleLogout}
+          setActiveTab={setActiveTab} 
         />
 
         <main className="flex-1 overflow-y-auto">
