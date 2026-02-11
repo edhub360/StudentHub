@@ -18,6 +18,7 @@ export default function SettingsScreen() {
   }, []);
 
   const fetchSubscription = async () => {
+    const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
     try {
       const userId = localStorage.getItem('user_id');
       if (!userId) {
@@ -28,7 +29,7 @@ export default function SettingsScreen() {
       }
 
       const res = await fetch(
-        `https://subscription-service-91248372939.us-central1.run.app/subscriptions/${userId}`,
+        `${API_BASE}/subscriptions/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -49,8 +50,19 @@ export default function SettingsScreen() {
 
       const data = await res.json();
       
+      // Fetch all plans to get plan name by ID
+      const plansRes = await fetch(`${API_BASE}/plans`);
+      const plansData = await plansRes.json();
+      
+      // Find plan name
+      let planName = 'Unknown Plan';
+      if (plansData.plans && Array.isArray(plansData.plans)) {
+        const plan = plansData.plans.find((p: any) => p.id === data.plan_id);
+        planName = plan ? plan.name : data.plan_id.substring(0, 8) + '...';
+      }
+
       setSubscription({
-        plan: data.plan_id || 'Free',
+        plan: planName,
         status: data.status === 'active' ? 'Active' : data.status,
         expiry: data.current_period_end 
           ? new Date(data.current_period_end).toLocaleDateString('en-US', {
