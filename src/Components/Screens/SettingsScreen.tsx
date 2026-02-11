@@ -1,25 +1,70 @@
-// src/Screens/SettingsScreen.tsx 
+// src/Components/Screens/SettingsScreen.tsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';  // ← ADD THIS
 
 export default function SettingsScreen() {
-  const [userName, setUserName] = useState(localStorage.getItem('userName') || 'Guest User');
-  const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || '');
-  const [subscription, setSubscription] = useState({ plan: 'Free', status: 'Active', expiry: 'N/A' });
+  const navigate = useNavigate();  // ← ADD THIS
+  const [userName] = useState(localStorage.getItem('userName') || 'Guest User');
+  const [userEmail] = useState(localStorage.getItem('userEmail') || '');
+  const [subscription, setSubscription] = useState({ 
+    plan: 'Free', 
+    status: 'Loading...', 
+    expiry: 'N/A' 
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch real subscription data from your FastAPI backend
     fetchSubscription();
   }, []);
 
   const fetchSubscription = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/user/subscription`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        console.error('No user_id in localStorage');
+        setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch(
+        `https://subscription-service-91248372939.us-central1.run.app/subscriptions/${userId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (res.status === 404) {
+        setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      
+      setSubscription({
+        plan: data.plan_id || 'Free',
+        status: data.status === 'active' ? 'Active' : data.status,
+        expiry: data.current_period_end 
+          ? new Date(data.current_period_end).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })
+          : 'N/A'
       });
-      setSubscription(await res.json());
     } catch (err) {
       console.error('Subscription fetch error:', err);
+      setSubscription({ plan: 'Free', status: 'Error Loading', expiry: 'N/A' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,36 +81,47 @@ export default function SettingsScreen() {
         </div>
       </div>
 
-      {/* Change Password */}
+      {/* Change Password - FIXED */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Security</h2>
-        <a 
-          href="/reset-password"  // uses your existing pathname logic
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium underline"
+        <button 
+          onClick={() => navigate('/reset-password')}  /* ← CHANGED FROM <a> */
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
         >
           🔒 Change Password
-        </a>
+        </button>
       </div>
 
       {/* Subscription */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
         <h2 className="text-xl font-semibold mb-4">Subscription</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Plan:</span><br />
-            <span className="font-semibold text-gray-900">{subscription.plan}</span>
+        {loading ? (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Loading subscription...</p>
           </div>
-          <div>
-            <span className="text-gray-600">Status:</span><br />
-            <span className={`font-semibold ${subscription.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>
-              {subscription.status}
-            </span>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Plan:</span><br />
+              <span className="font-semibold text-gray-900 capitalize">{subscription.plan}</span>
+            </div>
+            <div>
+              <span className="text-gray-600">Status:</span><br />
+              <span className={`font-semibold ${
+                subscription.status === 'Active' ? 'text-green-600' : 
+                subscription.status === 'No Active Plan' ? 'text-gray-600' :
+                'text-red-600'
+              }`}>
+                {subscription.status}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Expires:</span><br />
+              <span className="font-semibold">{subscription.expiry}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-600">Expires:</span><br />
-            <span className="font-semibold">{subscription.expiry}</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
