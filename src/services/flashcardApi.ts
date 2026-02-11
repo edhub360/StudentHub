@@ -34,7 +34,7 @@ interface DeckDetailResponse extends FlashcardDeckDetail {
  * limit - Number of decks to return (default: 10)
  */
 
-export const fetchDecks = async (offset: number = 0, limit: number = 10): Promise<DecksResponse> => {
+export const fetchDecks = async (offset: number = 0, limit: number = 6): Promise<DecksResponse> => {
   try {
     const response = await api.get('/flashcard-decks', {
       params: { offset, limit }
