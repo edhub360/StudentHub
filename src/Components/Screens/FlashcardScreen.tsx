@@ -34,7 +34,7 @@ export const FlashcardScreen: React.FC = () => {
     }
     
     try {
-      const response = await fetchDecks(offset, 10);
+      const response = await fetchDecks(offset, 6);
       
       if (offset === 0) {
         setDecks(response.decks);
