@@ -19,66 +19,72 @@ export default function SettingsScreen() {
 
   const fetchSubscription = async () => {
     const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
+    
     try {
-      const userId = localStorage.getItem('user_id');
-      if (!userId) {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
         console.error('No user_id in localStorage');
         setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
         setLoading(false);
         return;
-      }
-
-      const res = await fetch(
-        `${API_BASE}/subscriptions/${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
         }
-      );
 
-      if (res.status === 404) {
+        const token = localStorage.getItem('token');
+        
+        // Fetch subscription
+        const subRes = await fetch(`${API_BASE}/subscriptions/${userId}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+        });
+
+        if (subRes.status === 404) {
         setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
         setLoading(false);
         return;
-      }
+        }
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+        if (!subRes.ok) {
+        throw new Error(`HTTP ${subRes.status}`);
+        }
 
-      const data = await res.json();
-      
-      // Fetch all plans to get plan name by ID
-      const plansRes = await fetch(`${API_BASE}/plans`);
-      const plansData = await plansRes.json();
-      
-      // Find plan name
-      let planName = 'Unknown Plan';
-      if (plansData.plans && Array.isArray(plansData.plans)) {
-        const plan = plansData.plans.find((p: any) => p.id === data.plan_id);
-        planName = plan ? plan.name : data.plan_id.substring(0, 8) + '...';
-      }
-
-      setSubscription({
+        const subData = await subRes.json();
+        console.log('📦 Subscription data:', subData);  // ← ADD
+        
+        // Fetch all plans to get plan name by ID
+        const plansRes = await fetch(`${API_BASE}/plans`);
+        const plansData = await plansRes.json();
+        console.log('📋 Plans data:', plansData);  // ← ADD
+        
+        // Find plan name
+        let planName = 'Unknown Plan';
+        if (Array.isArray(plansData)) {
+        console.log('🔍 Looking for plan_id:', subData.plan_id);  // ← ADD
+        const plan = plansData.find((p: any) => p.id === subData.plan_id);
+        console.log('✅ Found plan:', plan);  // ← ADD
+        planName = plan ? plan.name : 'Plan Not Found';
+        }
+        
+        setSubscription({
         plan: planName,
-        status: data.status === 'active' ? 'Active' : data.status,
-        expiry: data.current_period_end 
-          ? new Date(data.current_period_end).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
+        status: subData.status === 'active' ? 'Active' : subData.status,
+        expiry: subData.current_period_end 
+            ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
             })
-          : 'N/A'
-      });
+            : 'N/A'
+        });
     } catch (err) {
-      console.error('Subscription fetch error:', err);
-      setSubscription({ plan: 'Free', status: 'Error Loading', expiry: 'N/A' });
+        console.error('Subscription fetch error:', err);
+        setSubscription({ plan: 'Error', status: 'Error Loading', expiry: 'N/A' });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
+
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
