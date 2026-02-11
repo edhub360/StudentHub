@@ -1,9 +1,9 @@
 import { Menu, Bell, Settings, User, LogOut, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { TabId } from './Screens/DashboardScreen';
-import { useNavigate } from 'react-router-dom'; 
+//import { useNavigate } from 'react-router-dom'; 
 
-const navigate = useNavigate();
+//const navigate = useNavigate();
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
