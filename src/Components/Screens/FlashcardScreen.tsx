@@ -6,6 +6,7 @@ import { DeckList } from '../Flashcard/DeckList';
 import { FlashcardPlayer } from '../Flashcard/FlashcardPlayer';
 import { CompletionScreen } from '../Flashcard/CompletionScreen';
 import { Button } from '../Flashcard/Button';
+import { Pagination } from '../common/Pagination'; // ✅ Import numbered pagination
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export const FlashcardScreen: React.FC = () => {
@@ -16,45 +17,34 @@ export const FlashcardScreen: React.FC = () => {
   const [endTime, setEndTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
-  // Pagination state for deck list
-  const [deckOffset, setDeckOffset] = useState(0);
-  const [hasMoreDecks, setHasMoreDecks] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 6;
 
   // Initial Data Load
   useEffect(() => {
-    loadDecks();
-  }, []);
+    loadDecks(page);
+  }, [page]);
 
-  const loadDecks = async (offset: number = 0) => {
-    if (offset === 0) {
-      setViewState(ViewState.LOADING);
-    } else {
-      setLoadingMore(true);
-    }
+  const loadDecks = async (pageNum: number) => {
+    setViewState(ViewState.LOADING);
+    setError(null);
     
     try {
-      const response = await fetchDecks(offset, 6);
+      const offset = (pageNum - 1) * pageSize;
+      const response = await fetchDecks(offset, pageSize);
       
-      if (offset === 0) {
-        setDecks(response.decks);
-      } else {
-        setDecks(prev => [...prev, ...response.decks]);
-      }
+      setDecks(response.decks);
       
-      setDeckOffset(response.pagination.offset + response.pagination.limit);
-      setHasMoreDecks(response.pagination.has_more);
+      // Calculate total pages from backend total count
+      setTotalPages(Math.ceil(response.pagination.total / pageSize));
+      
       setViewState(ViewState.LIST);
     } catch (err) {
       setError("Failed to load flashcard decks.");
       setViewState(ViewState.ERROR);
-    } finally {
-      setLoadingMore(false);
     }
-  };
-
-  const handleLoadMoreDecks = () => {
-    loadDecks(deckOffset);
   };
 
   const handleSelectDeck = async (deckId: string) => {
@@ -84,7 +74,7 @@ export const FlashcardScreen: React.FC = () => {
 
   const handleExit = () => {
     setSelectedDeck(null);
-    setViewState(ViewState.LIST);
+    loadDecks(page);
   };
 
   // Render Logic
@@ -103,7 +93,7 @@ export const FlashcardScreen: React.FC = () => {
         <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Something went wrong</h2>
         <p className="text-gray-600 mb-6">{error || "An unexpected error occurred."}</p>
-        <Button onClick={() => loadDecks(0)} variant="primary">
+        <Button onClick={() => loadDecks(page)} variant="primary">
           Try Again
         </Button>
       </div>
@@ -133,30 +123,17 @@ export const FlashcardScreen: React.FC = () => {
     );
   }
 
-  // Default: LIST with pagination
+  // Default: LIST with numbered pagination
   return (
     <div className="container mx-auto px-4 py-8">
       <DeckList decks={decks} onSelectDeck={handleSelectDeck} />
       
-      {/* Load More Button */}
-      {hasMoreDecks && (
-        <div className="flex justify-center mt-8">
-          <Button
-            onClick={handleLoadMoreDecks}
-            variant="secondary"
-            disabled={loadingMore}
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Loading...
-              </>
-            ) : (
-              'Load More Decks'
-            )}
-          </Button>
-        </div>
-      )}
+      {/* Numbered Pagination */}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   );
 };
