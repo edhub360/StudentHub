@@ -333,6 +333,20 @@ const App: React.FC = () => {
     return <SubscriptionCancel />;
   }
 
+  // ✅ ADD THIS: Manual Subscription/Upgrade Route
+  if (pathname === '/subscription' && isLoggedIn && userId) {
+    console.log('✅ Showing Subscription/Upgrade page');
+    return (
+      <SubscriptionWrapper
+        isFirstTime={false} // Not first time, manual upgrade
+        userId={userId}
+        onComplete={() => {
+          // After completing upgrade, navigate back to settings
+          window.location.hash = '/StudentHub/settings';
+        }}
+      />
+    );
+  }
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage && userId) {

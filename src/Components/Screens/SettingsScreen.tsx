@@ -112,7 +112,7 @@ export default function SettingsScreen() {
           onClick={() => navigate('/forgot-password')}  /* ← CHANGED FROM <a> */
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
         >
-          🔒 Change Password
+           Change Password
         </button>
       </div>
 
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
             onClick={() => navigate('/subscription')}
             className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
           >
-            ⬆️ Upgrade Plan
+             Upgrade Plan
           </button>
         </div>
         
