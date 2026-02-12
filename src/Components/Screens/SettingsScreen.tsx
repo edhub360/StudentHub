@@ -90,12 +90,18 @@ export default function SettingsScreen() {
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
       
-      {/* User Info */}
+      {/* User Info - UPDATED with labels */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profile</h2>
-        <div className="space-y-1">
-          <p className="text-lg font-medium">{userName}</p>
-          <p className="text-gray-500">{userEmail}</p>
+        <div className="space-y-3">
+          <div>
+            <span className="text-sm font-medium text-gray-600">Name:</span>
+            <p className="text-lg font-medium text-gray-900 mt-1">{userName}</p>
+          </div>
+          <div>
+            <span className="text-sm font-medium text-gray-600">Email ID:</span>
+            <p className="text-gray-700 mt-1">{userEmail}</p>
+          </div>
         </div>
       </div>
 
@@ -110,9 +116,18 @@ export default function SettingsScreen() {
         </button>
       </div>
 
-      {/* Subscription */}
+      {/* Subscription - UPDATED with Upgrade button */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-        <h2 className="text-xl font-semibold mb-4">Subscription</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Subscription</h2>
+          <button
+            onClick={() => navigate('/subscription')}
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+          >
+            ⬆️ Upgrade Plan
+          </button>
+        </div>
+        
         {loading ? (
           <div className="text-center py-4">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -122,7 +137,7 @@ export default function SettingsScreen() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-gray-600">Plan:</span><br />
-              <span className="font-semibold text-gray-900 capitalize">{subscription.plan}</span>
+              <span className="font-semibold text-gray-900">{subscription.plan}</span>
             </div>
             <div>
               <span className="text-gray-600">Status:</span><br />
