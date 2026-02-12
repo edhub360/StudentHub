@@ -38,7 +38,7 @@ const QuizScreen: React.FC = () => {
 
   // pagination state
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 6;
 
   useEffect(() => {
     loadQuizzes(page);
