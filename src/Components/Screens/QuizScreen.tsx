@@ -20,7 +20,7 @@ import { QuizList } from '../Quiz/QuizList';
 import { QuizPlayer } from '../Quiz/QuizPlayer';
 import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
 import { QuizButton } from '../Quiz/QuizButton';
-
+import { Pagination } from '../common/Pagination';
 const QuizScreen: React.FC = () => {
   // Get real logged-in user from auth context
   const { user } = useAuth();
@@ -32,6 +32,9 @@ const QuizScreen: React.FC = () => {
   const [lastResult, setLastResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  // Calculate total pages based on a total count from backend
+  // For now, we'll estimate based on returned results
+  const [totalPages, setTotalPages] = useState(1);
 
   // pagination state
   const [page, setPage] = useState(1);
@@ -56,6 +59,15 @@ const QuizScreen: React.FC = () => {
       }
 
       setQuizzes(data || []);
+
+      // Estimate total pages (you'll need backend to return total count)
+      // For now: if we get full page, assume there might be more
+      if (data.length === pageSize) {
+        setTotalPages(Math.max(totalPages, pageNum + 1));
+      } else {
+        setTotalPages(pageNum);
+      }
+
       setView(ViewState.LIST);
     } catch (err) {
       console.error(err);
@@ -191,29 +203,14 @@ const QuizScreen: React.FC = () => {
         {view === ViewState.LIST && (
           <>
             <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
-            {/* pagination controls */}
-            <div className="flex items-center justify-between mt-6">
-              <QuizButton
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={handlePrevPage}
-              >
-                ← Previous
-              </QuizButton>
-
-              <span className="text-sm text-white/80">Page {page}</span>
-
-              <QuizButton
-                variant="outline"
-                size="sm"
-                disabled={quizzes.length < pageSize}
-                onClick={handleNextPage}
-              >
-                Next →
-              </QuizButton>
-            </div>
-          </>    
+            
+            {/* NEW: Numbered Pagination */}
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </>
         )}
 
         {view === ViewState.PLAYING && activeQuiz && processedQuestions.length > 0 && (
