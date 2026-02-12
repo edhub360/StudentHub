@@ -48,25 +48,20 @@ const QuizScreen: React.FC = () => {
     setView(ViewState.LOADING);
     setError(null);
     try {
-      // NEW: No user_id needed - fetches global quizzes
-      const data = await fetchQuizzes(pageNum, pageSize);
+      // ✅ Destructure correctly: quizzes and total
+      const { quizzes, total } = await fetchQuizzes(pageNum, pageSize);
       
-      // Check if we are receiving the mock data
-      if (Array.isArray(data) && data.length > 0 && data[0].quiz_id.startsWith('mock-')) {
+      // Check if we are receiving mock data
+      if (Array.isArray(quizzes) && quizzes.length > 0 && quizzes[0].quiz_id.startsWith('mock-')) {
         setIsDemoMode(true);
       } else {
         setIsDemoMode(false);
       }
 
-      setQuizzes(data || []);
-
-      // Estimate total pages (you'll need backend to return total count)
-      // For now: if we get full page, assume there might be more
-      if (data.length === pageSize) {
-        setTotalPages(Math.max(totalPages, pageNum + 1));
-      } else {
-        setTotalPages(pageNum);
-      }
+      setQuizzes(quizzes || []); // ✅ Use quizzes directly, not data
+      
+      // Calculate total pages from backend total count
+      setTotalPages(Math.ceil(total / pageSize));
 
       setView(ViewState.LIST);
     } catch (err) {

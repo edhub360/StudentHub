@@ -114,26 +114,37 @@ export const processQuestions = (questions: QuizQuestion[]): ProcessedQuestion[]
 /**
  * NEW API: Get all active quizzes
  */
-export const fetchQuizzes = async (page: number = 1, pageSize: number = 10): Promise<QuizListItem[]> => {
+// src/services/quizapi.ts
+
+export const fetchQuizzes = async (
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{ quizzes: QuizListItem[]; total: number }> => {
   try {
-    const offset = (page - 1) * pageSize;  //  Calculate offset
+    const offset = (page - 1) * pageSize;
     const response = await apiClient.get('/quizzes', {
-      params: { offset, limit: pageSize }
+      params: { limit: pageSize, offset },
     });
 
-    if (!Array.isArray(response.data)) {
-      console.warn("API returned non-array data for quizzes:", response.data);
-      return [];
-    }
-
-    return response.data;
-
+    // Backend now returns: { quizzes: [...], total: 8, page: 1, page_size: 10 }
+    return {
+      quizzes: response.data.quizzes || [],
+      total: response.data.total || 0,
+    };
   } catch (error) {
     handleApiError(error);
     console.info("⚠️ Network error. Switching to DEMO MODE with mock data.");
-    return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZZES), 800));
+    
+    // Mock pagination
+    const mockSlice = MOCK_QUIZZES.slice(0, pageSize);
+    return {
+      quizzes: mockSlice,
+      total: MOCK_QUIZZES.length,
+    };
   }
 };
+
+
 
 /**
  * NEW API: Get specific quiz with all questions
