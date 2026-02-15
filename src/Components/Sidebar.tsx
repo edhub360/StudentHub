@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronLeft, ChevronRightIcon } from "lucide-react";
+import { ChevronLeft, ChevronRightIcon, Lock } from "lucide-react";
 import Logo from '../images/logo.edhub.png';
 import { TabId } from "./Screens/DashboardScreen";
 
@@ -7,6 +7,7 @@ interface NavigationItem {
   id: TabId;
   label: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  hasAccess?: boolean;
 }
 
 interface SidebarProps {
@@ -64,30 +65,38 @@ export default function Sidebar({
           {navigation.map((item) => {
             const IconComponent = item.icon;
             const isActive = activeTab === item.id;
-
+            const hasAccess = item.hasAccess !== false; // Default to true if undefined
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg"
-                    : "text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm"
-                }`} 
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                <IconComponent className="w-5 h-5 flex-shrink-0" />
-                {!sidebarCollapsed && (
-                  <span className="font-medium truncate">{item.label}</span>
-                )}
-              </button>
+              <div key={item.id} className="relative">
+                <button
+                  onClick={() => {
+                    if (hasAccess) {
+                      setActiveTab(item.id);
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                  disabled={!hasAccess}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
+                    isActive
+                      ? "bg-gradient-to-r from-blue-500 to-teal-500 text-white shadow-lg"
+                      : hasAccess
+                      ? "text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm"
+                      : "text-gray-400 opacity-60 cursor-not-allowed bg-gray-50"
+                  }`}
+                  title={sidebarCollapsed ? item.label : undefined}
+                >
+                  <IconComponent className="w-5 h-5 flex-shrink-0" />
+                  {!sidebarCollapsed && (
+                    <span className="flex-1 text-left">{item.label}</span>
+                  )}
+                  {!sidebarCollapsed && !hasAccess && (
+                    <Lock className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
             );
           })}
-        </div>
-      </nav>
+        </nav>
 
       {/* Collapse Button */}
       <div className="p-4 border-t border-gray-200 hidden lg:block">

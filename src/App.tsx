@@ -34,13 +34,15 @@ import NotebookScreen from './Components/Screens/NotebookScreen';
 import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 import SettingsScreen from './Components/Screens/SettingsScreen';
-
+import { FeatureGate } from './Components/common/FeatureGate';
+import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
   id: TabId;
   label: string;
   icon: React.ComponentType<any>;
+  hasAccess?: boolean; 
 }
 
 interface ChatMessage {
@@ -74,7 +76,7 @@ const App: React.FC = () => {
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
   const [IsLoading, setIsLoading] = useState(false);
-  // ✅ Existing App States (unchanged)
+  const [userTier, setUserTier] = useState<SubscriptionTier>((localStorage.getItem('subscription_tier') || null) as SubscriptionTier);
   //const [activeTab, setActiveTab] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -176,6 +178,19 @@ const App: React.FC = () => {
     });
   };
 
+  // Feature mapping
+  const featureMap: Record<TabId, keyof import('./utils/featureAccess').FeatureAccess> = {
+    'home': 'dashboard',
+    'chat': 'aiChat',
+    'flashcards': 'flashcard',
+    'quiz': 'quiz',
+    'courses': 'courses',
+    'study planner': 'studyPlanner',
+    'notes': 'notebook',
+    'upload': 'screenshot',
+    'settings': 'dashboard',
+  };
+
   // ✅ Existing Data & Functions (unchanged)
   const navigation: NavigationItem[] = [
     { id: 'home', label: 'Dashboard', icon: Home },
@@ -186,7 +201,10 @@ const App: React.FC = () => {
     { id: 'study planner', label: 'Study Planner', icon: BarChart3 },
     { id: 'notes', label: 'Notes', icon: BookOpen },
     { id: 'upload', label: 'Screenshot Solve', icon: Upload },
-  ];
+  ].map(item => ({
+    ...item,
+    hasAccess: hasFeatureAccess(userTier, featureMap[item.id as TabId])  // ← ADD THIS LINE
+  })) as NavigationItem[];
 
 
   const handleSendMessage = async () => {
@@ -261,40 +279,75 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <DashboardScreen setActiveTab={setActiveTab} />;
+        return (
+          <FeatureGate feature="dashboard" tier={userTier}>
+            <DashboardScreen setActiveTab={setActiveTab} />
+          </FeatureGate>
+        );
+        
       case "chat":
         return (
-          <ChatScreen
-            chatMessages={chatMessages}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            handleSendMessage={handleSendMessage}
-          />
+          <FeatureGate feature="aiChat" tier={userTier}>
+            <ChatScreen
+              chatMessages={chatMessages}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              handleSendMessage={handleSendMessage}
+            />
+          </FeatureGate>
         );
+        
       case "flashcards":
-        return <FlashcardScreen />;
+        return (
+          <FeatureGate feature="flashcard" tier={userTier}>
+            <FlashcardScreen />
+          </FeatureGate>
+        );
 
       case 'quiz':
-        return <QuizScreen />;
+        return (
+          <FeatureGate feature="quiz" tier={userTier}>
+            <QuizScreen />
+          </FeatureGate>
+        );
 
       case 'courses':
-        return <CourseScreen />;
+        return (
+          <FeatureGate feature="courses" tier={userTier}>
+            <CourseScreen />
+          </FeatureGate>
+        );
 
-      case 'study planner':                         // <-- new
-        return <StudyPlanScreen />;
+      case 'study planner':
+        return (
+          <FeatureGate feature="studyPlanner" tier={userTier}>
+            <StudyPlanScreen />
+          </FeatureGate>
+        );
 
       case 'notes':
-        return <NotebookScreen />;
+        return (
+          <FeatureGate feature="notebook" tier={userTier}>
+            <NotebookScreen />
+          </FeatureGate>
+        );
 
       case 'upload':
         return (
-          <UploadScreen />
+          <FeatureGate feature="screenshot" tier={userTier}>
+            <UploadScreen />
+          </FeatureGate>
         );
 
       case 'settings':
         return <SettingsScreen />;
+        
       default:
-        return <DashboardScreen setActiveTab={setActiveTab} />;
+        return (
+          <FeatureGate feature="dashboard" tier={userTier}>
+            <DashboardScreen setActiveTab={setActiveTab} />
+          </FeatureGate>
+        );
     }
   };
 
