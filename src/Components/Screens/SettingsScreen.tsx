@@ -1,6 +1,16 @@
 // src/Components/Screens/SettingsScreen.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';  // ← ADD THIS
+import { CreditCard, Plus } from 'lucide-react';
+
+interface PaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  is_default: boolean;
+}
 
 export default function SettingsScreen() {
   const navigate = useNavigate();  // ← ADD THIS
@@ -11,10 +21,13 @@ export default function SettingsScreen() {
     status: 'Loading...', 
     expiry: 'N/A' 
   });
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPayment, setLoadingPayment] = useState(true);
 
   useEffect(() => {
     fetchSubscription();
+    fetchPaymentMethods();
   }, []);
 
   const fetchSubscription = async () => {
@@ -85,6 +98,49 @@ export default function SettingsScreen() {
     }
     };
 
+  const fetchPaymentMethods = async () => {
+    const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
+    
+    try {
+      const userId = localStorage.getItem('user_id');
+      const token = localStorage.getItem('token');
+      
+      if (!userId) {
+        setLoadingPayment(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/payment-methods/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPaymentMethods(data.payment_methods || []);
+      }
+    } catch (err) {
+      console.error('Payment methods fetch error:', err);
+    } finally {
+      setLoadingPayment(false);
+    }
+  };
+
+  const getCardBrandIcon = (brand: string) => {
+    const icons: Record<string, string> = {
+      'visa': '💳',
+      'mastercard': '💳',
+      'amex': '💳',
+      'discover': '💳',
+      'diners': '💳',
+      'jcb': '💳',
+      'unionpay': '💳'
+    };
+    return icons[brand.toLowerCase()] || '💳';
+  };
+
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -114,6 +170,67 @@ export default function SettingsScreen() {
         >
            Change Password
         </button>
+      </div>
+
+      {/* Payment Methods */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Payment Methods</h2>
+          <button
+            onClick={() => navigate('/subscription')}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+          >
+            <Plus size={16} />
+            Add Payment Method
+          </button>
+        </div>
+        
+        {loadingPayment ? (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        ) : paymentMethods.length > 0 ? (
+          <div className="space-y-3">
+            {paymentMethods.map((pm) => (
+              <div 
+                key={pm.id}
+                className={`flex items-center justify-between p-4 rounded-lg border-2 ${
+                  pm.is_default 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-200 bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <CreditCard className="text-gray-600" size={24} />
+                  <div>
+                    <p className="font-medium text-gray-900 capitalize">
+                      {getCardBrandIcon(pm.brand)} {pm.brand} •••• {pm.last4}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Expires {String(pm.exp_month).padStart(2, '0')}/{pm.exp_year}
+                    </p>
+                  </div>
+                </div>
+                {pm.is_default && (
+                  <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    DEFAULT
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <CreditCard className="mx-auto mb-2 text-gray-400" size={48} />
+            <p>No payment methods on file</p>
+            <button
+              onClick={() => navigate('/subscription')}
+              className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm"
+            >
+              Add a payment method
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Subscription - UPDATED with Upgrade button */}
