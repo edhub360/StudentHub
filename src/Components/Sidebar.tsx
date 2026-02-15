@@ -35,29 +35,27 @@ export default function Sidebar({
         sidebarCollapsed ? "w-16" : "w-64"
       } ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
     >
-        
-    {/* Logo Section */}
-    <div className="p-4 border-b border-gray-200">
-    <div className="flex items-center gap-3">
-        <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
-        {/* Custom Logo */}
-        <img
-            src={Logo} // adjust path
-            alt="Logo"
-            className="w-16 h-16 object-contain"
-        />
+      {/* Logo Section */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+            {/* Custom Logo */}
+            <img
+              src={Logo}
+              alt="Logo"
+              className="w-16 h-16 object-contain"
+            />
+          </div>
+          {!sidebarCollapsed && (
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-gray-900 truncate">Edhub360</h1>
+              <p className="text-xs text-gray-500 truncate">
+                Education without limits.
+              </p>
+            </div>
+          )}
         </div>
-        {!sidebarCollapsed && (
-        <div className="min-w-0">
-            <h1 className="text-lg font-bold text-gray-900 truncate">Edhub360</h1>
-            <p className="text-xs text-gray-500 truncate">
-            Education without limits.
-            </p>
-        </div>
-        )}
-    </div>
-    </div>
-
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4">
@@ -65,7 +63,8 @@ export default function Sidebar({
           {navigation.map((item) => {
             const IconComponent = item.icon;
             const isActive = activeTab === item.id;
-            const hasAccess = item.hasAccess !== false; // Default to true if undefined
+            const hasAccess = item.hasAccess !== false;
+            
             return (
               <div key={item.id} className="relative">
                 <button
@@ -96,7 +95,8 @@ export default function Sidebar({
               </div>
             );
           })}
-        </nav>
+        </div>
+      </nav>
 
       {/* Collapse Button */}
       <div className="p-4 border-t border-gray-200 hidden lg:block">
