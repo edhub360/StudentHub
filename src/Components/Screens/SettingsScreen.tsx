@@ -178,17 +178,17 @@ export default function SettingsScreen() {
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
       
-      {/* User Info */}
+      {/* User Info - ✅ UPDATED: Inline format */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profile</h2>
-        <div className="space-y-3">
-          <div>
-            <span className="text-sm font-medium text-gray-600">Name:</span>
-            <p className="text-lg font-medium text-gray-900 mt-1">{userName}</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-600 min-w-[80px]">Name:</span>
+            <span className="text-lg font-medium text-gray-900">{userName}</span>
           </div>
-          <div>
-            <span className="text-sm font-medium text-gray-600">Email ID:</span>
-            <p className="text-gray-700 mt-1">{userEmail}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-600 min-w-[80px]">Email ID:</span>
+            <span className="text-gray-700">{userEmail}</span>
           </div>
         </div>
       </div>
