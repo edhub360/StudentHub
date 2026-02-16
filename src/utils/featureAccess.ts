@@ -34,16 +34,6 @@ const FEATURE_MATRIX: Record<string, FeatureAccess> = {
     studyPlanner: false,
     courses: true,
   },
-  'pro-plus': {
-    dashboard: true,
-    aiChat: true,
-    flashcard: true,
-    quiz: true,
-    notebook: true,
-    screenshot: true,
-    studyPlanner: true,
-    courses: true,
-  },
   'pro max': {
     dashboard: true,
     aiChat: true,
@@ -56,7 +46,6 @@ const FEATURE_MATRIX: Record<string, FeatureAccess> = {
   }
 };
 
-// Default for no subscription (or expired)
 const DEFAULT_ACCESS: FeatureAccess = {
   dashboard: true,
   aiChat: false,
@@ -74,7 +63,9 @@ const DEFAULT_ACCESS: FeatureAccess = {
 export function getFeatureAccess(tier: SubscriptionTier): FeatureAccess {
   if (!tier) return DEFAULT_ACCESS;
   
-  const normalizedTier = tier.toLowerCase().trim();
+  // Normalize: Convert to lowercase and remove extra spaces
+  const normalizedTier = tier.toLowerCase().trim().replace(/\s+/g, ' ');
+  
   return FEATURE_MATRIX[normalizedTier] || DEFAULT_ACCESS;
 }
 
@@ -93,5 +84,5 @@ export function hasFeatureAccess(
  * Get upgrade message for locked features
  */
 export function getUpgradeMessage(feature: string): string {
-  return `${feature} is only available for Pro-Plus subscribers. Upgrade your plan to unlock this feature!`;
+  return `${feature} is only available for Pro Max subscribers. Upgrade your plan to unlock this feature!`;
 }
