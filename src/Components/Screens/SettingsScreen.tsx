@@ -1,6 +1,6 @@
 // src/Components/Screens/SettingsScreen.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';  // ← ADD THIS
+import { useNavigate } from 'react-router-dom';
 import { CreditCard, Plus } from 'lucide-react';
 
 interface PaymentMethod {
@@ -13,7 +13,7 @@ interface PaymentMethod {
 }
 
 export default function SettingsScreen() {
-  const navigate = useNavigate();  // ← ADD THIS
+  const navigate = useNavigate();
   const [userName] = useState(localStorage.getItem('userName') || 'Guest User');
   const [userEmail] = useState(localStorage.getItem('userEmail') || '');
   const [subscription, setSubscription] = useState({ 
@@ -24,6 +24,9 @@ export default function SettingsScreen() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPayment, setLoadingPayment] = useState(true);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false); // ← ADD THIS
+
+  const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
 
   useEffect(() => {
     fetchSubscription();
@@ -31,76 +34,69 @@ export default function SettingsScreen() {
   }, []);
 
   const fetchSubscription = async () => {
-    const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
-    
     try {
-        const userId = localStorage.getItem('user_id');
-        if (!userId) {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
         console.error('No user_id in localStorage');
         setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
         setLoading(false);
         return;
-        }
+      }
 
-        const token = localStorage.getItem('token');
-        
-        // Fetch subscription
-        const subRes = await fetch(`${API_BASE}/subscriptions/${userId}`, {
+      const token = localStorage.getItem('token');
+      
+      const subRes = await fetch(`${API_BASE}/subscriptions/${userId}`, {
         headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-        });
+      });
 
-        if (subRes.status === 404) {
+      if (subRes.status === 404) {
         setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
         setLoading(false);
         return;
-        }
+      }
 
-        if (!subRes.ok) {
+      if (!subRes.ok) {
         throw new Error(`HTTP ${subRes.status}`);
-        }
+      }
 
-        const subData = await subRes.json();
-        console.log('📦 Subscription data:', subData);  // ← ADD
-        
-        // Fetch all plans to get plan name by ID
-        const plansRes = await fetch(`${API_BASE}/plans`);
-        const plansData = await plansRes.json();
-        console.log('📋 Plans data:', plansData);  // ← ADD
-        
-        // Find plan name
-        let planName = 'Unknown Plan';
-        if (Array.isArray(plansData)) {
-        console.log('🔍 Looking for plan_id:', subData.plan_id);  // ← ADD
+      const subData = await subRes.json();
+      console.log('📦 Subscription data:', subData);
+      
+      const plansRes = await fetch(`${API_BASE}/plans`);
+      const plansData = await plansRes.json();
+      console.log('📋 Plans data:', plansData);
+      
+      let planName = 'Unknown Plan';
+      if (Array.isArray(plansData)) {
+        console.log('🔍 Looking for plan_id:', subData.plan_id);
         const plan = plansData.find((p: any) => p.id === subData.plan_id);
-        console.log('✅ Found plan:', plan);  // ← ADD
+        console.log('✅ Found plan:', plan);
         planName = plan ? plan.name : 'Plan Not Found';
-        }
-        
-        setSubscription({
+      }
+      
+      setSubscription({
         plan: planName,
         status: subData.status === 'active' ? 'Active' : subData.status,
         expiry: subData.current_period_end 
-            ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+          ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
             })
-            : 'N/A'
-        });
+          : 'N/A'
+      });
     } catch (err) {
-        console.error('Subscription fetch error:', err);
-        setSubscription({ plan: 'Error', status: 'Error Loading', expiry: 'N/A' });
+      console.error('Subscription fetch error:', err);
+      setSubscription({ plan: 'Error', status: 'Error Loading', expiry: 'N/A' });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   const fetchPaymentMethods = async () => {
-    const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
-    
     try {
       const userId = localStorage.getItem('user_id');
       const token = localStorage.getItem('token');
@@ -128,6 +124,43 @@ export default function SettingsScreen() {
     }
   };
 
+  // ✅ NEW: Open Stripe Customer Portal
+  const handleManagePayments = async () => {
+    setIsOpeningPortal(true);
+    try {
+      const userId = localStorage.getItem('user_id');
+      const token = localStorage.getItem('token');
+
+      if (!userId) {
+        alert('User not found. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/create-customer-portal-session`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_id: userId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create portal session');
+      }
+
+      const data = await response.json();
+      
+      // Redirect to Stripe Customer Portal
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      alert('Failed to open payment management. Please try again.');
+    } finally {
+      setIsOpeningPortal(false);
+    }
+  };
+
   const getCardBrandIcon = (brand: string) => {
     const icons: Record<string, string> = {
       'visa': '💳',
@@ -141,12 +174,11 @@ export default function SettingsScreen() {
     return icons[brand.toLowerCase()] || '💳';
   };
 
-
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
       
-      {/* User Info - UPDATED with labels */}
+      {/* User Info */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profile</h2>
         <div className="space-y-3">
@@ -161,14 +193,14 @@ export default function SettingsScreen() {
         </div>
       </div>
 
-      {/* Change Password - FIXED */}
+      {/* Change Password */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Security</h2>
         <button 
-          onClick={() => navigate('/forgot-password')}  /* ← CHANGED FROM <a> */
+          onClick={() => navigate('/forgot-password')}
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
         >
-           Change Password
+          Change Password
         </button>
       </div>
 
@@ -176,12 +208,14 @@ export default function SettingsScreen() {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Payment Methods</h2>
+          {/* ✅ UPDATED: Opens Stripe Customer Portal */}
           <button
-            onClick={() => navigate('/subscription')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            onClick={handleManagePayments}
+            disabled={isOpeningPortal}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={16} />
-            Add Payment Method
+            {isOpeningPortal ? 'Opening...' : 'Manage Payment Methods'}
           </button>
         </div>
         
@@ -218,22 +252,31 @@ export default function SettingsScreen() {
                 )}
               </div>
             ))}
+            {/* ✅ ADD: Manage button below cards */}
+            <button
+              onClick={handleManagePayments}
+              disabled={isOpeningPortal}
+              className="w-full mt-2 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isOpeningPortal ? 'Opening Stripe...' : 'Manage Cards in Stripe'}
+            </button>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
             <CreditCard className="mx-auto mb-2 text-gray-400" size={48} />
             <p>No payment methods on file</p>
             <button
-              onClick={() => navigate('/subscription')}
-              className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm"
+              onClick={handleManagePayments}
+              disabled={isOpeningPortal}
+              className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm disabled:opacity-50"
             >
-              Add a payment method
+              {isOpeningPortal ? 'Opening...' : 'Add a payment method'}
             </button>
           </div>
         )}
       </div>
 
-      {/* Subscription - UPDATED with Upgrade button */}
+      {/* Subscription */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Subscription</h2>
@@ -241,7 +284,7 @@ export default function SettingsScreen() {
             onClick={() => navigate('/subscription')}
             className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
           >
-             Upgrade Plan
+            Upgrade Plan
           </button>
         </div>
         
