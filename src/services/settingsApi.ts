@@ -51,11 +51,25 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
     fetch(`${SUB_API_BASE}/plans`),
   ]);
 
-  // ✅ Handle paid plan
+  // ✅ Handle 200 response (paid OR free plan fallback)
   if (subRes.ok) {
     const subData   = await subRes.json();
-    const plansData = await plansRes.json();
 
+    // ✅ FREE PLAN — from backend fallback (type: "free")
+    if (subData.type === 'free') {
+      return {
+        plan: 'Free',
+        status: subData.status === 'active' ? 'Active' : 'Expired',
+        expiry: subData.current_period_end
+          ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric',
+            })
+          : 'N/A',
+      };
+    }
+
+    // ✅ PAID PLAN — match plan_id against plans list
+    const plansData = await plansRes.json();
     let planName = 'Unknown Plan';
     if (Array.isArray(plansData)) {
       const plan = plansData.find((p: any) => p.id === subData.plan_id);
@@ -78,7 +92,7 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
     try {
       const freePlanRes = await fetch(
         `${SUB_API_BASE}/free-plan-status`,
-        { headers }  // needs auth token
+        { headers }
       );
 
       if (!freePlanRes.ok) {
@@ -111,7 +125,6 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
         };
       }
 
-      // not_used — user never activated free plan
       return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
 
     } catch {
@@ -122,6 +135,7 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
   // ✅ Any other HTTP error
   throw new Error(`HTTP ${subRes.status}`);
 };
+
 
 // ─── Payment Methods ──────────────────────────────────────────────────────────
 
