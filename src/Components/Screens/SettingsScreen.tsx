@@ -1,160 +1,83 @@
 // src/Components/Screens/SettingsScreen.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Plus } from 'lucide-react';
-
-interface PaymentMethod {
-  id: string;
-  brand: string;
-  last4: string;
-  exp_month: number;
-  exp_year: number;
-  is_default: boolean;
-}
+import { CreditCard, Plus, Edit2, Check, X, Loader2 } from 'lucide-react';
+import {
+  updateUserName,
+  fetchSubscriptionInfo,
+  fetchPaymentMethods,
+  createCustomerPortalSession,
+  type SubscriptionInfo,
+  type PaymentMethod,
+} from '../../services/settingsApi';  // ← adjust path as needed
 
 export default function SettingsScreen() {
   const navigate = useNavigate();
-  const [userName] = useState(localStorage.getItem('userName') || 'Guest User');
-  const [userEmail] = useState(localStorage.getItem('userEmail') || '');
-  const [subscription, setSubscription] = useState({ 
-    plan: 'Free', 
-    status: 'Loading...', 
-    expiry: 'N/A' 
+
+  // ── User state ──────────────────────────────────────────────────────────────
+  const [userName, setUserName]       = useState(localStorage.getItem('userName') || 'Guest User');
+  const [userEmail]                   = useState(localStorage.getItem('userEmail') || '');
+  const [isEditingName, setIsEditing] = useState(false);
+  const [editedName, setEditedName]   = useState(userName);
+  const [savingName, setSavingName]   = useState(false);
+
+  // ── Subscription state ──────────────────────────────────────────────────────
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({
+    plan: 'Free', status: 'Loading...', expiry: 'N/A',
   });
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingPayment, setLoadingPayment] = useState(true);
-  const [isOpeningPortal, setIsOpeningPortal] = useState(false); // ← ADD THIS
+  const [loadingSub, setLoadingSub] = useState(true);
 
-  const API_BASE = 'https://subscription-service-91248372939.us-central1.run.app';
+  // ── Payment Methods state ───────────────────────────────────────────────────
+  const [paymentMethods, setPaymentMethods]   = useState<PaymentMethod[]>([]);
+  const [loadingPayment, setLoadingPayment]   = useState(true);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
+  const userId = localStorage.getItem('user_id') || '';
+
+  // ── Fetch on mount ──────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchSubscription();
-    fetchPaymentMethods();
-  }, []);
+    if (!userId) return;
 
-  const fetchSubscription = async () => {
+    fetchSubscriptionInfo(userId)
+      .then(setSubscription)
+      .catch(() => setSubscription({ plan: 'Error', status: 'Error Loading', expiry: 'N/A' }))
+      .finally(() => setLoadingSub(false));
+
+    fetchPaymentMethods(userId)
+      .then(setPaymentMethods)
+      .catch(console.error)
+      .finally(() => setLoadingPayment(false));
+  }, [userId]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleSaveName = async () => {
+    if (!editedName.trim()) { alert('Name cannot be empty'); return; }
+    setSavingName(true);
     try {
-      const userId = localStorage.getItem('user_id');
-      if (!userId) {
-        console.error('No user_id in localStorage');
-        setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
-        setLoading(false);
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      
-      const subRes = await fetch(`${API_BASE}/subscriptions/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (subRes.status === 404) {
-        setSubscription({ plan: 'Free', status: 'No Active Plan', expiry: 'N/A' });
-        setLoading(false);
-        return;
-      }
-
-      if (!subRes.ok) {
-        throw new Error(`HTTP ${subRes.status}`);
-      }
-
-      const subData = await subRes.json();
-      console.log('📦 Subscription data:', subData);
-      
-      const plansRes = await fetch(`${API_BASE}/plans`);
-      const plansData = await plansRes.json();
-      console.log('📋 Plans data:', plansData);
-      
-      let planName = 'Unknown Plan';
-      if (Array.isArray(plansData)) {
-        console.log('🔍 Looking for plan_id:', subData.plan_id);
-        const plan = plansData.find((p: any) => p.id === subData.plan_id);
-        console.log('✅ Found plan:', plan);
-        planName = plan ? plan.name : 'Plan Not Found';
-      }
-      
-      setSubscription({
-        plan: planName,
-        status: subData.status === 'active' ? 'Active' : subData.status,
-        expiry: subData.current_period_end 
-          ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            })
-          : 'N/A'
-      });
-    } catch (err) {
-      console.error('Subscription fetch error:', err);
-      setSubscription({ plan: 'Error', status: 'Error Loading', expiry: 'N/A' });
+      const saved = await updateUserName(editedName.trim());
+      localStorage.setItem('userName', saved);
+      setUserName(saved);
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save name. Please try again.');
     } finally {
-      setLoading(false);
+      setSavingName(false);
     }
   };
 
-  const fetchPaymentMethods = async () => {
-    try {
-      const userId = localStorage.getItem('user_id');
-      const token = localStorage.getItem('token');
-      
-      if (!userId) {
-        setLoadingPayment(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/payment-methods/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPaymentMethods(data.payment_methods || []);
-      }
-    } catch (err) {
-      console.error('Payment methods fetch error:', err);
-    } finally {
-      setLoadingPayment(false);
-    }
+  const handleCancelEdit = () => {
+    setEditedName(userName);
+    setIsEditing(false);
   };
 
-  // ✅ NEW: Open Stripe Customer Portal
   const handleManagePayments = async () => {
     setIsOpeningPortal(true);
     try {
-      const userId = localStorage.getItem('user_id');
-      const token = localStorage.getItem('token');
-
-      if (!userId) {
-        alert('User not found. Please log in again.');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/create-customer-portal-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: userId })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create portal session');
-      }
-
-      const data = await response.json();
-      
-      // Redirect to Stripe Customer Portal
-      window.location.href = data.url;
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
+      const url = await createCustomerPortalSession(userId);
+      window.location.href = url;
+    } catch (e) {
+      console.error(e);
       alert('Failed to open payment management. Please try again.');
     } finally {
       setIsOpeningPortal(false);
@@ -162,53 +85,96 @@ export default function SettingsScreen() {
   };
 
   const getCardBrandIcon = (brand: string) => {
-    const icons: Record<string, string> = {
-      'visa': '💳',
-      'mastercard': '💳',
-      'amex': '💳',
-      'discover': '💳',
-      'diners': '💳',
-      'jcb': '💳',
-      'unionpay': '💳'
+    const map: Record<string, string> = {
+      visa: '💳', mastercard: '💳', amex: '💳',
+      discover: '💳', diners: '💳', jcb: '💳', unionpay: '💳',
     };
-    return icons[brand.toLowerCase()] || '💳';
+    return map[brand.toLowerCase()] || '💳';
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
-      
-      {/* User Info - ✅ UPDATED: Inline format */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+
+      {/* ── Profile ─────────────────────────────────────────────────────────── */}
+      <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profile</h2>
-        <div className="space-y-2">
+        <div className="space-y-3">
+
+          {/* Name - editable */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600 min-w-[80px]">Name:</span>
-            <span className="text-lg font-medium text-gray-900">{userName}</span>
+            {isEditingName ? (
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                  autoFocus
+                  disabled={savingName}
+                  placeholder="Enter your name"
+                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={savingName}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Save"
+                >
+                  {savingName ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={savingName}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Cancel"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-medium text-gray-900">{userName}</span>
+                <button
+                  onClick={() => { setEditedName(userName); setIsEditing(true); }}
+                  className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Edit name"
+                >
+                  <Edit2 size={15} />
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Email - read only */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600 min-w-[80px]">Email ID:</span>
             <span className="text-gray-700">{userEmail}</span>
           </div>
-        </div>
-      </div>
 
-      {/* Change Password */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+        </div>
+      </section>
+
+      {/* ── Security ─────────────────────────────────────────────────────────── */}
+      <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Security</h2>
-        <button 
+        <button
           onClick={() => navigate('/forgot-password')}
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+          className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
         >
           Change Password
         </button>
-      </div>
+      </section>
 
-      {/* Payment Methods */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+      {/* ── Payment Methods ───────────────────────────────────────────────────── */}
+      <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Payment Methods</h2>
-          {/* ✅ UPDATED: Opens Stripe Customer Portal */}
           <button
             onClick={handleManagePayments}
             disabled={isOpeningPortal}
@@ -218,20 +184,18 @@ export default function SettingsScreen() {
             {isOpeningPortal ? 'Opening...' : 'Manage Payment Methods'}
           </button>
         </div>
-        
+
         {loadingPayment ? (
-          <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="flex justify-center py-4">
+            <Loader2 className="animate-spin text-blue-600" size={24} />
           </div>
         ) : paymentMethods.length > 0 ? (
           <div className="space-y-3">
             {paymentMethods.map((pm) => (
-              <div 
+              <div
                 key={pm.id}
                 className={`flex items-center justify-between p-4 rounded-lg border-2 ${
-                  pm.is_default 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 bg-gray-50'
+                  pm.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -252,11 +216,10 @@ export default function SettingsScreen() {
                 )}
               </div>
             ))}
-            {/* ✅ ADD: Manage button below cards */}
             <button
               onClick={handleManagePayments}
               disabled={isOpeningPortal}
-              className="w-full mt-2 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+              className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
             >
               {isOpeningPortal ? 'Opening Stripe...' : 'Manage Cards in Stripe'}
             </button>
@@ -274,10 +237,10 @@ export default function SettingsScreen() {
             </button>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Subscription */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+      {/* ── Subscription ─────────────────────────────────────────────────────── */}
+      <section className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Subscription</h2>
           <button
@@ -287,11 +250,11 @@ export default function SettingsScreen() {
             Upgrade Plan
           </button>
         </div>
-        
-        {loading ? (
-          <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading subscription...</p>
+
+        {loadingSub ? (
+          <div className="flex items-center gap-2 py-4 text-gray-600">
+            <Loader2 className="animate-spin" size={20} />
+            <span>Loading subscription...</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -302,9 +265,8 @@ export default function SettingsScreen() {
             <div>
               <span className="text-gray-600">Status:</span><br />
               <span className={`font-semibold ${
-                subscription.status === 'Active' ? 'text-green-600' : 
-                subscription.status === 'No Active Plan' ? 'text-gray-600' :
-                'text-red-600'
+                subscription.status === 'Active'        ? 'text-green-600' :
+                subscription.status === 'No Active Plan'? 'text-gray-600'  : 'text-red-600'
               }`}>
                 {subscription.status}
               </span>
@@ -315,7 +277,7 @@ export default function SettingsScreen() {
             </div>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
