@@ -5,7 +5,6 @@ import { getValidAccessToken, getUserId } from '../services/TokenManager';
 const AUTH_API_BASE = 'https://login-service-91248372939.us-central1.run.app';
 const SUB_API_BASE  = 'https://subscription-service-91248372939.us-central1.run.app';
 
-// Use TokenManager to always get a valid (auto-refreshed) token
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
   const token = await getValidAccessToken();
   return {
@@ -14,7 +13,6 @@ const getAuthHeaders = async (): Promise<Record<string, string>> => {
   };
 };
 
-// Re-export getUserId so SettingsScreen doesn't need to import TokenManager directly
 export { getUserId };
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -53,30 +51,76 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
     fetch(`${SUB_API_BASE}/plans`),
   ]);
 
+  // ✅ Handle paid plan
+  if (subRes.ok) {
+    const subData   = await subRes.json();
+    const plansData = await plansRes.json();
+
+    let planName = 'Unknown Plan';
+    if (Array.isArray(plansData)) {
+      const plan = plansData.find((p: any) => p.id === subData.plan_id);
+      planName = plan ? plan.name : 'Plan Not Found';
+    }
+
+    return {
+      plan: planName,
+      status: subData.status === 'active' ? 'Active' : subData.status,
+      expiry: subData.current_period_end
+        ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+          })
+        : 'N/A',
+    };
+  }
+
+  // ✅ No Stripe subscription (404) — check free plan status
   if (subRes.status === 404) {
-    return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
+    try {
+      const freePlanRes = await fetch(
+        `${SUB_API_BASE}/free-plan-status`,
+        { headers }  // needs auth token
+      );
+
+      if (!freePlanRes.ok) {
+        return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
+      }
+
+      const freePlan = await freePlanRes.json();
+
+      if (freePlan.status === 'active') {
+        return {
+          plan: 'Free',
+          status: 'Active',
+          expiry: freePlan.expires_at
+            ? new Date(freePlan.expires_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+              })
+            : 'N/A',
+        };
+      }
+
+      if (freePlan.status === 'expired') {
+        return {
+          plan: 'Free',
+          status: 'Expired',
+          expiry: freePlan.expired_at
+            ? new Date(freePlan.expired_at).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+              })
+            : 'N/A',
+        };
+      }
+
+      // not_used — user never activated free plan
+      return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
+
+    } catch {
+      return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
+    }
   }
 
-  if (!subRes.ok) throw new Error(`HTTP ${subRes.status}`);
-
-  const subData   = await subRes.json();
-  const plansData = await plansRes.json();
-
-  let planName = 'Unknown Plan';
-  if (Array.isArray(plansData)) {
-    const plan = plansData.find((p: any) => p.id === subData.plan_id);
-    planName = plan ? plan.name : 'Plan Not Found';
-  }
-
-  return {
-    plan: planName,
-    status: subData.status === 'active' ? 'Active' : subData.status,
-    expiry: subData.current_period_end
-      ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
-          year: 'numeric', month: 'short', day: 'numeric',
-        })
-      : 'N/A',
-  };
+  // ✅ Any other HTTP error
+  throw new Error(`HTTP ${subRes.status}`);
 };
 
 // ─── Payment Methods ──────────────────────────────────────────────────────────

@@ -260,6 +260,7 @@ export default function SettingsScreen() {
               <span className="text-gray-600">Status:</span><br />
               <span className={`font-semibold ${
                 subscription.status === 'Active'         ? 'text-green-600' :
+                subscription.status === 'Expired'        ? 'text-red-500'   : 
                 subscription.status === 'No Active Plan' ? 'text-gray-600'  : 'text-red-600'
               }`}>
                 {subscription.status}
