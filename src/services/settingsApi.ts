@@ -1,22 +1,30 @@
 // src/api/settingsApi.ts
 
-const AUTH_API_BASE = 'https://login-service-91248372939.us-central1.run.app'; 
+import { getValidAccessToken, getUserId } from '../services/TokenManager';
+
+const AUTH_API_BASE = 'https://login-service-91248372939.us-central1.run.app';
 const SUB_API_BASE  = 'https://subscription-service-91248372939.us-central1.run.app';
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+// Use TokenManager to always get a valid (auto-refreshed) token
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const token = await getValidAccessToken();
   return {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
 };
 
-// ─── User ────────────────────────────────────────────────────────────────────
+// Re-export getUserId so SettingsScreen doesn't need to import TokenManager directly
+export { getUserId };
+
+// ─── User ─────────────────────────────────────────────────────────────────────
 
 export const updateUserName = async (name: string): Promise<string> => {
+  const headers = await getAuthHeaders();
+
   const res = await fetch(`${AUTH_API_BASE}/auth/me`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify({ name }),
   });
 
@@ -29,7 +37,7 @@ export const updateUserName = async (name: string): Promise<string> => {
   return data.name ?? name;
 };
 
-// ─── Subscription ────────────────────────────────────────────────────────────
+// ─── Subscription ─────────────────────────────────────────────────────────────
 
 export interface SubscriptionInfo {
   plan: string;
@@ -38,8 +46,10 @@ export interface SubscriptionInfo {
 }
 
 export const fetchSubscriptionInfo = async (userId: string): Promise<SubscriptionInfo> => {
+  const headers = await getAuthHeaders();
+
   const [subRes, plansRes] = await Promise.all([
-    fetch(`${SUB_API_BASE}/subscriptions/${userId}`, { headers: getAuthHeaders() }),
+    fetch(`${SUB_API_BASE}/subscriptions/${userId}`, { headers }),
     fetch(`${SUB_API_BASE}/plans`),
   ]);
 
@@ -49,7 +59,7 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
 
   if (!subRes.ok) throw new Error(`HTTP ${subRes.status}`);
 
-  const subData  = await subRes.json();
+  const subData   = await subRes.json();
   const plansData = await plansRes.json();
 
   let planName = 'Unknown Plan';
@@ -69,7 +79,7 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
   };
 };
 
-// ─── Payment Methods ─────────────────────────────────────────────────────────
+// ─── Payment Methods ──────────────────────────────────────────────────────────
 
 export interface PaymentMethod {
   id: string;
@@ -81,9 +91,9 @@ export interface PaymentMethod {
 }
 
 export const fetchPaymentMethods = async (userId: string): Promise<PaymentMethod[]> => {
-  const res = await fetch(`${SUB_API_BASE}/payment-methods/${userId}`, {
-    headers: getAuthHeaders(),
-  });
+  const headers = await getAuthHeaders();
+
+  const res = await fetch(`${SUB_API_BASE}/payment-methods/${userId}`, { headers });
 
   if (!res.ok) return [];
 
@@ -92,9 +102,11 @@ export const fetchPaymentMethods = async (userId: string): Promise<PaymentMethod
 };
 
 export const createCustomerPortalSession = async (userId: string): Promise<string> => {
+  const headers = await getAuthHeaders();
+
   const res = await fetch(`${SUB_API_BASE}/create-customer-portal-session`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify({ user_id: userId }),
   });
 

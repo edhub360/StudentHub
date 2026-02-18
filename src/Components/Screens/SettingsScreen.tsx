@@ -7,36 +7,42 @@ import {
   fetchSubscriptionInfo,
   fetchPaymentMethods,
   createCustomerPortalSession,
+  getUserId,                    // ← from TokenManager via settingsApi
   type SubscriptionInfo,
   type PaymentMethod,
-} from '../../services/settingsApi';  // ← adjust path as needed
+} from '../../services/settingsApi';
 
 export default function SettingsScreen() {
   const navigate = useNavigate();
 
-  // ── User state ──────────────────────────────────────────────────────────────
+  // ── User state ────────────────────────────────────────────────────────────
   const [userName, setUserName]       = useState(localStorage.getItem('userName') || 'Guest User');
   const [userEmail]                   = useState(localStorage.getItem('userEmail') || '');
   const [isEditingName, setIsEditing] = useState(false);
   const [editedName, setEditedName]   = useState(userName);
   const [savingName, setSavingName]   = useState(false);
 
-  // ── Subscription state ──────────────────────────────────────────────────────
+  // ── Subscription state ────────────────────────────────────────────────────
   const [subscription, setSubscription] = useState<SubscriptionInfo>({
     plan: 'Free', status: 'Loading...', expiry: 'N/A',
   });
   const [loadingSub, setLoadingSub] = useState(true);
 
-  // ── Payment Methods state ───────────────────────────────────────────────────
+  // ── Payment Methods state ─────────────────────────────────────────────────
   const [paymentMethods, setPaymentMethods]   = useState<PaymentMethod[]>([]);
   const [loadingPayment, setLoadingPayment]   = useState(true);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
-  const userId = localStorage.getItem('user_id') || '';
+  // ✅ Get userId from JWT payload via TokenManager
+  const userId = getUserId() || '';
 
-  // ── Fetch on mount ──────────────────────────────────────────────────────────
+  // ── Fetch on mount ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoadingSub(false);
+      setLoadingPayment(false);
+      return;
+    }
 
     fetchSubscriptionInfo(userId)
       .then(setSubscription)
@@ -49,7 +55,7 @@ export default function SettingsScreen() {
       .finally(() => setLoadingPayment(false));
   }, [userId]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSaveName = async () => {
     if (!editedName.trim()) { alert('Name cannot be empty'); return; }
     setSavingName(true);
@@ -58,8 +64,13 @@ export default function SettingsScreen() {
       localStorage.setItem('userName', saved);
       setUserName(saved);
       setIsEditing(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      // If session expired, TokenManager will throw - redirect to login
+      if (e.message?.includes('Session expired') || e.message?.includes('No refresh token')) {
+        navigate('/login');
+        return;
+      }
       alert('Failed to save name. Please try again.');
     } finally {
       setSavingName(false);
@@ -76,8 +87,12 @@ export default function SettingsScreen() {
     try {
       const url = await createCustomerPortalSession(userId);
       window.location.href = url;
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      if (e.message?.includes('Session expired') || e.message?.includes('No refresh token')) {
+        navigate('/login');
+        return;
+      }
       alert('Failed to open payment management. Please try again.');
     } finally {
       setIsOpeningPortal(false);
@@ -92,12 +107,12 @@ export default function SettingsScreen() {
     return map[brand.toLowerCase()] || '💳';
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
 
-      {/* ── Profile ─────────────────────────────────────────────────────────── */}
+      {/* ── Profile ──────────────────────────────────────────────────────── */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profile</h2>
         <div className="space-y-3">
@@ -112,7 +127,7 @@ export default function SettingsScreen() {
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Enter')  handleSaveName();
                     if (e.key === 'Escape') handleCancelEdit();
                   }}
                   autoFocus
@@ -120,20 +135,14 @@ export default function SettingsScreen() {
                   placeholder="Enter your name"
                   className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 />
-                <button
-                  onClick={handleSaveName}
-                  disabled={savingName}
+                <button onClick={handleSaveName} disabled={savingName}
                   className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                  title="Save"
-                >
+                  title="Save">
                   {savingName ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
                 </button>
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={savingName}
+                <button onClick={handleCancelEdit} disabled={savingName}
                   className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                  title="Cancel"
-                >
+                  title="Cancel">
                   <X size={18} />
                 </button>
               </div>
@@ -143,8 +152,7 @@ export default function SettingsScreen() {
                 <button
                   onClick={() => { setEditedName(userName); setIsEditing(true); }}
                   className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Edit name"
-                >
+                  title="Edit name">
                   <Edit2 size={15} />
                 </button>
               </div>
@@ -160,26 +168,22 @@ export default function SettingsScreen() {
         </div>
       </section>
 
-      {/* ── Security ─────────────────────────────────────────────────────────── */}
+      {/* ── Security ─────────────────────────────────────────────────────── */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold mb-4">Security</h2>
         <button
           onClick={() => navigate('/forgot-password')}
-          className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
-        >
+          className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
           Change Password
         </button>
       </section>
 
-      {/* ── Payment Methods ───────────────────────────────────────────────────── */}
+      {/* ── Payment Methods ───────────────────────────────────────────────── */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Payment Methods</h2>
-          <button
-            onClick={handleManagePayments}
-            disabled={isOpeningPortal}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button onClick={handleManagePayments} disabled={isOpeningPortal}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
             <Plus size={16} />
             {isOpeningPortal ? 'Opening...' : 'Manage Payment Methods'}
           </button>
@@ -192,12 +196,10 @@ export default function SettingsScreen() {
         ) : paymentMethods.length > 0 ? (
           <div className="space-y-3">
             {paymentMethods.map((pm) => (
-              <div
-                key={pm.id}
+              <div key={pm.id}
                 className={`flex items-center justify-between p-4 rounded-lg border-2 ${
                   pm.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50'
-                }`}
-              >
+                }`}>
                 <div className="flex items-center gap-3">
                   <CreditCard className="text-gray-600" size={24} />
                   <div>
@@ -216,11 +218,8 @@ export default function SettingsScreen() {
                 )}
               </div>
             ))}
-            <button
-              onClick={handleManagePayments}
-              disabled={isOpeningPortal}
-              className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-            >
+            <button onClick={handleManagePayments} disabled={isOpeningPortal}
+              className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50">
               {isOpeningPortal ? 'Opening Stripe...' : 'Manage Cards in Stripe'}
             </button>
           </div>
@@ -228,25 +227,20 @@ export default function SettingsScreen() {
           <div className="text-center py-8 text-gray-500">
             <CreditCard className="mx-auto mb-2 text-gray-400" size={48} />
             <p>No payment methods on file</p>
-            <button
-              onClick={handleManagePayments}
-              disabled={isOpeningPortal}
-              className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm disabled:opacity-50"
-            >
+            <button onClick={handleManagePayments} disabled={isOpeningPortal}
+              className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm disabled:opacity-50">
               {isOpeningPortal ? 'Opening...' : 'Add a payment method'}
             </button>
           </div>
         )}
       </section>
 
-      {/* ── Subscription ─────────────────────────────────────────────────────── */}
+      {/* ── Subscription ─────────────────────────────────────────────────── */}
       <section className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Subscription</h2>
-          <button
-            onClick={() => navigate('/subscription')}
-            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
-          >
+          <button onClick={() => navigate('/subscription')}
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
             Upgrade Plan
           </button>
         </div>
@@ -265,8 +259,8 @@ export default function SettingsScreen() {
             <div>
               <span className="text-gray-600">Status:</span><br />
               <span className={`font-semibold ${
-                subscription.status === 'Active'        ? 'text-green-600' :
-                subscription.status === 'No Active Plan'? 'text-gray-600'  : 'text-red-600'
+                subscription.status === 'Active'         ? 'text-green-600' :
+                subscription.status === 'No Active Plan' ? 'text-gray-600'  : 'text-red-600'
               }`}>
                 {subscription.status}
               </span>
