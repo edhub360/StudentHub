@@ -180,6 +180,10 @@ const App: React.FC = () => {
       setIsLoggedIn(false);
       setUserStatus(null);
       setShowSubscriptionPage(false);
+      // ✅ Dynamic — works on Mac, Windows, Linux
+      // ✅ Respects basename in dev ('/') and prod ('/StudentHub/')
+      // ✅ Full reload wipes ALL React state (no stale data)
+      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
     }
   };
 

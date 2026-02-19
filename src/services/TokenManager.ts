@@ -58,6 +58,11 @@ function isTokenExpired(token: string, skewMs = 30_000): boolean {
   }
 }
 
+export function redirectToLogin(): void {
+  clearTokens();
+  window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
+}
+
 // ✅ Single refresh execution - all concurrent callers wait for same promise
 async function doRefresh(storedRefresh: string): Promise<string> {
   try {
@@ -65,10 +70,10 @@ async function doRefresh(storedRefresh: string): Promise<string> {
     setTokens(refreshed);
     return refreshed.access_token;
   } catch (err) {
-    clearTokens();
+    redirectToLogin(); // handles ALL session expiry globally
     throw new Error('Session expired. Please sign in again.');
   } finally {
-    refreshPromise = null; // ✅ always release lock
+    refreshPromise = null; // always release lock
   }
 }
 
