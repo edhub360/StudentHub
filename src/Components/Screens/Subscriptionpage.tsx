@@ -6,9 +6,10 @@ import {
   createCheckout, 
   getUserSubscription, 
   activateSubscription,
+  getFreePlanStatus,        // NEW
   formatPrice
 } from '../../services/subscriptionapi';
-import type { Plan, PlanPrice } from '../../types/subscription.types';
+import type { Plan, PlanPrice, FreePlanStatus } from '../../types/subscription.types';
 
 interface SubscriptionPageProps {
   isFirstTime?: boolean;
@@ -30,16 +31,20 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   const [activeSubscriptionId, setActiveSubscriptionId] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [activatingFreePlan, setActivatingFreePlan] = useState(false);
+  const [freePlanStatus, setFreePlanStatus] = useState<FreePlanStatus | null>(null); 
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedPlans, subscription] = await Promise.all([
+        const [fetchedPlans, subscription, freeStatus] = await Promise.all([
           getPlans(),
-          getUserSubscription()
+          getUserSubscription(),
+          getFreePlanStatus()   
         ]);
         
         setPlans(fetchedPlans);
+        setFreePlanStatus(freeStatus);  
+
         if (subscription && subscription.status === 'active') {
           setActiveSubscriptionId(subscription.plan_id);
         }
@@ -55,25 +60,50 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
   }, []);
 
   const handleActivateFreePlan = async () => {
+    // Block if already used/expired — before even calling API
+    if (freePlanStatus && !freePlanStatus.eligible && freePlanStatus.status !== 'not_used') {
+      setError('Your free plan has already been used and expired. Please upgrade to a paid plan.');
+      return;
+    }
+
     setActivatingFreePlan(true);
     setError('');
+
     try {
       const data = await activateSubscription();
       console.log('✅ Free plan activated:', data);
+
+      // Update local freePlanStatus so button reflects new state
+      setFreePlanStatus({
+        eligible: false,
+        status: 'active',
+        message: 'Free plan active',
+        expires_at: data.expires_at,
+        days_remaining: 7
+      });
+
       setSuccess(true);
       
       setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        }
-        if (onSelectPlan) {
-          onSelectPlan('free');
-        }
-        navigate('/'); // Redirect to dashboard
+        if (onComplete) onComplete();
+        if (onSelectPlan) onSelectPlan('free');
+        navigate('/');
       }, 2000);
+
     } catch (err: any) {
       console.error('Activation error:', err);
-      setError(err.message || 'Failed to activate subscription');
+
+      // ✅ Handle specific free plan errors
+      if (err.response?.status === 403) {
+        setError('Free plan has already been used and expired. Please upgrade to a paid plan.');
+        // Update local state to reflect expired
+        setFreePlanStatus(prev => prev ? { ...prev, eligible: false, status: 'expired' } : null);
+      } else if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        navigate('/login');
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Failed to activate subscription');
+      }
     } finally {
       setActivatingFreePlan(false);
     }
@@ -96,10 +126,33 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     navigate('/login');
   };
 
-  // Helper to check if plan is free
   const isFreePlan = (plan: Plan): boolean => {
     return plan.name.toLowerCase() === 'free' || 
            plan.prices.every(p => p.amount === 0);
+  };
+
+  // ✅ NEW: Get free plan button label based on status
+  const getFreePlanButtonLabel = (): string => {
+    if (activatingFreePlan) return 'Activating...';
+    if (!freePlanStatus) return 'Activate Free Plan';
+
+    switch (freePlanStatus.status) {
+      case 'active':
+        return `Active — ${freePlanStatus.days_remaining ?? 0} days remaining`;
+      case 'expired':
+        return 'Free Plan Expired';
+      case 'not_used':
+        return 'Activate Free Plan (7 Days)';
+      default:
+        return 'Activate Free Plan';
+    }
+  };
+
+  // ✅ NEW: Should the free plan button be disabled?
+  const isFreePlanButtonDisabled = (): boolean => {
+    if (activatingFreePlan) return true;
+    if (!freePlanStatus) return false;
+    return freePlanStatus.status === 'active' || freePlanStatus.status === 'expired';
   };
 
   if (initializing) {
@@ -128,6 +181,23 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
         <p className="text-gray-600">Start with free plan. Upgrade anytime.</p>
+
+        {/* ✅ NEW: Free plan expiry info banner */}
+        {freePlanStatus?.status === 'active' && (
+          <p className="mt-2 text-sm text-blue-600 font-medium">
+            ✅ Free plan active — {freePlanStatus.days_remaining} days remaining
+            {freePlanStatus.expires_at && (
+              <span className="text-gray-400 ml-1">
+                (expires {new Date(freePlanStatus.expires_at).toLocaleDateString()})
+              </span>
+            )}
+          </p>
+        )}
+        {freePlanStatus?.status === 'expired' && (
+          <p className="mt-2 text-sm text-red-500 font-medium">
+            ⚠️ Your free plan has expired. Upgrade to continue.
+          </p>
+        )}
       </div>
 
       {/* Error Message */}
@@ -140,7 +210,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       {/* Success Message */}
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
-          ✅ Free plan activated!
+          ✅ Free plan activated! Valid for 7 days.
           <br />
           Redirecting to dashboard...
         </div>
@@ -159,17 +229,28 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
               }`}
             >
-              {/* Current Plan Badge */}
               {isCurrent && (
                 <div className="bg-blue-500 text-white text-xs px-3 py-1 rounded-full inline-block mb-4">
                   Current Plan
                 </div>
               )}
 
-              {/* Plan Name */}
+              {/* ✅ NEW: Expired badge on free plan card */}
+              {isFree && freePlanStatus?.status === 'expired' && (
+                <div className="bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full inline-block mb-4">
+                  Plan Expired
+                </div>
+              )}
+
               <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
 
-              {/* Features */}
+              {/* ✅ NEW: Free plan expiry info inside card */}
+              {isFree && freePlanStatus?.status === 'active' && (
+                <p className="text-xs text-blue-500 mb-3">
+                  ⏳ {freePlanStatus.days_remaining} days remaining
+                </p>
+              )}
+
               {plan.features_json && Object.keys(plan.features_json).length > 0 && (
                 <div className="mb-6">
                   <ul className="text-sm text-gray-700 space-y-2">
@@ -185,27 +266,22 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 </div>
               )}
 
-              {/* Buttons */}
               <div className="space-y-3 mt-4">
                 {isFree ? (
-                  // Free Plan Button
                   <button
                     onClick={handleActivateFreePlan}
-                    disabled={activatingFreePlan || isCurrent}
+                    disabled={isFreePlanButtonDisabled()}
                     className={`w-full py-3 px-4 rounded-lg font-semibold transition ${
-                      isCurrent
-                        ? 'bg-gray-100 text-gray-500 cursor-default'
+                      freePlanStatus?.status === 'expired'
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : freePlanStatus?.status === 'active'
+                        ? 'bg-green-100 text-green-700 cursor-default'
                         : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
                     }`}
                   >
-                    {isCurrent 
-                      ? 'Current Plan' 
-                      : activatingFreePlan 
-                      ? 'Activating...' 
-                      : 'Activate Free Plan'}
+                    {getFreePlanButtonLabel()}
                   </button>
                 ) : (
-                  // Paid Plan Buttons
                   plan.prices
                     .filter(price => price.is_active)
                     .sort((a, b) => a.amount - b.amount)
@@ -243,7 +319,6 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         })}
       </div>
 
-      {/* Info Text */}
       <p className="text-center text-gray-500 mt-8 text-sm">
         No credit card required for free plan
       </p>

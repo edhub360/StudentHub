@@ -1,32 +1,55 @@
 // src/services/TokenManager.ts
 
+// src/services/TokenManager.ts
+
 import { refreshToken } from './loginApi';
 import type { LoginResponse } from '../types/login.types';
 
-const ACCESS_TOKEN_KEY = 'access_token';
+// Primary keys (what TokenManager writes)
+const ACCESS_TOKEN_KEY  = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
+// Legacy keys (what rest of the app uses)
+const LEGACY_ACCESS_TOKEN_KEY  = 'token';
+const LEGACY_REFRESH_TOKEN_KEY = 'refreshToken';
+
+// ─── Read: check both keys ────────────────────────────────────────────────────
 export function getStoredTokens() {
-  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  const refreshTokenValue = localStorage.getItem(REFRESH_TOKEN_KEY);
+  // Try primary key first, fall back to legacy key
+  const accessToken = 
+    localStorage.getItem(ACCESS_TOKEN_KEY) || 
+    localStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) || 
+    null;
+
+  const refreshTokenValue = 
+    localStorage.getItem(REFRESH_TOKEN_KEY) || 
+    localStorage.getItem(LEGACY_REFRESH_TOKEN_KEY) || 
+    null;
+
   return { accessToken, refreshToken: refreshTokenValue };
 }
 
+// ─── Write: save under BOTH keys so all services stay in sync ─────────────────
 export function setTokens(data: LoginResponse) {
-  // call this right after successful login / refresh
-  localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+  // Write to both keys so nothing breaks
+  localStorage.setItem(ACCESS_TOKEN_KEY,  data.access_token);   // new key
+  localStorage.setItem(LEGACY_ACCESS_TOKEN_KEY, data.access_token); // 'token'
+
   if (data.refresh_token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY,  data.refresh_token);   // new key
+    localStorage.setItem(LEGACY_REFRESH_TOKEN_KEY, data.refresh_token); // 'refreshToken'
   }
 }
 
+// ─── Clear: remove ALL keys ───────────────────────────────────────────────────
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
 }
 
-// --- helpers ---
-
+// ─── helpers (unchanged) ──────────────────────────────────────────────────────
 function isTokenExpired(token: string, skewMs = 30_000): boolean {
   try {
     const parts = token.split('.');
@@ -39,26 +62,19 @@ function isTokenExpired(token: string, skewMs = 30_000): boolean {
     if (!payload.exp) return true;
 
     const expMs = payload.exp * 1000;
-    return expMs <= Date.now() + skewMs; // treat "about to expire" as expired
+    return expMs <= Date.now() + skewMs;
   } catch {
     return true;
   }
 }
 
-/**
- * Returns a valid access token.
- * If current one is missing OR expired, tries to refresh using refresh_token.
- * On refresh failure, clears tokens and throws so caller can redirect to login.
- */
 export async function getValidAccessToken(): Promise<string> {
   let { accessToken, refreshToken: storedRefresh } = getStoredTokens();
 
-  // If we have a token and it is still valid, just use it
   if (accessToken && !isTokenExpired(accessToken)) {
     return accessToken;
   }
 
-  // Otherwise try to refresh
   if (!storedRefresh) {
     clearTokens();
     throw new Error('No refresh token available');
@@ -66,7 +82,7 @@ export async function getValidAccessToken(): Promise<string> {
 
   try {
     const refreshed = await refreshToken(storedRefresh);
-    setTokens(refreshed);
+    setTokens(refreshed); // ✅ saves to ALL 4 keys
     return refreshed.access_token;
   } catch (err) {
     clearTokens();
@@ -91,3 +107,4 @@ export function getUserId(): string | null {
     return null;
   }
 }
+
