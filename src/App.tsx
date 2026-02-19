@@ -35,6 +35,8 @@ import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 import SettingsScreen from './Components/Screens/SettingsScreen';
 import { FeatureGate } from './Components/common/FeatureGate';
+import { clearTokens, getStoredTokens } from './services/TokenManager';
+import { logout } from './services/loginApi';
 import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -152,13 +154,33 @@ const App: React.FC = () => {
     }
   };
 
-
   // ✅ Handle Logout
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.clear();
-    setUserStatus(null);
-    setShowSubscriptionPage(false);
+  const handleLogout = async () => {
+    try {
+      const { accessToken } = getStoredTokens();
+      if (accessToken) {
+        await logout(accessToken); // revokes refresh token in DB
+      }
+    } catch (e) {
+      console.error('Logout API error (non-critical):', e);
+      // Don't block logout if API fails
+    } finally {
+      // Clear all token keys (new + legacy)
+      clearTokens();
+
+      // Clear all other app state from localStorage
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('subscription_tier');
+
+      // Reset app state
+      setIsLoggedIn(false);
+      setUserStatus(null);
+      setShowSubscriptionPage(false);
+    }
   };
 
   const handleSubscriptionComplete = () => {

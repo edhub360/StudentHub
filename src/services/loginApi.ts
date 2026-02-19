@@ -55,12 +55,20 @@ export async function refreshToken(
 }
 
 export async function logout(accessToken: string): Promise<void> {
+  // Get refresh token from localStorage before clearing
+  const refreshTokenValue =
+    localStorage.getItem('refresh_token') ||
+    localStorage.getItem('refreshToken') ||
+    '';
+
   await fetch(`${LOGIN_API_BASE_URL}/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
     },
+    // Send refresh_token in body so backend can revoke it
+    body: JSON.stringify({ refresh_token: refreshTokenValue }),
   });
 }
 
