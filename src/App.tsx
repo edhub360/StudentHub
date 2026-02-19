@@ -78,8 +78,12 @@ const App: React.FC = () => {
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
   const [IsLoading, setIsLoading] = useState(false);
-  const [userTier, setUserTier] = useState<SubscriptionTier>((localStorage.getItem('subscription_tier') || null) as SubscriptionTier);
-  //const [activeTab, setActiveTab] = useState('home');
+  const [userTier, setUserTier] = useState<SubscriptionTier>(
+    (localStorage.getItem('subscription_tier') || null) as SubscriptionTier
+  );
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(
+    !localStorage.getItem('subscription_tier')  // ✅ only load if not cached
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -109,6 +113,8 @@ const App: React.FC = () => {
         has_active_subscription: false,
         subscription: null,
       });
+      setUserTier('expired');                          // ✅ logged in but no plan
+      localStorage.removeItem('subscription_tier');
     } else {
       console.log('✅ Has subscription - showing dashboard');
       setShowSubscriptionPage(false);
@@ -117,7 +123,15 @@ const App: React.FC = () => {
         has_active_subscription: true,
         subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
       });
+      // SET TIER FROM localStorage
+      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
+      const tier = tierValue as SubscriptionTier;
+
+      localStorage.setItem('subscription_tier', tierValue); // ✅ string, no error
+      setUserTier(tier);   
     }
+    setIsSubscriptionLoading(false); 
+      
   }, [isLoggedIn, userId, location.pathname]);
 
   //login integration code
@@ -137,14 +151,22 @@ const App: React.FC = () => {
 
     if (hasSubscription) {
       console.log('✅ Has subscription - Going to dashboard');
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
+      const tier = tierValue as SubscriptionTier;
+
+      setUserTier(tier);
+      localStorage.setItem('subscription_tier', tierValue);
       setShowSubscriptionPage(false);
       setUserStatus({
         has_seen_subscription: true,
         has_active_subscription: true,
-        subscription: { plan_id: 'free', status: 'active' },
+        subscription: { plan_id: tierValue, status: 'active' },
       });
     } else {
       console.log('📋 No subscription - Showing subscription page');
+      setUserTier('expired');
+      localStorage.removeItem('subscription_tier');
       setShowSubscriptionPage(true);
       setUserStatus({
         has_seen_subscription: false,
@@ -152,6 +174,7 @@ const App: React.FC = () => {
         subscription: null,
       });
     }
+    setIsSubscriptionLoading(false);
   };
 
   // ✅ Handle Logout
@@ -179,10 +202,11 @@ const App: React.FC = () => {
       // Reset app state
       setIsLoggedIn(false);
       setUserStatus(null);
+      setUserTier(null);
       setShowSubscriptionPage(false);
-      // ✅ Dynamic — works on Mac, Windows, Linux
-      // ✅ Respects basename in dev ('/') and prod ('/StudentHub/')
-      // ✅ Full reload wipes ALL React state (no stale data)
+      // Dynamic — works on Mac, Windows, Linux
+      // Respects basename in dev ('/') and prod ('/StudentHub/')
+      // Full reload wipes ALL React state (no stale data)
       window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
     }
   };
@@ -195,7 +219,7 @@ const App: React.FC = () => {
       localStorage.setItem('user', JSON.stringify(storedUser));
       localStorage.setItem('subscription_tier', 'free');
     }
-
+    setUserTier('free');
     setShowSubscriptionPage(false);
     setUserStatus({
       has_seen_subscription: true,
@@ -217,19 +241,21 @@ const App: React.FC = () => {
     'settings': 'dashboard',
   };
 
-  // ✅ Existing Data & Functions (unchanged)
+  // navigation — guard with isSubscriptionLoading
   const navigation: NavigationItem[] = [
-    { id: 'home', label: 'Dashboard', icon: Home },
-    { id: 'chat', label: 'AI Chat', icon: MessageCircle },
-    { id: 'flashcards', label: 'Flashcards', icon: FileText },
-    { id: 'quiz', label: 'Quiz Mode', icon: Brain },
-    { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'study planner', label: 'Study Planner', icon: BarChart3 },
-    { id: 'notes', label: 'Notes', icon: BookOpen },
-    { id: 'upload', label: 'Screenshot Solve', icon: Upload },
+    { id: 'home',          label: 'Dashboard',       icon: Home },
+    { id: 'chat',          label: 'AI Chat',          icon: MessageCircle },
+    { id: 'flashcards',    label: 'Flashcards',       icon: FileText },
+    { id: 'quiz',          label: 'Quiz Mode',        icon: Brain },
+    { id: 'courses',       label: 'Courses',          icon: BookOpen },
+    { id: 'study planner', label: 'Study Planner',    icon: BarChart3 },
+    { id: 'notes',         label: 'Notes',            icon: BookOpen },
+    { id: 'upload',        label: 'Screenshot Solve', icon: Upload },
   ].map(item => ({
     ...item,
-    hasAccess: hasFeatureAccess(userTier, featureMap[item.id as TabId])  // ← ADD THIS LINE
+    hasAccess: isSubscriptionLoading          // no lock flash during load
+      ? true
+      : hasFeatureAccess(userTier, featureMap[item.id as TabId])
   })) as NavigationItem[];
 
 

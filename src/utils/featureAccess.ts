@@ -1,6 +1,6 @@
 // src/utils/featureAccess.ts
 
-export type SubscriptionTier = 'free' | 'pro' | 'pro max' | null;
+export type SubscriptionTier = 'free' | 'pro' | 'pro max' | 'expired' | null;
 
 export interface FeatureAccess {
   dashboard: boolean;
@@ -61,11 +61,12 @@ const DEFAULT_ACCESS: FeatureAccess = {
  * Get feature access permissions for a subscription tier
  */
 export function getFeatureAccess(tier: SubscriptionTier): FeatureAccess {
-  if (!tier) return DEFAULT_ACCESS;
-  
+  if (tier === null) return DEFAULT_ACCESS;      // ✅ logged out
+  if (tier === 'expired') return DEFAULT_ACCESS; // ✅ no active subscription
+
   // Normalize: Convert to lowercase and remove extra spaces
   const normalizedTier = tier.toLowerCase().trim().replace(/\s+/g, ' ');
-  
+
   return FEATURE_MATRIX[normalizedTier] || DEFAULT_ACCESS;
 }
 
