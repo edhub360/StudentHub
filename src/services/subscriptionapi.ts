@@ -106,13 +106,22 @@ export const activateSubscription = async (): Promise<ActivateSubscriptionRespon
 
 // ========== UTILITY FUNCTIONS ==========
 
+// ✅ AFTER — amounts are always stored in rupees, never divide
 export const formatPrice = (amount: number, currency: string): string => {
-  const symbol = currency === 'INR' ? '₹' : '$';
-  // If amount is already in rupees (< 1000), don't divide
-  // If amount is in paise (> 1000), divide by 100
-  const displayAmount = amount < 1000 ? amount : amount / 100;
-  return `${symbol}${displayAmount.toLocaleString('en-IN')}`;
+  if (currency.toUpperCase() === 'INR') {
+    return `₹${amount.toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })}`;
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
+
 
 
 export const getPriceByPeriod = (plan: Plan, period: BillingPeriod) => {
