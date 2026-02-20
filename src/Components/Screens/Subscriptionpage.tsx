@@ -155,6 +155,15 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     return freePlanStatus.status === 'active' || freePlanStatus.status === 'expired';
   };
 
+  // ✅ Helper: human-readable billing period label
+  const getBillingLabel = (period: string): string => {
+    switch (period.toLowerCase()) {
+      case 'monthly': return 'month';
+      case 'yearly':  return 'year';
+      default:        return period;
+    }
+  };
+
   if (initializing) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -284,7 +293,11 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 ) : (
                   plan.prices
                     .filter(price => price.is_active)
-                    .sort((a, b) => a.amount - b.amount)
+                    // ✅ FIX: monthly first, yearly second
+                    .sort((a, b) => {
+                      const order: Record<string, number> = { monthly: 0, yearly: 1 };
+                      return (order[a.billing_period] ?? 0) - (order[b.billing_period] ?? 0);
+                    })
                     .map((price) => (
                       <button
                         key={price.id}
@@ -306,7 +319,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                               {formatPrice(price.amount, price.currency)}
                             </span>
                             <span className="text-sm opacity-90">
-                              / {price.billing_period}
+                              / {getBillingLabel(price.billing_period)}
                             </span>
                           </div>
                         )}
