@@ -3,29 +3,43 @@
 import { refreshToken } from './loginApi';
 import type { LoginResponse } from '../types/login.types';
 
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_KEY         = 'access_token';
+const REFRESH_TOKEN_KEY        = 'refresh_token';
+const LEGACY_ACCESS_TOKEN_KEY  = 'token';
+const LEGACY_REFRESH_TOKEN_KEY = 'refreshToken';
+
+// ✅ Refresh lock - prevents simultaneous refresh calls
+let refreshPromise: Promise<string> | null = null;
 
 export function getStoredTokens() {
-  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  const refreshTokenValue = localStorage.getItem(REFRESH_TOKEN_KEY);
+  const accessToken =
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    localStorage.getItem(LEGACY_ACCESS_TOKEN_KEY) ||
+    null;
+
+  const refreshTokenValue =
+    localStorage.getItem(REFRESH_TOKEN_KEY) ||
+    localStorage.getItem(LEGACY_REFRESH_TOKEN_KEY) ||
+    null;
+
   return { accessToken, refreshToken: refreshTokenValue };
 }
 
 export function setTokens(data: LoginResponse) {
-  // call this right after successful login / refresh
-  localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+  localStorage.setItem(ACCESS_TOKEN_KEY,         data.access_token);
+  localStorage.setItem(LEGACY_ACCESS_TOKEN_KEY,  data.access_token);
   if (data.refresh_token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY,        data.refresh_token);
+    localStorage.setItem(LEGACY_REFRESH_TOKEN_KEY, data.refresh_token);
   }
 }
 
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
 }
-
-// --- helpers ---
 
 function isTokenExpired(token: string, skewMs = 30_000): boolean {
   try {
@@ -38,40 +52,53 @@ function isTokenExpired(token: string, skewMs = 30_000): boolean {
     const payload = JSON.parse(payloadJson);
     if (!payload.exp) return true;
 
-    const expMs = payload.exp * 1000;
-    return expMs <= Date.now() + skewMs; // treat "about to expire" as expired
+    return payload.exp * 1000 <= Date.now() + skewMs;
   } catch {
     return true;
   }
 }
 
-/**
- * Returns a valid access token.
- * If current one is missing OR expired, tries to refresh using refresh_token.
- * On refresh failure, clears tokens and throws so caller can redirect to login.
- */
-export async function getValidAccessToken(): Promise<string> {
-  let { accessToken, refreshToken: storedRefresh } = getStoredTokens();
+export function redirectToLogin(): void {
+  clearTokens();
+  window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
+}
 
-  // If we have a token and it is still valid, just use it
-  if (accessToken && !isTokenExpired(accessToken)) {
-    return accessToken;
-  }
-
-  // Otherwise try to refresh
-  if (!storedRefresh) {
-    clearTokens();
-    throw new Error('No refresh token available');
-  }
-
+// ✅ Single refresh execution - all concurrent callers wait for same promise
+async function doRefresh(storedRefresh: string): Promise<string> {
   try {
     const refreshed = await refreshToken(storedRefresh);
     setTokens(refreshed);
     return refreshed.access_token;
   } catch (err) {
-    clearTokens();
+    redirectToLogin(); // handles ALL session expiry globally
     throw new Error('Session expired. Please sign in again.');
+  } finally {
+    refreshPromise = null; // always release lock
   }
+}
+
+export async function getValidAccessToken(): Promise<string> {
+  const { accessToken, refreshToken: storedRefresh } = getStoredTokens();
+
+  // Token still valid — return immediately
+  if (accessToken && !isTokenExpired(accessToken)) {
+    return accessToken;
+  }
+
+  // No refresh token — force logout
+  if (!storedRefresh) {
+    clearTokens();
+    throw new Error('No refresh token available');
+  }
+
+  // ✅ If refresh already in-flight, wait for it instead of firing a second one
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  // Start refresh and lock
+  refreshPromise = doRefresh(storedRefresh);
+  return refreshPromise;
 }
 
 export function getUserId(): string | null {

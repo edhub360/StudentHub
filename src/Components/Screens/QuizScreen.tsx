@@ -19,7 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import { QuizList } from '../Quiz/QuizList';
 import { QuizPlayer } from '../Quiz/QuizPlayer';
 import { QuizScoreScreen } from '../Quiz/QuizScoreScreen';
-
+import { QuizButton } from '../Quiz/QuizButton';
+import { Pagination } from '../common/Pagination';
 const QuizScreen: React.FC = () => {
   // Get real logged-in user from auth context
   const { user } = useAuth();
@@ -31,26 +32,37 @@ const QuizScreen: React.FC = () => {
   const [lastResult, setLastResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  // Calculate total pages based on a total count from backend
+  // For now, we'll estimate based on returned results
+  const [totalPages, setTotalPages] = useState(1);
+
+  // pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
 
   useEffect(() => {
-    loadQuizzes();
-  }, []);
+    loadQuizzes(page);
+  }, [page]);
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = async (pageNum: number) => {
     setView(ViewState.LOADING);
     setError(null);
     try {
-      // NEW: No user_id needed - fetches global quizzes
-      const data = await fetchQuizzes();
+      // ✅ Destructure correctly: quizzes and total
+      const { quizzes, total } = await fetchQuizzes(pageNum, pageSize);
       
-      // Check if we are receiving the mock data
-      if (Array.isArray(data) && data.length > 0 && data[0].quiz_id.startsWith('mock-')) {
+      // Check if we are receiving mock data
+      if (Array.isArray(quizzes) && quizzes.length > 0 && quizzes[0].quiz_id.startsWith('mock-')) {
         setIsDemoMode(true);
       } else {
         setIsDemoMode(false);
       }
 
-      setQuizzes(data || []);
+      setQuizzes(quizzes || []); // ✅ Use quizzes directly, not data
+      
+      // Calculate total pages from backend total count
+      setTotalPages(Math.ceil(total / pageSize));
+
       setView(ViewState.LIST);
     } catch (err) {
       console.error(err);
@@ -62,25 +74,23 @@ const QuizScreen: React.FC = () => {
   const handleStartQuiz = async (quizId: string) => {
     setView(ViewState.LOADING);
     try {
-      // NEW: Fetch quiz with questions from backend
-      const quiz = await fetchQuizDetail(quizId);
+      // Fetch 5-10 random questions (you can make this configurable)
+      const randomLimit = Math.floor(Math.random() * 6) + 5; // Random between 5-10
+      const quiz = await fetchQuizDetail(quizId, randomLimit);
       
       if (!quiz) {
         throw new Error('Quiz not found');
       }
-
+      
       if (!quiz.questions || quiz.questions.length === 0) {
         setError('This quiz has no questions available.');
         setView(ViewState.ERROR);
         return;
       }
-
-      setActiveQuiz(quiz);
       
-      // NEW: Process questions (shuffle options, normalize format)
+      setActiveQuiz(quiz);
       const processed = processQuestions(quiz.questions);
       setProcessedQuestions(processed);
-      
       setView(ViewState.PLAYING);
     } catch (err) {
       console.error(err);
@@ -137,7 +147,17 @@ const QuizScreen: React.FC = () => {
     setActiveQuiz(null);
     setProcessedQuestions([]);
     setLastResult(null);
-    loadQuizzes();
+    loadQuizzes(page);
+  };
+
+  const handlePrevPage = () => {
+    setPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    // disable Next when fewer than pageSize items returned
+    if (quizzes.length < pageSize) return;
+    setPage((p) => p + 1);
   };
 
   return (
@@ -166,7 +186,7 @@ const QuizScreen: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Error Loading Quizzes</h2>
               <p className="text-gray-600 mb-6">{error}</p>
               <button
-                onClick={loadQuizzes}
+                onClick={() => loadQuizzes(page)}
                 className="px-6 py-3 bg-cyan-500 text-white font-semibold rounded-lg hover:bg-cyan-600 transition-colors"
               >
                 Try Again
@@ -176,7 +196,16 @@ const QuizScreen: React.FC = () => {
         )}
 
         {view === ViewState.LIST && (
-          <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
+          <>
+            <QuizList quizzes={quizzes} onStartQuiz={handleStartQuiz} />
+            
+            {/* NEW: Numbered Pagination */}
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </>
         )}
 
         {view === ViewState.PLAYING && activeQuiz && processedQuestions.length > 0 && (

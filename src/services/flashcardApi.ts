@@ -1,3 +1,4 @@
+// src/services/flashcardApi.ts
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/flashcard.constants';
 import { FlashcardDeck, FlashcardDeckDetail, FlashcardAnalyticsPayload } from '../types/flashcard.types';
@@ -8,7 +9,153 @@ const api = axios.create({
   timeout: 5000,
 });
 
-// Mock Data for fallback
+// ========== PAGINATION TYPES ==========
+interface PaginationMeta {
+  total: number;
+  offset: number;
+  limit: number;
+  has_more: boolean;
+}
+
+interface DecksResponse {
+  decks: FlashcardDeck[];
+  pagination: PaginationMeta;
+}
+
+interface DeckDetailResponse extends FlashcardDeckDetail {
+  pagination: PaginationMeta;
+}
+
+// ========== API FUNCTIONS WITH PAGINATION ==========
+
+/**
+ * Fetch paginated flashcard decks
+ * offset - Number of decks to skip (default: 0)
+ * limit - Number of decks to return (default: 10)
+ */
+
+export const fetchDecks = async (offset: number = 0, limit: number = 6): Promise<DecksResponse> => {
+  try {
+    const response = await api.get('/flashcard-decks', {
+      params: { offset, limit }
+    });
+    
+    const data = response.data;
+    
+    // ✅ Handle both old (array) and new (object with pagination) formats
+    if (Array.isArray(data)) {
+      // Old format - wrap it
+      return {
+        decks: data,
+        pagination: {
+          total: data.length,
+          offset: 0,
+          limit: data.length,
+          has_more: false
+        }
+      };
+    }
+    
+    // New paginated format
+    return data;
+    
+  } catch (error) {
+    console.warn("API Error, using mock data for Decks:", error);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    return {
+      decks: MOCK_DECKS.slice(offset, offset + limit),
+      pagination: {
+        total: MOCK_DECKS.length,
+        offset,
+        limit,
+        has_more: (offset + limit) < MOCK_DECKS.length
+      }
+    };
+  }
+};
+
+/**
+ * Fetch flashcard deck detail with paginated cards
+ */
+export const fetchDeckDetail = async (
+  deckId: string, 
+  offset: number = 0, 
+  limit: number = 20
+): Promise<DeckDetailResponse> => {
+  try {
+    const response = await api.get(`/flashcard-decks/${deckId}`, {
+      params: { offset, limit }
+    });
+    
+    const data = response.data;
+    
+    // ✅ Handle both old and new formats
+    if (!data.pagination) {
+      // Old format - add pagination metadata
+      return {
+        ...data,
+        pagination: {
+          total: data.cards?.length || 0,
+          offset: 0,
+          limit: data.cards?.length || 0,
+          has_more: false
+        }
+      };
+    }
+    
+    // New paginated format
+    return data;
+    
+  } catch (error) {
+    console.warn(`API Error for deck ${deckId}, using mock data:`, error);
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    const deck = MOCK_DECK_DETAILS[deckId];
+    if (deck) {
+      const cards = deck.cards.slice(offset, offset + limit);
+      return {
+        ...deck,
+        cards,
+        pagination: {
+          total: deck.cards.length,
+          offset,
+          limit,
+          has_more: (offset + limit) < deck.cards.length
+        }
+      };
+    }
+    
+    const fallbackDeck = MOCK_DECK_DETAILS["1"];
+    const fallbackCards = fallbackDeck.cards.slice(offset, offset + limit);
+    return {
+      ...MOCK_DECKS[0],
+      cards: fallbackCards,
+      pagination: {
+        total: fallbackDeck.cards.length,
+        offset,
+        limit,
+        has_more: (offset + limit) < fallbackDeck.cards.length
+      }
+    };
+  }
+};
+
+
+/**
+ * Sends flashcard analytics data to the backend.
+ * Uses fire-and-forget pattern.
+ */
+export const logFlashcardAttempt = async (payload: FlashcardAnalyticsPayload): Promise<void> => {
+  try {
+    await api.post('/flashcard-analytics', payload);
+    console.debug(`✅ Flashcard analytics sent for user: ${payload.user_id}, Deck: ${payload.deck_id}, Time: ${payload.time_taken}s`);
+  } catch (error) {
+    console.warn("Failed to send flashcard analytics:", error);
+  }
+};
+
+// ========== MOCK DATA (unchanged) ==========
 const MOCK_DECKS: FlashcardDeck[] = [
   {
     deck_id: "1",
@@ -74,7 +221,7 @@ const MOCK_DECK_DETAILS: Record<string, FlashcardDeckDetail> = {
       {
         card_id: "c5",
         front_text: "What is State?",
-        back_text: "An object that determines how that component renders & behaves. It creates data that can be changed over time.",
+        back_text: "An object that determines how that component renders & behaves. It creates data that can be changed over time."
       }
     ]
   },
@@ -87,54 +234,10 @@ const MOCK_DECK_DETAILS: Record<string, FlashcardDeckDetail> = {
     cards: [
       {
         card_id: "t1",
-        front_text: "What is the 'Partial' utility type?",
+        front_text: "What is the 'Partial<T>' utility type?",
         back_text: "Constructs a type with all properties of Type set to optional.",
         hint: "It makes everything optional."
       }
     ]
-  }
-};
-
-export const fetchDecks = async (): Promise<FlashcardDeck[]> => {
-  try {
-    const response = await api.get('/flashcard-decks');
-    return response.data;
-  } catch (error) {
-    console.warn("API Error, using mock data for Decks:", error);
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return MOCK_DECKS;
-  }
-};
-
-export const fetchDeckDetail = async (deckId: string): Promise<FlashcardDeckDetail> => {
-  try {
-    const response = await api.get(`/flashcard-decks/${deckId}`);
-    return response.data;
-  } catch (error) {
-    console.warn(`API Error for deck ${deckId}, using mock data:`, error);
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const deck = MOCK_DECK_DETAILS[deckId];
-    if (deck) return deck;
-    // Fallback for ID not in mock
-    return {
-      ...MOCK_DECKS[0],
-      cards: MOCK_DECK_DETAILS["1"].cards
-    };
-  }
-};
-
-/**
- * Sends flashcard analytics data to the backend.
- * Uses fire-and-forget pattern.
- */
-export const logFlashcardAttempt = async (payload: FlashcardAnalyticsPayload): Promise<void> => {
-  try {
-    // The endpoint expects: deck_id, user_id, card_reviewed, time_taken
-    await api.post('/flashcard-analytics', payload);
-    console.debug(`✅ Flashcard analytics sent for user: ${payload.user_id}, Deck: ${payload.deck_id}, Time: ${payload.time_taken}s`);
-  } catch (error) {
-    // Silently fail for analytics to not disrupt user experience
-    console.warn("Failed to send flashcard analytics:", error);
   }
 };

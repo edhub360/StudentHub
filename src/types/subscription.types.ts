@@ -57,11 +57,13 @@ export interface CancelSubscriptionRequest {
   cancel_at_period_end: boolean;
 }
 
-export interface ActivateSubscriptionResponse {
+export type ActivateSubscriptionResponse = {
   message: string;
   subscription_tier: string;
   status: 'activated' | 'already_active';
-}
+  activated_at?: string;   
+  expires_at?: string;     
+};
 
 // ========== HELPER TYPES ==========
 export type BillingPeriod = 'monthly' | 'yearly';
@@ -74,3 +76,19 @@ export interface PriceFormatted {
   formatted: string;  // e.g., "₹499.00"
   billing_period: BillingPeriod;
 }
+
+export type FreePlanStatus = {
+  eligible: boolean;
+  status: 'not_used' | 'active' | 'expired' | 'error';
+  message: string;
+  expires_at?: string;
+  days_remaining?: number;
+  expired_at?: string;
+};
+
+export type UserSubscriptionOverview = {
+  freePlan: FreePlanStatus;
+  stripeSubscription: Subscription | null;
+  hasAccess: boolean;
+  isFreePlanEligible: boolean;
+};

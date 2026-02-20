@@ -33,13 +33,18 @@ import CourseScreen from './Components/Screens/CourseScreen';
 import NotebookScreen from './Components/Screens/NotebookScreen';
 import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
-
+import SettingsScreen from './Components/Screens/SettingsScreen';
+import { FeatureGate } from './Components/common/FeatureGate';
+import { clearTokens, getStoredTokens } from './services/TokenManager';
+import { logout } from './services/loginApi';
+import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
   id: TabId;
   label: string;
   icon: React.ComponentType<any>;
+  hasAccess?: boolean; 
 }
 
 interface ChatMessage {
@@ -73,8 +78,12 @@ const App: React.FC = () => {
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [showSubscriptionPage, setShowSubscriptionPage] = useState(false);
   const [IsLoading, setIsLoading] = useState(false);
-  // ✅ Existing App States (unchanged)
-  //const [activeTab, setActiveTab] = useState('home');
+  const [userTier, setUserTier] = useState<SubscriptionTier>(
+    (localStorage.getItem('subscription_tier') || null) as SubscriptionTier
+  );
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(
+    !localStorage.getItem('subscription_tier')  // ✅ only load if not cached
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -104,6 +113,9 @@ const App: React.FC = () => {
         has_active_subscription: false,
         subscription: null,
       });
+      setUserTier('expired');                          // ✅ logged in but no plan
+      localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
     } else {
       console.log('✅ Has subscription - showing dashboard');
       setShowSubscriptionPage(false);
@@ -112,7 +124,16 @@ const App: React.FC = () => {
         has_active_subscription: true,
         subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
       });
+      // SET TIER FROM localStorage
+      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
+      const tier = tierValue as SubscriptionTier;
+
+      localStorage.setItem('subscription_tier', tierValue); // ✅ string, no error
+      localStorage.setItem('subscription_status', 'active');
+      setUserTier(tier);   
     }
+    setIsSubscriptionLoading(false); 
+      
   }, [isLoggedIn, userId, location.pathname]);
 
   //login integration code
@@ -132,14 +153,24 @@ const App: React.FC = () => {
 
     if (hasSubscription) {
       console.log('✅ Has subscription - Going to dashboard');
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
+      const tier = tierValue as SubscriptionTier;
+
+      setUserTier(tier);
+      localStorage.setItem('subscription_tier', tierValue);
+      localStorage.setItem('subscription_status', 'active');
       setShowSubscriptionPage(false);
       setUserStatus({
         has_seen_subscription: true,
         has_active_subscription: true,
-        subscription: { plan_id: 'free', status: 'active' },
+        subscription: { plan_id: tierValue, status: 'active' },
       });
     } else {
       console.log('📋 No subscription - Showing subscription page');
+      setUserTier('expired');
+      localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
       setShowSubscriptionPage(true);
       setUserStatus({
         has_seen_subscription: false,
@@ -147,15 +178,42 @@ const App: React.FC = () => {
         subscription: null,
       });
     }
+    setIsSubscriptionLoading(false);
   };
 
-
   // ✅ Handle Logout
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.clear();
-    setUserStatus(null);
-    setShowSubscriptionPage(false);
+  const handleLogout = async () => {
+    try {
+      const { accessToken } = getStoredTokens();
+      if (accessToken) {
+        await logout(accessToken); // revokes refresh token in DB
+      }
+    } catch (e) {
+      console.error('Logout API error (non-critical):', e);
+      // Don't block logout if API fails
+    } finally {
+      // Clear all token keys (new + legacy)
+      clearTokens();
+
+      // Clear all other app state from localStorage
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
+
+      // Reset app state
+      setIsLoggedIn(false);
+      setUserStatus(null);
+      setUserTier(null);
+      setShowSubscriptionPage(false);
+      // Dynamic — works on Mac, Windows, Linux
+      // Respects basename in dev ('/') and prod ('/StudentHub/')
+      // Full reload wipes ALL React state (no stale data)
+      window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
+    }
   };
 
   const handleSubscriptionComplete = () => {
@@ -165,8 +223,9 @@ const App: React.FC = () => {
       storedUser.subscription_tier = 'free';
       localStorage.setItem('user', JSON.stringify(storedUser));
       localStorage.setItem('subscription_tier', 'free');
+      localStorage.setItem('subscription_status', 'active');
     }
-
+    setUserTier('free');
     setShowSubscriptionPage(false);
     setUserStatus({
       has_seen_subscription: true,
@@ -175,17 +234,35 @@ const App: React.FC = () => {
     });
   };
 
-  // ✅ Existing Data & Functions (unchanged)
+  // Feature mapping
+  const featureMap: Record<TabId, keyof import('./utils/featureAccess').FeatureAccess> = {
+    'home': 'dashboard',
+    'chat': 'aiChat',
+    'flashcards': 'flashcard',
+    'quiz': 'quiz',
+    'courses': 'courses',
+    'study planner': 'studyPlanner',
+    'notes': 'notebook',
+    'upload': 'screenshot',
+    'settings': 'dashboard',
+  };
+
+  // navigation — guard with isSubscriptionLoading
   const navigation: NavigationItem[] = [
-    { id: 'home', label: 'Dashboard', icon: Home },
-    { id: 'chat', label: 'AI Chat', icon: MessageCircle },
-    { id: 'flashcards', label: 'Flashcards', icon: FileText },
-    { id: 'quiz', label: 'Quiz Mode', icon: Brain },
-    { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'study planner', label: 'Study Planner', icon: BarChart3 },
-    { id: 'notes', label: 'Notes', icon: BookOpen },
-    { id: 'upload', label: 'Screenshot Solve', icon: Upload },
-  ];
+    { id: 'home',          label: 'Dashboard',       icon: Home },
+    { id: 'chat',          label: 'AI Chat',          icon: MessageCircle },
+    { id: 'flashcards',    label: 'Flashcards',       icon: FileText },
+    { id: 'quiz',          label: 'Quiz Mode',        icon: Brain },
+    { id: 'courses',       label: 'Courses',          icon: BookOpen },
+    { id: 'study planner', label: 'Study Planner',    icon: BarChart3 },
+    { id: 'notes',         label: 'Notes',            icon: BookOpen },
+    { id: 'upload',        label: 'Screenshot Solve', icon: Upload },
+  ].map(item => ({
+    ...item,
+    hasAccess: isSubscriptionLoading          // no lock flash during load
+      ? true
+      : hasFeatureAccess(userTier, featureMap[item.id as TabId])
+  })) as NavigationItem[];
 
 
   const handleSendMessage = async () => {
@@ -260,37 +337,75 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <DashboardScreen setActiveTab={setActiveTab} />;
+        return (
+          <FeatureGate feature="dashboard" tier={userTier}>
+            <DashboardScreen setActiveTab={setActiveTab} />
+          </FeatureGate>
+        );
+        
       case "chat":
         return (
-          <ChatScreen
-            chatMessages={chatMessages}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            handleSendMessage={handleSendMessage}
-          />
+          <FeatureGate feature="aiChat" tier={userTier}>
+            <ChatScreen
+              chatMessages={chatMessages}
+              chatInput={chatInput}
+              setChatInput={setChatInput}
+              handleSendMessage={handleSendMessage}
+            />
+          </FeatureGate>
         );
+        
       case "flashcards":
-        return <FlashcardScreen />;
+        return (
+          <FeatureGate feature="flashcard" tier={userTier}>
+            <FlashcardScreen />
+          </FeatureGate>
+        );
 
       case 'quiz':
-        return <QuizScreen />;
+        return (
+          <FeatureGate feature="quiz" tier={userTier}>
+            <QuizScreen />
+          </FeatureGate>
+        );
 
       case 'courses':
-        return <CourseScreen />;
+        return (
+          <FeatureGate feature="courses" tier={userTier}>
+            <CourseScreen />
+          </FeatureGate>
+        );
 
-      case 'study planner':                         // <-- new
-        return <StudyPlanScreen />;
+      case 'study planner':
+        return (
+          <FeatureGate feature="studyPlanner" tier={userTier}>
+            <StudyPlanScreen />
+          </FeatureGate>
+        );
 
       case 'notes':
-        return <NotebookScreen />;
+        return (
+          <FeatureGate feature="notebook" tier={userTier}>
+            <NotebookScreen />
+          </FeatureGate>
+        );
 
       case 'upload':
         return (
-          <UploadScreen />
+          <FeatureGate feature="screenshot" tier={userTier}>
+            <UploadScreen />
+          </FeatureGate>
         );
+
+      case 'settings':
+        return <SettingsScreen />;
+        
       default:
-        return <DashboardScreen setActiveTab={setActiveTab} />;
+        return (
+          <FeatureGate feature="dashboard" tier={userTier}>
+            <DashboardScreen setActiveTab={setActiveTab} />
+          </FeatureGate>
+        );
     }
   };
 
@@ -329,6 +444,20 @@ const App: React.FC = () => {
     return <SubscriptionCancel />;
   }
 
+  // ✅ ADD THIS: Manual Subscription/Upgrade Route
+  if (pathname === '/subscription' && isLoggedIn && userId) {
+    console.log('✅ Showing Subscription/Upgrade page');
+    return (
+      <SubscriptionWrapper
+        isFirstTime={false} // Not first time, manual upgrade
+        userId={userId}
+        onComplete={() => {
+          // After completing upgrade, navigate back to settings
+          window.location.hash = '/StudentHub/settings';
+        }}
+      />
+    );
+  }
 
   // ✅ Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage && userId) {
@@ -386,6 +515,7 @@ const App: React.FC = () => {
           setMobileMenuOpen={setMobileMenuOpen}
           activeTab={activeTab}
           onLogout={handleLogout}
+          setActiveTab={setActiveTab} 
         />
 
         <main className="flex-1 overflow-y-auto">

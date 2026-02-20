@@ -114,30 +114,48 @@ export const processQuestions = (questions: QuizQuestion[]): ProcessedQuestion[]
 /**
  * NEW API: Get all active quizzes
  */
-export const fetchQuizzes = async (): Promise<QuizListItem[]> => {
+// src/services/quizapi.ts
+
+export const fetchQuizzes = async (
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{ quizzes: QuizListItem[]; total: number }> => {
   try {
-    const response = await apiClient.get<QuizListItem[]>('/quizzes');
+    const offset = (page - 1) * pageSize;
+    const response = await apiClient.get('/quizzes', {
+      params: { limit: pageSize, offset },
+    });
 
-    if (!Array.isArray(response.data)) {
-      console.warn("API returned non-array data for quizzes:", response.data);
-      return [];
-    }
-
-    return response.data;
-
+    // Backend now returns: { quizzes: [...], total: 8, page: 1, page_size: 10 }
+    return {
+      quizzes: response.data.quizzes || [],
+      total: response.data.total || 0,
+    };
   } catch (error) {
     handleApiError(error);
     console.info("⚠️ Network error. Switching to DEMO MODE with mock data.");
-    return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZZES), 800));
+    
+    // Mock pagination
+    const mockSlice = MOCK_QUIZZES.slice(0, pageSize);
+    return {
+      quizzes: mockSlice,
+      total: MOCK_QUIZZES.length,
+    };
   }
 };
+
+
 
 /**
  * NEW API: Get specific quiz with all questions
  */
-export const fetchQuizDetail = async (quizId: string): Promise<QuizDetail | null> => {
+export const fetchQuizDetail = async (
+  quizId: string, 
+  limit?: number
+): Promise<QuizDetail> => {
   try {
-    const response = await apiClient.get<QuizDetail>(`/quizzes/${quizId}`);
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await apiClient.get(`/quizzes/${quizId}${params}`);
     return response.data;
   } catch (error) {
     handleApiError(error);
@@ -145,6 +163,7 @@ export const fetchQuizDetail = async (quizId: string): Promise<QuizDetail | null
     return new Promise(resolve => setTimeout(() => resolve(MOCK_QUIZ_DETAIL), 800));
   }
 };
+
 
 /**
  * NEW API: Submit quiz attempt

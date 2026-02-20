@@ -5,8 +5,11 @@ import type {
   Subscription,
   CheckoutResponse,
   ActivateSubscriptionResponse,
-  BillingPeriod
+  BillingPeriod,
+  FreePlanStatus,
+  UserSubscriptionOverview
 } from '../types/subscription.types';
+
 
 const API_BASE_URL = 'https://subscription-service-91248372939.us-central1.run.app';
 
@@ -43,6 +46,18 @@ export const createCheckout = async (
   );
   return response.data.url;
 };
+
+export const getFreePlanStatus = async (): Promise<FreePlanStatus> => {
+  const token = await getValidAccessToken();
+  const response = await axios.get<FreePlanStatus>(
+    `${API_BASE_URL}/free-plan-status`,
+    {
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  );
+  return response.data;
+};
+
 
 export const getUserSubscription = async (): Promise<Subscription | null> => {
   const token = await getValidAccessToken();
@@ -91,17 +106,40 @@ export const activateSubscription = async (): Promise<ActivateSubscriptionRespon
 
 // ========== UTILITY FUNCTIONS ==========
 
-// ========== UTILITY FUNCTIONS ==========
-
+// ✅ AFTER — amounts are always stored in rupees, never divide
 export const formatPrice = (amount: number, currency: string): string => {
-  const symbol = currency === 'INR' ? '₹' : '$';
-  // If amount is already in rupees (< 1000), don't divide
-  // If amount is in paise (> 1000), divide by 100
-  const displayAmount = amount < 1000 ? amount : amount / 100;
-  return `${symbol}${displayAmount.toLocaleString('en-IN')}`;
+  if (currency.toUpperCase() === 'INR') {
+    return `₹${amount.toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })}`;
+  }
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
+
 
 
 export const getPriceByPeriod = (plan: Plan, period: BillingPeriod) => {
   return plan.prices.find(p => p.billing_period === period && p.is_active);
 };
+
+// Change the return type
+export const getSubscriptionStatus = async (): Promise<UserSubscriptionOverview> => {
+  const [freePlanStatus, stripeSubscription] = await Promise.all([
+    getFreePlanStatus(),
+    getUserSubscription()
+  ]);
+
+  return {
+    freePlan: freePlanStatus,
+    stripeSubscription,
+    hasAccess: freePlanStatus.status === 'active' || !!stripeSubscription,
+    isFreePlanEligible: freePlanStatus.eligible
+  };
+};
+

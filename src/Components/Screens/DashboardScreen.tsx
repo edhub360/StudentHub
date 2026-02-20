@@ -18,7 +18,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-export type TabId = 'home' | 'chat' | 'flashcards' | 'quiz' | 'courses' | 'study planner' | 'notes' | 'upload';
+export type TabId = 'home' | 'chat' | 'flashcards' | 'quiz' | 'courses' | 'study planner' | 'notes' | 'upload' | 'settings';
 
 interface DashboardScreenProps {
   setActiveTab: (tab: TabId) => void;

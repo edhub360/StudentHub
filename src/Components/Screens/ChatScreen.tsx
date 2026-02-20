@@ -82,20 +82,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({
             <h3 className="font-semibold text-gray-900 mb-2">Start a conversation</h3>
             <p className="text-gray-500 mb-6">Ask me anything about your studies!</p>
             {/* Quick buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-md mx-auto">
-              <button className="p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors">
-                <p className="font-medium text-blue-900 text-sm">Explain photosynthesis</p>
-              </button>
-              <button className="p-3 bg-teal-50 hover:bg-teal-100 rounded-lg text-left transition-colors">
-                <p className="font-medium text-teal-900 text-sm">Solve math problems</p>
-              </button>
-              <button className="p-3 bg-purple-50 hover:bg-purple-100 rounded-lg text-left transition-colors">
-                <p className="font-medium text-purple-900 text-sm">History questions</p>
-              </button>
-              <button className="p-3 bg-green-50 hover:bg-green-100 rounded-lg text-left transition-colors">
-                <p className="font-medium text-green-900 text-sm">Study tips</p>
-              </button>
-            </div>
+            
           </div>
         ) : (
           chatMessages.map((message) => (
