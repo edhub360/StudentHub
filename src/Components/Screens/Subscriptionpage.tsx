@@ -319,7 +319,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                               {formatPrice(price.amount, price.currency)}
                             </span>
                             <span className="text-sm opacity-90">
-                              / {getBillingLabel(price.billing_period)}
+                              /{getBillingLabel(price.billing_period)}
                             </span>
                           </div>
                         )}
