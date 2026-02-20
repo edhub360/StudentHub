@@ -115,6 +115,7 @@ const App: React.FC = () => {
       });
       setUserTier('expired');                          // ✅ logged in but no plan
       localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
     } else {
       console.log('✅ Has subscription - showing dashboard');
       setShowSubscriptionPage(false);
@@ -128,6 +129,7 @@ const App: React.FC = () => {
       const tier = tierValue as SubscriptionTier;
 
       localStorage.setItem('subscription_tier', tierValue); // ✅ string, no error
+      localStorage.setItem('subscription_status', 'active');
       setUserTier(tier);   
     }
     setIsSubscriptionLoading(false); 
@@ -157,6 +159,7 @@ const App: React.FC = () => {
 
       setUserTier(tier);
       localStorage.setItem('subscription_tier', tierValue);
+      localStorage.setItem('subscription_status', 'active');
       setShowSubscriptionPage(false);
       setUserStatus({
         has_seen_subscription: true,
@@ -167,6 +170,7 @@ const App: React.FC = () => {
       console.log('📋 No subscription - Showing subscription page');
       setUserTier('expired');
       localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
       setShowSubscriptionPage(true);
       setUserStatus({
         has_seen_subscription: false,
@@ -198,6 +202,7 @@ const App: React.FC = () => {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('user_id');
       localStorage.removeItem('subscription_tier');
+      localStorage.removeItem('subscription_status');
 
       // Reset app state
       setIsLoggedIn(false);
@@ -218,6 +223,7 @@ const App: React.FC = () => {
       storedUser.subscription_tier = 'free';
       localStorage.setItem('user', JSON.stringify(storedUser));
       localStorage.setItem('subscription_tier', 'free');
+      localStorage.setItem('subscription_status', 'active');
     }
     setUserTier('free');
     setShowSubscriptionPage(false);
