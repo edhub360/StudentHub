@@ -37,6 +37,7 @@ import SettingsScreen from './Components/Screens/SettingsScreen';
 import { FeatureGate } from './Components/common/FeatureGate';
 import { clearTokens, getStoredTokens } from './services/TokenManager';
 import { logout } from './services/loginApi';
+import CSBotScreen from './Components/Screens/CSBotScreen';
 import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
@@ -523,6 +524,10 @@ const App: React.FC = () => {
         </main>
         <Footer sidebarCollapsed={sidebarCollapsed} />
       </div>
+
+      {/* ✅ CS Bot — fixed bottom-right, only shown when logged in */}
+      <CSBotScreen />
+
     </div>
   );
 };
