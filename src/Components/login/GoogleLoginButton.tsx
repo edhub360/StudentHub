@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { FcGoogle } from 'react-icons/fc';
 import { GOOGLE_CLIENT_ID, LOGIN_ERROR_MESSAGES } from '../../constants/login.constants';
 import { loginWithGoogle } from '../../services/loginApi';
@@ -16,7 +16,9 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   disabled = false,
 }) => {
   const [googleLoaded, setGoogleLoaded] = useState(false);
+  const tokenClientRef = useRef<any>(null); // persist oauth2 client across renders
 
+  // Step 1: Load Google GSI script
   useEffect(() => {
     const existingScript = document.getElementById('google-client-script');
     if (!existingScript) {
@@ -31,41 +33,40 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     } else {
       setGoogleLoaded(true);
     }
-  }, [onError]);
+  }, []);
 
+  // Step 2: Initialize OAuth2 token client ONCE after script loads
+  useEffect(() => {
+    if (!googleLoaded || !window.google?.accounts?.oauth2) return;
+
+    tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'email profile',
+      callback: async (tokenResponse: any) => {
+        if (tokenResponse.error) {
+          console.error('Google OAuth2 error:', tokenResponse.error);
+          onError(LOGIN_ERROR_MESSAGES.googleInitFailed);
+          return;
+        }
+        try {
+          const data = await loginWithGoogle(tokenResponse.access_token);
+          onGoogleSuccess(data);
+        } catch (err: any) {
+          console.error('Google auth error:', err);
+          onError(err.message || 'Google authentication failed');
+        }
+      },
+    });
+  }, [googleLoaded]); // runs only once after script is ready
+
+  // Step 3: Trigger OAuth2 popup on button click
   const handleGoogleLogin = () => {
-    if (!googleLoaded) {
+    if (!googleLoaded || !tokenClientRef.current) {
       onError(LOGIN_ERROR_MESSAGES.googleNotLoaded);
       return;
     }
-
-    if (!window.google) {
-      onError(LOGIN_ERROR_MESSAGES.googleNotAvailable);
-      return;
-    }
-
-    try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCallback,
-        ux_mode: 'popup',
-      });
-
-      window.google.accounts.id.prompt();
-    } catch (err) {
-      console.error('Google login init error:', err);
-      onError(LOGIN_ERROR_MESSAGES.googleInitFailed);
-    }
-  };
-
-  const handleGoogleCallback = async (response: any) => {
-    try {
-      const data = await loginWithGoogle(response.credential);
-      onGoogleSuccess(data);
-    } catch (err: any) {
-      console.error('Google auth error:', err);
-      onError(err.message || 'Google authentication failed');
-    }
+    // 'select_account' forces account picker — works in incognito
+    tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
   };
 
   return (
