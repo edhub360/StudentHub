@@ -197,13 +197,7 @@ const App: React.FC = () => {
       clearTokens();
 
       // Clear all other app state from localStorage
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('user_id');
-      localStorage.removeItem('subscription_tier');
-      localStorage.removeItem('subscription_status');
+      localStorage.clear();
 
       // Reset app state
       setIsLoggedIn(false);
