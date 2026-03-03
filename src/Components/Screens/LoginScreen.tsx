@@ -8,6 +8,7 @@ import { setTokens } from '../../services/TokenManager';
 import { loginWithEmail } from '../../services/loginApi';
 import { LoginScreenProps, LoginResponse, LoginFormValues } from '../../types/login.types';
 import { LOGIN_ERROR_MESSAGES } from '../../constants/login.constants';
+import MicrosoftLoginButton from '../login/MicrosoftLoginButton';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
@@ -63,6 +64,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     setError(errorMessage);
   };
 
+  // Add alongside GoogleLoginButton
+  const handleMicrosoftSuccess = (data: LoginResponse) => {
+    saveUserData(data); // ✅ reuses exact same saveUserData — no duplication
+  };
+
+  const handleMicrosoftError = (errorMessage: string) => {
+    setError(errorMessage);
+  };
+
+
+
   const handleFacebookLogin = () => {
     setError('Facebook login coming soon!');
   };
@@ -101,6 +113,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         <GoogleLoginButton
           onGoogleSuccess={handleGoogleSuccess}
           onError={handleGoogleError}
+          disabled={loading}
+        />
+
+        <MicrosoftLoginButton
+          onMicrosoftSuccess={handleMicrosoftSuccess}
+          onError={handleMicrosoftError}
           disabled={loading}
         />
 
