@@ -146,10 +146,11 @@ const App: React.FC = () => {
       if (!storedRefresh) return;
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: storedRefresh }),
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/session/check`, {
+          method: 'GET',
+          headers: {
+            'X-Refresh-Token': storedRefresh,  // send token in header
+          },
         });
 
         if (!response.ok) {
@@ -163,17 +164,13 @@ const App: React.FC = () => {
             localStorage.setItem('auth_message', 'Your session has expired. Please log in again.');
           }
           window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
-        } else {
-          // Update stored tokens with rotated ones
-          const refreshed = await response.json();
-          setTokens(refreshed);
-        }
+        } 
       } catch (err) {
         console.error('Session check error (non-critical):', err);
       }
     };
 
-  const interval = setInterval(checkSession, 90_000); // every 90 seconds
+  const interval = setInterval(checkSession, 60_000); // every 90 seconds
   return () => clearInterval(interval);
 
 }, [isLoggedIn]);
