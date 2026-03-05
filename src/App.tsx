@@ -137,7 +137,7 @@ const App: React.FC = () => {
       
   }, [isLoggedIn, userId, location.pathname]);
 
-  // Background session validator — detects revocation within 30 seconds
+  // Background session validator — detects revocation within 90 seconds
   useEffect(() => {
     if (!isLoggedIn) return;
 
@@ -173,7 +173,7 @@ const App: React.FC = () => {
       }
     };
 
-  const interval = setInterval(checkSession, 30_000); // every 30 seconds
+  const interval = setInterval(checkSession, 90_000); // every 90 seconds
   return () => clearInterval(interval);
 
 }, [isLoggedIn]);
