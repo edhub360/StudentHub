@@ -35,7 +35,7 @@ import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 import SettingsScreen from './Components/Screens/SettingsScreen';
 import { FeatureGate } from './Components/common/FeatureGate';
-import { clearTokens, getStoredTokens } from './services/TokenManager';
+import { clearTokens, getStoredTokens, setTokens  } from './services/TokenManager';
 import { logout } from './services/loginApi';
 import CSBotScreen from './Components/Screens/CSBotScreen';
 import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
@@ -137,7 +137,47 @@ const App: React.FC = () => {
       
   }, [isLoggedIn, userId, location.pathname]);
 
-  //login integration code
+  // Background session validator — detects revocation within 30 seconds
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const checkSession = async () => {
+      const { refreshToken: storedRefresh } = getStoredTokens();
+      if (!storedRefresh) return;
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: storedRefresh }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          const detail: string = data.detail || '';
+
+          localStorage.clear();
+          if (detail.includes('another device')) {
+            localStorage.setItem('auth_message', '⚠️ Your account was signed in from another device. Please log in again.');
+          } else {
+            localStorage.setItem('auth_message', 'Your session has expired. Please log in again.');
+          }
+          window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
+        } else {
+          // Update stored tokens with rotated ones
+          const refreshed = await response.json();
+          setTokens(refreshed);
+        }
+      } catch (err) {
+        console.error('Session check error (non-critical):', err);
+      }
+    };
+
+  const interval = setInterval(checkSession, 30_000); // every 30 seconds
+  return () => clearInterval(interval);
+
+}, [isLoggedIn]);
+
 
   const handleLoginSuccess = (
     token: string,
