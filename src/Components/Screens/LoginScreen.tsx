@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaFacebook } from 'react-icons/fa';
 import Logo from '../../images/logo.edhub.png';
@@ -17,6 +17,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Show auth_message from forced logout (e.g. another device login)
+  useEffect(() => {
+    const msg = localStorage.getItem('auth_message');
+    if (msg) {
+      setError(msg);
+      localStorage.removeItem('auth_message'); // clear after showing
+    }
+  }, []);
 
   const saveUserData = (data: LoginResponse) => {
     // store tokens via shared helper
@@ -66,7 +75,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 
   // Add alongside GoogleLoginButton
   const handleMicrosoftSuccess = (data: LoginResponse) => {
-    saveUserData(data); // ✅ reuses exact same saveUserData — no duplication
+    saveUserData(data); // reuses exact same saveUserData — no duplication
   };
 
   const handleMicrosoftError = (errorMessage: string) => {
