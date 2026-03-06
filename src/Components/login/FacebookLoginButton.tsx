@@ -50,28 +50,32 @@ const FacebookLoginButton: React.FC<FacebookLoginButtonProps> = ({
   // Step 2: Trigger Facebook login popup on button click
   const handleFacebookLogin = () => {
     if (!fbLoaded || !window.FB) {
-      onError(LOGIN_ERROR_MESSAGES.facebookNotLoaded);
-      return;
+        onError(LOGIN_ERROR_MESSAGES.facebookNotLoaded);
+        return;
     }
 
+    // Callback is NOT async — wrap the async work inside
     window.FB.login(
-      async (response: any) => {
+        (response: any) => {
         if (!response.authResponse) {
-          onError('Facebook login was cancelled.');
-          return;
+            onError('Facebook login was cancelled.');
+            return;
         }
 
-        try {
-          const data = await loginWithFacebook(response.authResponse.accessToken);
-          onFacebookSuccess(data);
-        } catch (err: any) {
-          console.error('Facebook auth error:', err);
-          onError(err.message || 'Facebook authentication failed');
-        }
-      },
-      { scope: 'email,public_profile' }
+        // Call async function separately — don't make the callback async
+        loginWithFacebook(response.authResponse.accessToken)
+            .then((data) => {
+            onFacebookSuccess(data);
+            })
+            .catch((err: any) => {
+            console.error('Facebook auth error:', err);
+            onError(err.message || 'Facebook authentication failed');
+            });
+        },
+        { scope: 'email,public_profile' }
     );
-  };
+    };
+
 
   return (
     <button
