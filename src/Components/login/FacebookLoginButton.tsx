@@ -79,15 +79,15 @@ const FacebookLoginButton: React.FC<FacebookLoginButtonProps> = ({
 
   return (
     <button
-      type="button"
-      onClick={handleFacebookLogin}
-      disabled={disabled || !fbLoaded}
-      className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+        type="button"
+        onClick={handleFacebookLogin}
+        disabled={disabled || !fbLoaded}
+        className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
     >
-      <FaFacebook size={24} />
-      Login with Facebook
+        <FaFacebook size={24} className="text-blue-600" />
+        Login with Facebook
     </button>
-  );
+ );
 };
 
 export default FacebookLoginButton;
