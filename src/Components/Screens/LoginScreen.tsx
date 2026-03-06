@@ -121,7 +121,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           <hr className="flex-1 border-gray-300" />
         </div>
 
-        {/* ← Error shown for social login errors in production too */}
+        {/* Error shown for social login errors in production too */}
         {!isDevelopment && error && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">
             {error}
