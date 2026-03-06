@@ -90,15 +90,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md border border-gray-200">
-        <div className="flex justify-center mb-6">
-          <img src={Logo} alt="EdHub Logo" className="h-16 w-auto" />
-        </div>
-        <h2 className="text-3xl font-bold text-center mb-2 text-gray-800">Welcome Back!</h2>
-        <p className="text-center text-gray-500 mb-6">Login to continue your journey</p>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md border border-gray-100">
 
-        {/* ← Email/password only in development */}
+        {/* Logo + Branding */}
+        <div className="flex flex-col items-center mb-8">
+          <img src={Logo} alt="EdHub360 Logo" className="h-16 w-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+            Sign in to EdHub360
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Your AI-powered learning companion
+          </p>
+        </div>
+
+        {/* Development only — email login */}
         {isDevelopment && (
           <>
             <LoginForm
@@ -106,48 +112,58 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               onSubmit={handleEmailLogin}
               onForgotPassword={handleForgotPassword}
             />
-
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm mt-4">
+              <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-center text-sm mt-3">
                 {error}
               </div>
             )}
-
-            <div className="flex items-center my-6">
-              <hr className="flex-1 border-gray-300" />
-              <span className="px-3 text-gray-400 text-sm">or continue with</span>
-              <hr className="flex-1 border-gray-300" />
+            <div className="flex items-center my-5">
+              <hr className="flex-1 border-gray-200" />
+              <span className="px-3 text-gray-400 text-xs uppercase tracking-widest">
+                or continue with
+              </span>
+              <hr className="flex-1 border-gray-200" />
             </div>
           </>
         )}
 
-        {/* Error shown for social login errors in production too */}
+        {/* Production error */}
         {!isDevelopment && error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-center text-sm mb-4">
             {error}
           </div>
         )}
 
-        <GoogleLoginButton
-          onGoogleSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-          disabled={loading}
-        />
+        {/* Social Login Buttons */}
+        <div className="flex flex-col gap-3">
+          <GoogleLoginButton
+            onGoogleSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            disabled={loading}
+          />
+          <MicrosoftLoginButton
+            onMicrosoftSuccess={handleMicrosoftSuccess}
+            onError={handleMicrosoftError}
+            disabled={loading}
+          />
+          <FacebookLoginButton
+            onFacebookSuccess={handleFacebookSuccess}
+            onError={handleFacebookError}
+            disabled={loading}
+          />
+        </div>
 
-        <MicrosoftLoginButton
-          onMicrosoftSuccess={handleMicrosoftSuccess}
-          onError={handleMicrosoftError}
-          disabled={loading}
-        />
+        {/* Privacy note */}
+        <p className="text-center text-xs text-gray-400 mt-6">
+          By signing in, you agree to our{' '}
+          <a href="/terms-of-service" className="underline hover:text-gray-600">Terms</a>
+          {' '}and{' '}
+          <a href="/privacy-policy" className="underline hover:text-gray-600">Privacy Policy</a>
+        </p>
 
-        <FacebookLoginButton
-          onFacebookSuccess={handleFacebookSuccess}
-          onError={handleFacebookError}
-          disabled={loading}
-        />
-
+        {/* Sign up — dev only */}
         {onSwitchToRegister && isDevelopment && (
-          <p className="text-center mt-6 text-gray-600 text-sm">
+          <p className="text-center mt-4 text-gray-500 text-sm">
             Don't have an account?{' '}
             <button
               onClick={onSwitchToRegister}
