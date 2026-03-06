@@ -112,14 +112,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 {error}
               </div>
             )}
+
+            <div className="flex items-center my-6">
+              <hr className="flex-1 border-gray-300" />
+              <span className="px-3 text-gray-400 text-sm">or continue with</span>
+              <hr className="flex-1 border-gray-300" />
+            </div>
           </>
         )}
-
-        <div className="flex items-center my-6">
-          <hr className="flex-1 border-gray-300" />
-          <span className="px-3 text-gray-400 text-sm">or continue with</span>
-          <hr className="flex-1 border-gray-300" />
-        </div>
 
         {/* Error shown for social login errors in production too */}
         {!isDevelopment && error && (
