@@ -39,3 +39,9 @@ export interface MicrosoftLoginButtonProps {
   onError: (message: string) => void;
   disabled?: boolean;
 }
+
+export interface FacebookLoginButtonProps {
+  onFacebookSuccess: (data: LoginResponse) => void;
+  onError: (errorMessage: string) => void;
+  disabled?: boolean;
+}

@@ -39,6 +39,7 @@ import { clearTokens, getStoredTokens, setTokens  } from './services/TokenManage
 import { logout } from './services/loginApi';
 import CSBotScreen from './Components/Screens/CSBotScreen';
 import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
+import DataDeletion from './Components/Screens/DataDeletion';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
@@ -462,6 +463,10 @@ const App: React.FC = () => {
 
   if (pathname === '/terms-of-service') {
     return <TermsOfService />;
+  }
+
+  if (pathname === '/data-deletion') {
+    return <DataDeletion />;
   }
 
   // ✅ Subscription Success Route

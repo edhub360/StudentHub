@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaFacebook } from 'react-icons/fa';
+import FacebookLoginButton from '../login/FacebookLoginButton';  
 import Logo from '../../images/logo.edhub.png';
 import LoginForm from '../login/LoginForm';
 import GoogleLoginButton from '../login/GoogleLoginButton';
@@ -82,11 +82,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     setError(errorMessage);
   };
 
-
-
-  const handleFacebookLogin = () => {
-    setError('Facebook login coming soon!');
-  };
+  const handleFacebookSuccess = (data: LoginResponse) => saveUserData(data); 
+  const handleFacebookError = (errorMessage: string) => setError(errorMessage);
 
   const handleForgotPassword = () => {
     navigate('/forgot-password');
@@ -131,14 +128,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           disabled={loading}
         />
 
-        <button
-          onClick={handleFacebookLogin}
+        <FacebookLoginButton
+          onFacebookSuccess={handleFacebookSuccess}
+          onError={handleFacebookError}
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
-        >
-          <FaFacebook size={24} />
-          Login with Facebook
-        </button>
+        />
+
 
         {onSwitchToRegister && (
           <p className="text-center mt-6 text-gray-600 text-sm">
