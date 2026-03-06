@@ -37,6 +37,40 @@ export async function loginWithGoogle(
   return data;
 }
 
+export async function loginWithMicrosoft(
+  accessToken: string
+): Promise<LoginResponse> {
+  const response = await fetch(`${LOGIN_API_BASE_URL}/auth/microsoft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: accessToken }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || 'Microsoft authentication failed');
+  }
+
+  return (await response.json()) as LoginResponse;
+}
+
+export async function loginWithFacebook(
+  accessToken: string
+): Promise<LoginResponse> {
+  const response = await fetch(`${LOGIN_API_BASE_URL}/auth/facebook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: accessToken }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || 'Facebook authentication failed');
+  }
+
+  return (await response.json()) as LoginResponse;
+}
+
 export async function refreshToken(
   refreshToken: string
 ): Promise<LoginResponse> {

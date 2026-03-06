@@ -33,3 +33,15 @@ export interface GoogleLoginButtonProps {
   onError: (error: string) => void;
   disabled?: boolean;
 }
+
+export interface MicrosoftLoginButtonProps {
+  onMicrosoftSuccess: (data: LoginResponse) => void;
+  onError: (message: string) => void;
+  disabled?: boolean;
+}
+
+export interface FacebookLoginButtonProps {
+  onFacebookSuccess: (data: LoginResponse) => void;
+  onError: (errorMessage: string) => void;
+  disabled?: boolean;
+}

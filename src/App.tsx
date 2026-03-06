@@ -35,10 +35,11 @@ import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 import SettingsScreen from './Components/Screens/SettingsScreen';
 import { FeatureGate } from './Components/common/FeatureGate';
-import { clearTokens, getStoredTokens } from './services/TokenManager';
+import { clearTokens, getStoredTokens, setTokens  } from './services/TokenManager';
 import { logout } from './services/loginApi';
 import CSBotScreen from './Components/Screens/CSBotScreen';
 import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
+import DataDeletion from './Components/Screens/DataDeletion';
 //const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 interface NavigationItem {
@@ -137,7 +138,44 @@ const App: React.FC = () => {
       
   }, [isLoggedIn, userId, location.pathname]);
 
-  //login integration code
+  // Background session validator — detects revocation within 90 seconds
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const checkSession = async () => {
+      const { refreshToken: storedRefresh } = getStoredTokens();
+      if (!storedRefresh) return;
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/session/check`, {
+          method: 'GET',
+          headers: {
+            'X-Refresh-Token': storedRefresh,  // send token in header
+          },
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          const detail: string = data.detail || '';
+
+          localStorage.clear();
+          if (detail.includes('another device')) {
+            localStorage.setItem('auth_message', '⚠️ Your account was signed in from another device. Please log in again.');
+          } else {
+            localStorage.setItem('auth_message', 'Your session has expired. Please log in again.');
+          }
+          window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
+        } 
+      } catch (err) {
+        console.error('Session check error (non-critical):', err);
+      }
+    };
+
+  const interval = setInterval(checkSession, 60_000); // every 90 seconds
+  return () => clearInterval(interval);
+
+}, [isLoggedIn]);
+
 
   const handleLoginSuccess = (
     token: string,
@@ -197,13 +235,7 @@ const App: React.FC = () => {
       clearTokens();
 
       // Clear all other app state from localStorage
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('user_id');
-      localStorage.removeItem('subscription_tier');
-      localStorage.removeItem('subscription_status');
+      localStorage.clear();
 
       // Reset app state
       setIsLoggedIn(false);
@@ -431,6 +463,10 @@ const App: React.FC = () => {
 
   if (pathname === '/terms-of-service') {
     return <TermsOfService />;
+  }
+
+  if (pathname === '/data-deletion') {
+    return <DataDeletion />;
   }
 
   // ✅ Subscription Success Route

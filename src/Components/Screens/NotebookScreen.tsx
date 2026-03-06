@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import NotebookList from '../notebook/NotebookList';
 import NotebookCreate from '../notebook/NotebookCreate';
 import NotebookWorkspace from '../notebook/NotebookWorkspace';
 import { Notebook } from '../../types/notebook.types';
-import { fetchNotebooks, deleteNotebook, updateNotebook  } from '../../services/notebookapi';
+import { fetchNotebooks, deleteNotebook, updateNotebook } from '../../services/notebookapi';
 import { NOTEBOOK_ERROR_MESSAGES } from '../../constants/notebook.contants';
 
 type ViewState = 'list' | 'create' | 'workspace' | 'editSources';
@@ -15,7 +15,8 @@ const NotebookScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadNotebooks = async () => {
+  // useCallback — stable reference, safe to use in useEffect dependency array
+  const loadNotebooks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -27,17 +28,18 @@ const NotebookScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (view === 'list') {
       loadNotebooks();
     }
-  }, [view]);
+  }, [view, loadNotebooks]); // loadNotebooks now safe in deps array
 
-  const handleOpenCreate = () => {
-    setView('create');
-  };
+  const handleOpenCreate = () => setView('create');
+  const handleCancelCreate = () => setView('list');
+  const handleEditSources = () => setView('editSources');
+  const handleSourcesSaved = () => setView('workspace');
 
   const handleNotebookCreated = (newNotebook: Notebook) => {
     setNotebooks(prev => [newNotebook, ...prev]);
@@ -55,37 +57,32 @@ const NotebookScreen: React.FC = () => {
     setView('list');
   };
 
-  const handleCancelCreate = () => {
-    setView('list');
-  };
-
-  const handleEditSources = () => {
-    setView('editSources');
-  };
-
-  const handleSourcesSaved = () => {
-    setView('workspace');
-  };
-
   const handleDeleteNotebook = async (id: string) => {
     try {
       await deleteNotebook(id);
       setNotebooks(prev => prev.filter(n => n.id !== id));
+      // If the deleted notebook is currently selected, go back to list
+      if (selectedNotebook?.id === id) {
+        setSelectedNotebook(null);
+        setView('list');
+      }
     } catch (err) {
       console.error("Failed to delete", err);
-      // In a real app show a toast
-      alert("Failed to delete notebook");
+      alert("Failed to delete notebook"); // replace with toast when available
     }
   };
 
   const handleUpdateNotebook = async (updated: Notebook) => {
     try {
-      const result = await updateNotebook(updated.id, { 
-        title: updated.title, 
-        description: updated.description 
+      const result = await updateNotebook(updated.id, {
+        title: updated.title,
+        description: updated.description,
       });
-      // Update local state
       setNotebooks(prev => prev.map(n => n.id === result.id ? result : n));
+      // Sync selectedNotebook so workspace reflects the updated title/description
+      if (selectedNotebook?.id === result.id) {
+        setSelectedNotebook(result);
+      }
     } catch (err) {
       console.error("Failed to update", err);
       alert("Failed to update notebook");
@@ -105,7 +102,7 @@ const NotebookScreen: React.FC = () => {
           onUpdate={handleUpdateNotebook}
         />
       )}
-      
+
       {view === 'create' && (
         <NotebookCreate
           onCreated={handleNotebookCreated}
@@ -116,7 +113,7 @@ const NotebookScreen: React.FC = () => {
       {view === 'editSources' && selectedNotebook && (
         <NotebookCreate
           existingNotebook={selectedNotebook}
-          onCreated={() => {}} // Not used in edit mode
+          onCreated={() => {}}
           onSaved={handleSourcesSaved}
           onCancel={() => setView('workspace')}
         />

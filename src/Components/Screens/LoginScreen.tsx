@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaFacebook } from 'react-icons/fa';
+import FacebookLoginButton from '../login/FacebookLoginButton';  
 import Logo from '../../images/logo.edhub.png';
 import LoginForm from '../login/LoginForm';
 import GoogleLoginButton from '../login/GoogleLoginButton';
@@ -8,6 +8,7 @@ import { setTokens } from '../../services/TokenManager';
 import { loginWithEmail } from '../../services/loginApi';
 import { LoginScreenProps, LoginResponse, LoginFormValues } from '../../types/login.types';
 import { LOGIN_ERROR_MESSAGES } from '../../constants/login.constants';
+import MicrosoftLoginButton from '../login/MicrosoftLoginButton';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({
   onLoginSuccess,
@@ -16,6 +17,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Show auth_message from forced logout (e.g. another device login)
+  useEffect(() => {
+    const msg = localStorage.getItem('auth_message');
+    if (msg) {
+      setError(msg);
+      localStorage.removeItem('auth_message'); // clear after showing
+    }
+  }, []);
 
   const saveUserData = (data: LoginResponse) => {
     // store tokens via shared helper
@@ -63,9 +73,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     setError(errorMessage);
   };
 
-  const handleFacebookLogin = () => {
-    setError('Facebook login coming soon!');
+  // Add alongside GoogleLoginButton
+  const handleMicrosoftSuccess = (data: LoginResponse) => {
+    saveUserData(data); // reuses exact same saveUserData — no duplication
   };
+
+  const handleMicrosoftError = (errorMessage: string) => {
+    setError(errorMessage);
+  };
+
+  const handleFacebookSuccess = (data: LoginResponse) => saveUserData(data); 
+  const handleFacebookError = (errorMessage: string) => setError(errorMessage);
 
   const handleForgotPassword = () => {
     navigate('/forgot-password');
@@ -104,14 +122,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           disabled={loading}
         />
 
-        <button
-          onClick={handleFacebookLogin}
+        <MicrosoftLoginButton
+          onMicrosoftSuccess={handleMicrosoftSuccess}
+          onError={handleMicrosoftError}
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
-        >
-          <FaFacebook size={24} />
-          Login with Facebook
-        </button>
+        />
+
+        <FacebookLoginButton
+          onFacebookSuccess={handleFacebookSuccess}
+          onError={handleFacebookError}
+          disabled={loading}
+        />
+
 
         {onSwitchToRegister && (
           <p className="text-center mt-6 text-gray-600 text-sm">
