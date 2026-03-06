@@ -17,7 +17,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
+  const isDevelopment = import.meta.env.MODE === 'development';
   // Show auth_message from forced logout (e.g. another device login)
   useEffect(() => {
     const msg = localStorage.getItem('auth_message');
@@ -98,16 +98,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         <h2 className="text-3xl font-bold text-center mb-2 text-gray-800">Welcome Back!</h2>
         <p className="text-center text-gray-500 mb-6">Login to continue your journey</p>
 
-        <LoginForm
-          loading={loading}
-          onSubmit={handleEmailLogin}
-          onForgotPassword={handleForgotPassword}
-        />
+        {/* ← Email/password only in development */}
+        {isDevelopment && (
+          <>
+            <LoginForm
+              loading={loading}
+              onSubmit={handleEmailLogin}
+              onForgotPassword={handleForgotPassword}
+            />
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm mt-4">
-            {error}
-          </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm mt-4">
+                {error}
+              </div>
+            )}
+          </>
         )}
 
         <div className="flex items-center my-6">
@@ -115,6 +120,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           <span className="px-3 text-gray-400 text-sm">or continue with</span>
           <hr className="flex-1 border-gray-300" />
         </div>
+
+        {/* Error shown for social login errors in production too */}
+        {!isDevelopment && error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-center text-sm">
+            {error}
+          </div>
+        )}
 
         <GoogleLoginButton
           onGoogleSuccess={handleGoogleSuccess}
@@ -134,8 +146,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
           disabled={loading}
         />
 
-
-        {onSwitchToRegister && (
+        {onSwitchToRegister && isDevelopment && (
           <p className="text-center mt-6 text-gray-600 text-sm">
             Don't have an account?{' '}
             <button
@@ -151,5 +162,4 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     </div>
   );
 };
-
 export default LoginScreen;
