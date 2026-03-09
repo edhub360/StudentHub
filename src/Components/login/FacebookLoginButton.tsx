@@ -58,7 +58,6 @@ const FacebookLoginButton: React.FC<FacebookLoginButtonProps> = ({
     window.FB.login(
         (response: any) => {
         if (!response.authResponse) {
-            onError('Facebook login was cancelled.');
             return;
         }
 

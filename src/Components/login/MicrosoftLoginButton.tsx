@@ -33,13 +33,20 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
       // Send access token to backend (same pattern as Google)
       const data = await loginWithMicrosoft(response.accessToken);
       onMicrosoftSuccess(data);
-    } catch (err: any) {
-      if (err.errorCode === 'user_cancelled') return; // silent — user closed popup
-      console.error('Microsoft login error:', err);
-      onError(err.message || 'Microsoft authentication failed');
+    } catch (error: any) {
+      //  Silently ignore — user just closed the popup
+      if (
+        error?.errorCode === 'user_cancelled' ||
+        error?.errorCode === 'timed_out' ||
+        error?.message?.includes('timed_out') ||
+        error?.message?.includes('user_cancelled')
+      ) {
+        return;
+      }
+      // Only show real errors
+      onError(error?.message || 'Microsoft login failed');
     }
   }, [onMicrosoftSuccess, onError]);
-
   return (
     <button
       type="button"
