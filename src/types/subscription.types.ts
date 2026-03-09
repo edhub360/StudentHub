@@ -23,6 +23,7 @@ export interface Subscription {
   id: string;
   customer_id: string;
   plan_id: string;
+  plan_name: string;
   status: 'active' | 'cancelled' | 'expired' | 'past_due' | 'trialing' | 'paused';
   stripe_subscription_id: string;
   current_period_start: string;
@@ -57,14 +58,6 @@ export interface CancelSubscriptionRequest {
   cancel_at_period_end: boolean;
 }
 
-export type ActivateSubscriptionResponse = {
-  message: string;
-  subscription_tier: string;
-  status: 'activated' | 'already_active';
-  activated_at?: string;   
-  expires_at?: string;     
-};
-
 // ========== HELPER TYPES ==========
 export type BillingPeriod = 'monthly' | 'yearly';
 
@@ -77,18 +70,3 @@ export interface PriceFormatted {
   billing_period: BillingPeriod;
 }
 
-export type FreePlanStatus = {
-  eligible: boolean;
-  status: 'not_used' | 'active' | 'expired' | 'error';
-  message: string;
-  expires_at?: string;
-  days_remaining?: number;
-  expired_at?: string;
-};
-
-export type UserSubscriptionOverview = {
-  freePlan: FreePlanStatus;
-  stripeSubscription: Subscription | null;
-  hasAccess: boolean;
-  isFreePlanEligible: boolean;
-};

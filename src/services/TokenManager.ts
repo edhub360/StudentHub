@@ -63,19 +63,32 @@ export function redirectToLogin(): void {
   window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
 }
 
-// ✅ Single refresh execution - all concurrent callers wait for same promise
+// Single refresh execution - all concurrent callers wait for same promise
 async function doRefresh(storedRefresh: string): Promise<string> {
   try {
     const refreshed = await refreshToken(storedRefresh);
     setTokens(refreshed);
     return refreshed.access_token;
-  } catch (err) {
-    redirectToLogin(); // handles ALL session expiry globally
-    throw new Error('Session expired. Please sign in again.');
+  } catch (err: any) {
+    // Parse backend error detail for specific messages
+    const detail: string = err?.detail || err?.message || '';
+
+    // In doRefresh — before redirectToLogin()
+    if (detail.includes('another device')) {
+      localStorage.clear();
+      localStorage.setItem('auth_message', 'Your account was signed in from another device.');
+    } else if (detail.includes('Session expired')) {
+      localStorage.clear();
+      localStorage.setItem('auth_message', 'Your session has expired. Please log in again.');
+    }
+
+    redirectToLogin();
+    throw new Error(detail || 'Session expired. Please sign in again.');
   } finally {
-    refreshPromise = null; // always release lock
+    refreshPromise = null;
   }
 }
+
 
 export async function getValidAccessToken(): Promise<string> {
   const { accessToken, refreshToken: storedRefresh } = getStoredTokens();

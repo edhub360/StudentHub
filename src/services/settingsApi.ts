@@ -15,6 +15,7 @@ const getAuthHeaders = async (): Promise<Record<string, string>> => {
 
 export { getUserId };
 
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 export const updateUserName = async (name: string): Promise<string> => {
@@ -35,6 +36,7 @@ export const updateUserName = async (name: string): Promise<string> => {
   return data.name ?? name;
 };
 
+
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
 export interface SubscriptionInfo {
@@ -46,94 +48,35 @@ export interface SubscriptionInfo {
 export const fetchSubscriptionInfo = async (userId: string): Promise<SubscriptionInfo> => {
   const headers = await getAuthHeaders();
 
-  const [subRes, plansRes] = await Promise.all([
-    fetch(`${SUB_API_BASE}/subscriptions/${userId}`, { headers }),
-    fetch(`${SUB_API_BASE}/plans`),
-  ]);
+  const res = await fetch(`${SUB_API_BASE}/subscriptions/${userId}`, { headers });
 
-  // ✅ Handle 200 response (paid OR free plan fallback)
-  if (subRes.ok) {
-    const subData   = await subRes.json();
-
-    // ✅ FREE PLAN — from backend fallback (type: "free")
-    if (subData.type === 'free') {
-      return {
-        plan: 'Free',
-        status: subData.status === 'active' ? 'Active' : 'Expired',
-        expiry: subData.current_period_end
-          ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
-              year: 'numeric', month: 'short', day: 'numeric',
-            })
-          : 'N/A',
-      };
-    }
-
-    // ✅ PAID PLAN — match plan_id against plans list
-    const plansData = await plansRes.json();
-    let planName = 'Unknown Plan';
-    if (Array.isArray(plansData)) {
-      const plan = plansData.find((p: any) => p.id === subData.plan_id);
-      planName = plan ? plan.name : 'Plan Not Found';
-    }
-
+  // ✅ 404 = no subscription at all (free plan expired or never subscribed)
+  if (res.status === 404) {
     return {
-      plan: planName,
-      status: subData.status === 'active' ? 'Active' : subData.status,
-      expiry: subData.current_period_end
-        ? new Date(subData.current_period_end).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric',
-          })
-        : 'N/A',
+      plan: 'No Active Plan',
+      status: 'No Active Plan',
+      expiry: 'N/A'
     };
   }
 
-  // ✅ No Stripe subscription (404) — check free plan status
-  if (subRes.status === 404) {
-    try {
-      const freePlanRes = await fetch(
-        `${SUB_API_BASE}/free-plan-status`,
-        { headers }
-      );
-
-      if (!freePlanRes.ok) {
-        return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
-      }
-
-      const freePlan = await freePlanRes.json();
-
-      if (freePlan.status === 'active') {
-        return {
-          plan: 'Free',
-          status: 'Active',
-          expiry: freePlan.expires_at
-            ? new Date(freePlan.expires_at).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'short', day: 'numeric',
-              })
-            : 'N/A',
-        };
-      }
-
-      if (freePlan.status === 'expired') {
-        return {
-          plan: 'Free',
-          status: 'Expired',
-          expiry: freePlan.expired_at
-            ? new Date(freePlan.expired_at).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'short', day: 'numeric',
-              })
-            : 'N/A',
-        };
-      }
-
-      return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
-
-    } catch {
-      return { plan: 'Free', status: 'No Active Plan', expiry: 'N/A' };
-    }
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
   }
 
-  // ✅ Any other HTTP error
-  throw new Error(`HTTP ${subRes.status}`);
+  const sub = await res.json();
+
+  // ✅ plan_name comes directly from backend — no need to fetch /plans
+  return {
+    plan: sub.plan_name || 'Unknown Plan',
+    status: sub.status === 'active' ? 'Active'
+          : sub.status === 'cancelled' ? 'Cancelled'
+          : sub.status,
+    expiry: sub.current_period_end
+      ? new Date(sub.current_period_end).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric',
+        })
+      : 'N/A',
+  };
 };
 
 

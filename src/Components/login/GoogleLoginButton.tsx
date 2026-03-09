@@ -43,6 +43,13 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       client_id: GOOGLE_CLIENT_ID,
       scope: 'email profile',
       callback: async (tokenResponse: any) => {
+        // Silently ignore — user just closed the popup
+        if (
+          tokenResponse.error === 'access_denied' ||
+          tokenResponse.error === 'popup_closed_by_user'
+        ) {
+          return;
+        }
         if (tokenResponse.error) {
           console.error('Google OAuth2 error:', tokenResponse.error);
           onError(LOGIN_ERROR_MESSAGES.googleInitFailed);
