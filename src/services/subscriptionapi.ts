@@ -4,14 +4,14 @@ import type {
   Plan,
   Subscription,
   CheckoutResponse,
-  ActivateSubscriptionResponse,
   BillingPeriod,
-  FreePlanStatus,
-  UserSubscriptionOverview
 } from '../types/subscription.types';
 
-
 const API_BASE_URL = 'https://subscription-service-91248372939.us-central1.run.app';
+
+const BASE_URL = import.meta.env.MODE === 'production'
+  ? 'https://app.edhub360.com'
+  : 'https://edhub360.github.io/StudentHub';
 
 // ========== API FUNCTIONS ==========
 
@@ -24,58 +24,40 @@ export const getPlans = async (): Promise<Plan[]> => {
 };
 
 export const createCheckout = async (
-  planId: string, 
+  planId: string,
   billingPeriod: BillingPeriod
 ): Promise<string> => {
   const token = await getValidAccessToken();
   const userId = getUserId();
-  if (!userId) {
-    throw new Error('User ID not found');
-  }
-  
+  if (!userId) throw new Error('User ID not found');
+
   const response = await axios.post<CheckoutResponse>(
     `${API_BASE_URL}/checkout`,
     {
       user_id: userId,
       plan_id: planId,
-      billing_period: billingPeriod
+      billing_period: billingPeriod,
+      success_url: `${BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${BASE_URL}/cancel`,
     },
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
+    { headers: { Authorization: `Bearer ${token}` } }
   );
   return response.data.url;
 };
-
-export const getFreePlanStatus = async (): Promise<FreePlanStatus> => {
-  const token = await getValidAccessToken();
-  const response = await axios.get<FreePlanStatus>(
-    `${API_BASE_URL}/free-plan-status`,
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
-  );
-  return response.data;
-};
-
 
 export const getUserSubscription = async (): Promise<Subscription | null> => {
   const token = await getValidAccessToken();
   const userId = getUserId();
   if (!userId) return null;
-  
+
   try {
     const response = await axios.get<Subscription>(
-      `${API_BASE_URL}/subscriptions/${userId}`, 
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
+      `${API_BASE_URL}/subscriptions/${userId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404) {
-      return null;
-    }
+    if (error.response?.status === 404) return null;
     throw error;
   }
 };
@@ -86,7 +68,7 @@ export const cancelSubscription = async (
   const token = await getValidAccessToken();
   const userId = getUserId();
   if (!userId) throw new Error('User ID not found');
-  
+
   await axios.post(
     `${API_BASE_URL}/subscriptions/${userId}/cancel`,
     { cancel_at_period_end: cancelAtPeriodEnd },
@@ -94,19 +76,8 @@ export const cancelSubscription = async (
   );
 };
 
-export const activateSubscription = async (): Promise<ActivateSubscriptionResponse> => {
-  const token = await getValidAccessToken();
-  const response = await axios.post<ActivateSubscriptionResponse>(
-    `${API_BASE_URL}/activate-subscription`,
-    {},
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return response.data;
-};
-
 // ========== UTILITY FUNCTIONS ==========
 
-// ✅ AFTER — amounts are always stored in rupees, never divide
 export const formatPrice = (amount: number, currency: string): string => {
   if (currency.toUpperCase() === 'INR') {
     return `₹${amount.toLocaleString('en-IN', {
@@ -122,24 +93,19 @@ export const formatPrice = (amount: number, currency: string): string => {
   }).format(amount);
 };
 
-
-
 export const getPriceByPeriod = (plan: Plan, period: BillingPeriod) => {
   return plan.prices.find(p => p.billing_period === period && p.is_active);
 };
 
-// Change the return type
-export const getSubscriptionStatus = async (): Promise<UserSubscriptionOverview> => {
-  const [freePlanStatus, stripeSubscription] = await Promise.all([
-    getFreePlanStatus(),
-    getUserSubscription()
-  ]);
+// Rewritten — derives everything from Stripe subscription only
+export const getSubscriptionStatus = async () => {
+  const subscription = await getUserSubscription();
+  const isFreePlan = subscription?.plan_name?.toLowerCase() === 'free';
 
   return {
-    freePlan: freePlanStatus,
-    stripeSubscription,
-    hasAccess: freePlanStatus.status === 'active' || !!stripeSubscription,
-    isFreePlanEligible: freePlanStatus.eligible
+    subscription,                                         // full subscription object
+    hasAccess: !!subscription && subscription.status === 'active',
+    isFreePlan,
+    isFreePlanEligible: !subscription,                   // eligible only if never subscribed
   };
 };
-

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import {
   Home,
@@ -8,9 +7,7 @@ import {
   Brain,
   BarChart3,
   Upload,
-  BookOpen,
-  Image as ImageIcon,
-  ChevronRight as ChevronRightIcon,
+  BookOpen
 } from 'lucide-react';
 import Sidebar from "./Components/Sidebar";
 import Header from "./Components/Header";
@@ -35,12 +32,12 @@ import DashboardScreen, { TabId } from './Components/Screens/DashboardScreen';
 import StudyPlanScreen from './Components/Screens/StudyPlanScreen';
 import SettingsScreen from './Components/Screens/SettingsScreen';
 import { FeatureGate } from './Components/common/FeatureGate';
-import { clearTokens, getStoredTokens, setTokens  } from './services/TokenManager';
+import { clearTokens, getStoredTokens  } from './services/TokenManager';
 import { logout } from './services/loginApi';
 import CSBotScreen from './Components/Screens/CSBotScreen';
-import { SubscriptionTier, hasFeatureAccess, type FeatureAccess } from './utils/featureAccess';
+import { SubscriptionTier, hasFeatureAccess } from './utils/featureAccess';
 import DataDeletion from './Components/Screens/DataDeletion';
-//const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;;
+import { getUserSubscription } from './services/subscriptionapi';
 
 interface NavigationItem {
   id: TabId;
@@ -71,7 +68,7 @@ interface UserStatus {
 const App: React.FC = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>('home');
-  // ✅ Authentication & Subscription States
+  // Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isLoggedIn') === 'true';
   });
@@ -84,59 +81,57 @@ const App: React.FC = () => {
     (localStorage.getItem('subscription_tier') || null) as SubscriptionTier
   );
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(
-    !localStorage.getItem('subscription_tier')  // ✅ only load if not cached
+    !localStorage.getItem('subscription_tier')  // only load if not cached
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
 
-    const storedUserRaw = localStorage.getItem('user');
-    const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
-    const hasSubscription = !!(storedUser && storedUser.subscription_tier);
+    const checkSubscription = async () => {
+      try {
+        const subscription = await getUserSubscription();
 
-    console.log('🔍 Checking subscription status:', {
-      pathname: location.pathname,
-      hasSubscription,
-      subscription_tier: storedUser?.subscription_tier
-    });
+        if (subscription && subscription.status === 'active') {
+          const tierValue = subscription.plan_name?.toLowerCase().trim() || 'free';
+          setUserTier(tierValue as SubscriptionTier);
+          localStorage.setItem('subscription_tier', tierValue);
+          localStorage.setItem('subscription_status', 'active');
+          setShowSubscriptionPage(false);
+          setUserStatus({
+            has_seen_subscription: true,
+            has_active_subscription: true,
+            subscription: { plan_id: tierValue, status: 'active' },
+          });
+        } else {
+          // No active subscription — show subscription page
+          setUserTier('expired');
+          localStorage.removeItem('subscription_tier');
+          localStorage.removeItem('subscription_status');
+          setShowSubscriptionPage(true);
+          setUserStatus({
+            has_seen_subscription: false,
+            has_active_subscription: false,
+            subscription: null,
+          });
+        }
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          // No subscription at all
+          setUserTier('expired');
+          setShowSubscriptionPage(true);
+        }
+      } finally {
+        setIsSubscriptionLoading(false);
+      }
+    };
 
-    if (!hasSubscription) {
-      console.log('❌ No subscription - showing subscription page');
-      setShowSubscriptionPage(true);
-      setUserStatus({
-        has_seen_subscription: false,
-        has_active_subscription: false,
-        subscription: null,
-      });
-      setUserTier('expired');                          // ✅ logged in but no plan
-      localStorage.removeItem('subscription_tier');
-      localStorage.removeItem('subscription_status');
-    } else {
-      console.log('✅ Has subscription - showing dashboard');
-      setShowSubscriptionPage(false);
-      setUserStatus({
-        has_seen_subscription: true,
-        has_active_subscription: true,
-        subscription: { plan_id: storedUser.subscription_tier, status: 'active' },
-      });
-      // SET TIER FROM localStorage
-      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
-      const tier = tierValue as SubscriptionTier;
-
-      localStorage.setItem('subscription_tier', tierValue); // ✅ string, no error
-      localStorage.setItem('subscription_status', 'active');
-      setUserTier(tier);   
-    }
-    setIsSubscriptionLoading(false); 
-      
-  }, [isLoggedIn, userId, location.pathname]);
+    checkSubscription();
+  }, [isLoggedIn, userId]); 
 
   // Background session validator — detects revocation within 90 seconds
   useEffect(() => {
@@ -182,45 +177,18 @@ const App: React.FC = () => {
     newUserId: string,
     hasSubscription: boolean
   ) => {
-    console.log('✅ Login success:', { userId: newUserId, hasSubscription });
-
     localStorage.setItem('token', token);
     localStorage.setItem('user_id', newUserId);
     localStorage.setItem('isLoggedIn', 'true');
     setIsLoggedIn(true);
     setUserId(newUserId);
-
-    if (hasSubscription) {
-      console.log('✅ Has subscription - Going to dashboard');
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const tierValue: string = storedUser.subscription_tier?.toLowerCase().trim() || 'free';
-      const tier = tierValue as SubscriptionTier;
-
-      setUserTier(tier);
-      localStorage.setItem('subscription_tier', tierValue);
-      localStorage.setItem('subscription_status', 'active');
-      setShowSubscriptionPage(false);
-      setUserStatus({
-        has_seen_subscription: true,
-        has_active_subscription: true,
-        subscription: { plan_id: tierValue, status: 'active' },
-      });
-    } else {
-      console.log('📋 No subscription - Showing subscription page');
-      setUserTier('expired');
-      localStorage.removeItem('subscription_tier');
-      localStorage.removeItem('subscription_status');
-      setShowSubscriptionPage(true);
-      setUserStatus({
-        has_seen_subscription: false,
-        has_active_subscription: false,
-        subscription: null,
-      });
-    }
-    setIsSubscriptionLoading(false);
+    // Let the subscription useEffect above handle tier check
+    // No need to duplicate logic here
+    setIsSubscriptionLoading(true);
   };
 
-  // ✅ Handle Logout
+
+  // Handle Logout
   const handleLogout = async () => {
     try {
       const { accessToken } = getStoredTokens();
@@ -247,24 +215,6 @@ const App: React.FC = () => {
       // Full reload wipes ALL React state (no stale data)
       window.location.href = `${window.location.origin}${import.meta.env.BASE_URL}`;
     }
-  };
-
-  const handleSubscriptionComplete = () => {
-    const storedUserRaw = localStorage.getItem('user');
-    if (storedUserRaw) {
-      const storedUser = JSON.parse(storedUserRaw);
-      storedUser.subscription_tier = 'free';
-      localStorage.setItem('user', JSON.stringify(storedUser));
-      localStorage.setItem('subscription_tier', 'free');
-      localStorage.setItem('subscription_status', 'active');
-    }
-    setUserTier('free');
-    setShowSubscriptionPage(false);
-    setUserStatus({
-      has_seen_subscription: true,
-      has_active_subscription: true,
-      subscription: { plan_id: 'free', status: 'active' },
-    });
   };
 
   // Feature mapping
@@ -348,24 +298,7 @@ const App: React.FC = () => {
       console.log("handleSendMessage finished");
     }
   };
-
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadedImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files[0]) {
-      handleImageUpload(files[0]);
-    }
-  };
+  
 
   const renderContent = () => {
     switch (activeTab) {
@@ -443,7 +376,7 @@ const App: React.FC = () => {
   };
 
 
-  // ✅ For HashRouter, use location.pathname (HashRouter handles this correctly)
+  // For HashRouter, use location.pathname (HashRouter handles this correctly)
   const pathname = location.pathname.replace('/StudentHub', '') || '/';
 
   // Debug log to see what pathname we're getting
@@ -469,43 +402,26 @@ const App: React.FC = () => {
     return <DataDeletion />;
   }
 
-  // ✅ Subscription Success Route
+  // Subscription Success Route
   if (pathname === '/success') {
     console.log('✅ Showing SubscriptionSuccess page');
     return <SubscriptionSuccess />;
   }
 
-  // ✅ Subscription Cancel Route
+  // Subscription Cancel Route
   if (pathname === '/cancel') {
     console.log('✅ Showing SubscriptionCancel page');
     return <SubscriptionCancel />;
   }
 
-  // ✅ ADD THIS: Manual Subscription/Upgrade Route
-  if (pathname === '/subscription' && isLoggedIn && userId) {
-    console.log('✅ Showing Subscription/Upgrade page');
-    return (
-      <SubscriptionWrapper
-        isFirstTime={false} // Not first time, manual upgrade
-        userId={userId}
-        onComplete={() => {
-          // After completing upgrade, navigate back to settings
-          window.location.hash = '/StudentHub/settings';
-        }}
-      />
-    );
+  if (pathname === '/subscription' && isLoggedIn) {
+    return <SubscriptionWrapper />;
   }
 
-  // ✅ Show Subscription Page (First-Time or No Active Subscription)
-  if (isLoggedIn && showSubscriptionPage && userId) {
-    return (
-      <SubscriptionWrapper
-        isFirstTime={!userStatus?.has_seen_subscription}
-        userId={userId}
-        onComplete={handleSubscriptionComplete}
-      />
-    );
-  }
+  // Show Subscription Page (First-Time or No Active Subscription)
+  if (isLoggedIn && showSubscriptionPage) {
+  return <SubscriptionWrapper />;
+}
 
   if (!isLoggedIn) {
     if (showRegister) {
@@ -524,7 +440,7 @@ const App: React.FC = () => {
     );
   }
 
-  // ✅ Main App (Logged In + Has Subscription)
+  // Main App (Logged In + Has Subscription)
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar
@@ -561,7 +477,7 @@ const App: React.FC = () => {
         <Footer sidebarCollapsed={sidebarCollapsed} />
       </div>
 
-      {/* ✅ CS Bot — fixed bottom-right, only shown when logged in */}
+      {/* CS Bot — fixed bottom-right, only shown when logged in */}
       <CSBotScreen />
 
     </div>
