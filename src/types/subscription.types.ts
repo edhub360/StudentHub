@@ -14,6 +14,7 @@ export interface Plan {
   id: string;
   name: string;
   features_json: Record<string, any>;
+  description?: string;
   is_active: boolean;
   prices: PlanPrice[];
 }
