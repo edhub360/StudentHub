@@ -184,7 +184,9 @@ const App: React.FC = () => {
     setUserId(newUserId);
     // Let the subscription useEffect above handle tier check
     // No need to duplicate logic here
-    setIsSubscriptionLoading(true);
+    if (!hasSubscription) {
+      setShowSubscriptionPage(true);
+    }
   };
 
 
