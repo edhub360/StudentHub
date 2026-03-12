@@ -67,7 +67,7 @@ export const fetchSubscriptionInfo = async (userId: string): Promise<Subscriptio
 
   // ✅ plan_name comes directly from backend — no need to fetch /plans
   return {
-    plan: sub.plan_name || 'Unknown Plan',
+    plan: sub.plan || 'Free',
     status: sub.status === 'active' ? 'Active'
           : sub.status === 'cancelled' ? 'Cancelled'
           : sub.status,

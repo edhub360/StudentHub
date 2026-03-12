@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { PublicClientApplication, PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
 import { MICROSOFT_CLIENT_ID } from '../../constants/login.constants';
@@ -8,11 +8,11 @@ import { MicrosoftLoginButtonProps } from '../../types/login.types';
 const msalInstance = new PublicClientApplication({
   auth: {
     clientId: MICROSOFT_CLIENT_ID,
-    authority: 'https://login.microsoftonline.com/common', // all MS accounts
+    authority: 'https://login.microsoftonline.com/common',
     redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: 'sessionStorage', // incognito safe
+    cacheLocation: 'sessionStorage',
   },
 });
 
@@ -25,28 +25,38 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
   onError,
   disabled = false,
 }) => {
+  const initializedRef = useRef(false);
+
+  // Initialize MSAL once on mount — not on every click
+  useEffect(() => {
+    const initMsal = async () => {
+      if (initializedRef.current) return;
+      await msalInstance.initialize();
+      initializedRef.current = true;
+    };
+    initMsal();
+  }, []);
+
   const handleMicrosoftLogin = useCallback(async () => {
     try {
-      await msalInstance.initialize();
       const response = await msalInstance.loginPopup(loginRequest);
-      
-      // Send access token to backend (same pattern as Google)
       const data = await loginWithMicrosoft(response.accessToken);
       onMicrosoftSuccess(data);
     } catch (error: any) {
-      //  Silently ignore — user just closed the popup
+      // Silently ignore — user closed popup or nested popup blocked
       if (
         error?.errorCode === 'user_cancelled' ||
         error?.errorCode === 'timed_out' ||
+        error?.errorCode === 'block_nested_popups' ||
         error?.message?.includes('timed_out') ||
         error?.message?.includes('user_cancelled')
       ) {
         return;
       }
-      // Only show real errors
       onError(error?.message || 'Microsoft login failed');
     }
   }, [onMicrosoftSuccess, onError]);
+
   return (
     <button
       type="button"
