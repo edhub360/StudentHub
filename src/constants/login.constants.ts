@@ -19,3 +19,5 @@ export const LOGIN_ERROR_MESSAGES = {
 export const LOGIN_SUCCESS_MESSAGES = {
   loginSuccessful: 'Login successful! Redirecting...',
 };
+
+// For Microsoft login, we use MSAL.js with a popup flow.
