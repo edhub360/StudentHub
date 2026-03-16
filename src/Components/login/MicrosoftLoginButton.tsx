@@ -27,23 +27,36 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
 }) => {
   const initializedRef = useRef(false);
 
-  // Initialize MSAL once on mount — not on every click
   useEffect(() => {
     const initMsal = async () => {
       if (initializedRef.current) return;
       await msalInstance.initialize();
       initializedRef.current = true;
+
+      // ✅ Handle redirect fallback (e.g. Edge browser blocks popups)
+      const redirectResult = await msalInstance.handleRedirectPromise();
+      if (redirectResult?.accessToken) {
+        try {
+          const data = await loginWithMicrosoft(redirectResult.accessToken);
+          onMicrosoftSuccess(data);
+        } catch (err: any) {
+          onError(err.message || 'Microsoft login failed');
+        }
+      }
     };
     initMsal();
-  }, []);
+  }, [onMicrosoftSuccess, onError]);
 
   const handleMicrosoftLogin = useCallback(async () => {
     try {
-      const response = await msalInstance.loginPopup(loginRequest);
+      // ✅ Force account picker — same as Google's 'select_account'
+      const response = await msalInstance.loginPopup({
+        ...loginRequest,
+        prompt: 'select_account',
+      });
       const data = await loginWithMicrosoft(response.accessToken);
       onMicrosoftSuccess(data);
     } catch (error: any) {
-      // Silently ignore — user closed popup or nested popup blocked
       if (
         error?.errorCode === 'user_cancelled' ||
         error?.errorCode === 'timed_out' ||

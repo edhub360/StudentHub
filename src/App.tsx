@@ -89,6 +89,13 @@ const App: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
 
+  // Clean up MSAL redirect hash from URL after Microsoft login
+  useEffect(() => {
+    if (window.location.hash.startsWith('#code=')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
 
