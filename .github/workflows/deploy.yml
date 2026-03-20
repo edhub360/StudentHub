@@ -3,7 +3,8 @@ name: Build and Deploy to GitHub Pages
 on:
   push:
     branches: [Develop]
-
+  schedule:
+    - cron: "0 2 * * *"   # Runs nightly at 2 AM
 permissions:
   contents: write
   pages: write
