@@ -22,19 +22,23 @@ export default function Footer({ sidebarCollapsed }: FooterProps) {
 
           {/* Links */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <Link
-              to="/privacy-policy"
+            <a
+              href="/privacy-policy.html"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-gray-900 transition-colors"
             >
               Privacy Policy
-            </Link>
+            </a>
             <span className="text-gray-300">|</span>
-            <Link
-              to="/terms-of-service"
+            <a
+              href="/terms-of-service.html"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hover:text-gray-900 transition-colors"
             >
               Terms of Service
-            </Link>
+            </a>
           </div>
         </div>
       </div>

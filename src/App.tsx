@@ -20,8 +20,6 @@ import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
 import ForgotPasswordScreen from './Components/Screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './Components/Screens/ResetPasswordScreen';
-import PrivacyPolicy from './Components/Screens/PrivacyPolicy';
-import TermsOfService from './Components/Screens/TermsOfService';
 import SubscriptionSuccess from './Components/Screens/SubscriptionSuccess';
 import SubscriptionCancel from './Components/Screens/SubscriptionCancel';
 import { sendChatMessage } from './services/chatapi';
@@ -36,7 +34,6 @@ import { clearTokens, getStoredTokens  } from './services/TokenManager';
 import { logout } from './services/loginApi';
 import CSBotScreen from './Components/Screens/CSBotScreen';
 import { SubscriptionTier, hasFeatureAccess } from './utils/featureAccess';
-import DataDeletion from './Components/Screens/DataDeletion';
 import { getUserSubscription } from './services/subscriptionapi';
 
 interface NavigationItem {
@@ -397,18 +394,6 @@ const App: React.FC = () => {
 
   if (pathname === '/reset-password') {
     return <ResetPasswordScreen />;
-  }
-
-  if (pathname === '/privacy-policy') {
-    return <PrivacyPolicy />;
-  }
-
-  if (pathname === '/terms-of-service') {
-    return <TermsOfService />;
-  }
-
-  if (pathname === '/data-deletion') {
-    return <DataDeletion />;
   }
 
   // Subscription Success Route
