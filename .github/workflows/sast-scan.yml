@@ -1,5 +1,6 @@
 name: "CodeQL SAST Scan"
-on: [Develop]
+on: []
+  workflow_dispatch:
 jobs:
   analyze:
     runs-on: ubuntu-latest
