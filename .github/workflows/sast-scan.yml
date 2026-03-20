@@ -1,6 +1,5 @@
 name: "CodeQL SAST Scan"
 on:
-  branches: [ Develop ]
   schedule:
     - cron: "0 2 * * *"   # Runs nightly at 2 AM
 jobs:
