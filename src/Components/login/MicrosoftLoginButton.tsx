@@ -5,11 +5,13 @@ import { MICROSOFT_CLIENT_ID } from '../../constants/login.constants';
 import { loginWithMicrosoft } from '../../services/loginApi';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
 
+const MICROSOFT_REDIRECT_URI = `${window.location.origin}/auth/microsoft`;
+
 const msalInstance = new PublicClientApplication({
   auth: {
     clientId: MICROSOFT_CLIENT_ID,
     authority: 'https://login.microsoftonline.com/common',
-    redirectUri: window.location.origin,
+    redirectUri: MICROSOFT_REDIRECT_URI,
   },
   cache: {
     cacheLocation: 'sessionStorage',
@@ -33,7 +35,7 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
       await msalInstance.initialize();
       initializedRef.current = true;
 
-      // ✅ Handle redirect fallback (e.g. Edge browser blocks popups)
+      // Handle redirect fallback (e.g. Edge browser blocks popups)
       const redirectResult = await msalInstance.handleRedirectPromise();
       if (redirectResult?.accessToken) {
         try {
@@ -49,10 +51,10 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
 
   const handleMicrosoftLogin = useCallback(async () => {
     try {
-      // ✅ Force account picker — same as Google's 'select_account'
       const response = await msalInstance.loginPopup({
         ...loginRequest,
         prompt: 'select_account',
+        redirectUri: MICROSOFT_REDIRECT_URI,
       });
       const data = await loginWithMicrosoft(response.accessToken);
       onMicrosoftSuccess(data);
