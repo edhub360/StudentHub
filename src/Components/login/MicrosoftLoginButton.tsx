@@ -30,7 +30,7 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
       const response = await msalInstance.loginPopup({
         ...loginRequest,
         prompt: 'select_account',
-        redirectUri: MICROSOFT_REDIRECT_URI,
+        redirectUri: window.location.origin,
       });
       const data = await loginWithMicrosoft(response.accessToken);
       onMicrosoftSuccess(data);
