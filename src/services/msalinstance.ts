@@ -15,10 +15,5 @@ export const msalInstance = new PublicClientApplication({
   },
 });
 
-let initialized = false;
-
-export async function initializeMsal(): Promise<void> {
-  if (initialized) return;
-  await msalInstance.initialize();
-  initialized = true;
-}
+//  replaces the entire initialized flag + initializeMsal() function
+export const msalReady: Promise<void> = msalInstance.initialize();
