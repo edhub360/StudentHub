@@ -14,3 +14,11 @@ export const msalInstance = new PublicClientApplication({
     cacheLocation: 'sessionStorage',
   },
 });
+
+let initialized = false;
+
+export async function initializeMsal(): Promise<void> {
+  if (initialized) return;
+  await msalInstance.initialize();
+  initialized = true;
+}
