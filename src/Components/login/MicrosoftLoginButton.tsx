@@ -1,22 +1,9 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { PublicClientApplication, PopupRequest } from '@azure/msal-browser';
+import { PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
-import { MICROSOFT_CLIENT_ID } from '../../constants/login.constants';
 import { loginWithMicrosoft } from '../../services/loginApi';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
-
-const MICROSOFT_REDIRECT_URI = `${window.location.origin}/auth/microsoft`;
-
-const msalInstance = new PublicClientApplication({
-  auth: {
-    clientId: MICROSOFT_CLIENT_ID,
-    authority: 'https://login.microsoftonline.com/common',
-    redirectUri: MICROSOFT_REDIRECT_URI,
-  },
-  cache: {
-    cacheLocation: 'sessionStorage',
-  },
-});
+import { msalInstance, MICROSOFT_REDIRECT_URI } from '../../services/msalinstance';
 
 const loginRequest: PopupRequest = {
   scopes: ['User.Read', 'openid', 'profile', 'email'],
@@ -34,7 +21,6 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
       if (initializedRef.current) return;
       await msalInstance.initialize();
       initializedRef.current = true;
-      // ✅ Removed handleRedirectPromise() — handled by MicrosoftCallback page
     };
     initMsal();
   }, []);
