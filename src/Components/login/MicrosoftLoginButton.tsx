@@ -3,7 +3,7 @@ import { PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
 import { loginWithMicrosoft } from '../../services/loginApi';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
-import { msalInstance, MICROSOFT_REDIRECT_URI } from '../../services/msalinstance';
+import { msalInstance, MICROSOFT_REDIRECT_URI, initializeMsal} from '../../services/msalinstance';
 
 const loginRequest: PopupRequest = {
   scopes: ['User.Read', 'openid', 'profile', 'email'],
@@ -19,7 +19,7 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
   useEffect(() => {
     const initMsal = async () => {
       if (initializedRef.current) return;
-      await msalInstance.initialize();
+      await initializeMsal(); // ← use shared initializer
       initializedRef.current = true;
     };
     initMsal();
