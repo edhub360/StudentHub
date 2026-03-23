@@ -18,6 +18,7 @@ import QuizScreen from './Components/Screens/QuizScreen';
 import Register from './Components/Register';
 import SubscriptionWrapper from './Components/Screens/Subscriptionpage';
 import LoginScreen from './Components/Screens/LoginScreen';
+import MicrosoftCallback from './Components/login/MicrosoftCallback';
 import ForgotPasswordScreen from './Components/Screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './Components/Screens/ResetPasswordScreen';
 import SubscriptionSuccess from './Components/Screens/SubscriptionSuccess';
@@ -387,6 +388,10 @@ const App: React.FC = () => {
 
   // Debug log to see what pathname we're getting
   console.log('🔍 Current pathname:', pathname);
+
+  if (pathname === '/auth/microsoft') {
+    return <MicrosoftCallback />;
+  }
 
   if (pathname === '/forgot-password') {
     return <ForgotPasswordScreen />;

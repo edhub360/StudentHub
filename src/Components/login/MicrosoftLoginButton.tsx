@@ -34,20 +34,10 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
       if (initializedRef.current) return;
       await msalInstance.initialize();
       initializedRef.current = true;
-
-      // Handle redirect fallback (e.g. Edge browser blocks popups)
-      const redirectResult = await msalInstance.handleRedirectPromise();
-      if (redirectResult?.accessToken) {
-        try {
-          const data = await loginWithMicrosoft(redirectResult.accessToken);
-          onMicrosoftSuccess(data);
-        } catch (err: any) {
-          onError(err.message || 'Microsoft login failed');
-        }
-      }
+      // ✅ Removed handleRedirectPromise() — handled by MicrosoftCallback page
     };
     initMsal();
-  }, [onMicrosoftSuccess, onError]);
+  }, []);
 
   const handleMicrosoftLogin = useCallback(async () => {
     try {
@@ -66,6 +56,19 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
         error?.message?.includes('timed_out') ||
         error?.message?.includes('user_cancelled')
       ) {
+        return;
+      }
+      // If popup is blocked, fall back to redirect
+      if (
+        error?.errorCode === 'popup_window_error' ||
+        error?.errorCode === 'empty_window_error' ||
+        error?.message?.includes('popup')
+      ) {
+        await msalInstance.loginRedirect({
+          ...loginRequest,
+          prompt: 'select_account',
+          redirectUri: MICROSOFT_REDIRECT_URI,
+        });
         return;
       }
       onError(error?.message || 'Microsoft login failed');
