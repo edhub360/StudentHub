@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { loginWithMicrosoft } from '../../services/loginApi';
-import { msalInstance, initializeMsal } from '../../services/msalinstance';
+import { msalInstance, msalReady } from '../../services/msalinstance';
 
 export default function MicrosoftCallback() {
     const hasRun = useRef(false);
@@ -10,7 +10,7 @@ export default function MicrosoftCallback() {
         hasRun.current = true;
     const handle = async () => {
         
-        await initializeMsal(); // ← use shared initializer
+        await msalReady; // ← use shared initializer
         const result = await msalInstance.handleRedirectPromise();
         if (result?.accessToken) {
         try {
