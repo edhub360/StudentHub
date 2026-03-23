@@ -1,16 +1,6 @@
 import { useEffect } from 'react';
-import { PublicClientApplication } from '@azure/msal-browser';
-import { MICROSOFT_CLIENT_ID } from '../../constants/login.constants';
 import { loginWithMicrosoft } from '../../services/loginApi';
-
-const msalInstance = new PublicClientApplication({
-  auth: {
-    clientId: MICROSOFT_CLIENT_ID,
-    authority: 'https://login.microsoftonline.com/common',
-    redirectUri: `${window.location.origin}/auth/microsoft`,
-  },
-  cache: { cacheLocation: 'sessionStorage' },
-});
+import { msalInstance } from '../../services/msalinstance';
 
 export default function MicrosoftCallback() {
   useEffect(() => {
@@ -20,7 +10,6 @@ export default function MicrosoftCallback() {
       if (result?.accessToken) {
         try {
           const data = await loginWithMicrosoft(result.accessToken);
-          // Save tokens same way your app does after login
           localStorage.setItem('access_token', data.access_token);
           localStorage.setItem('refresh_token', data.refresh_token);
           window.location.href = '/';
@@ -28,7 +17,6 @@ export default function MicrosoftCallback() {
           window.location.href = '/?error=microsoft_login_failed';
         }
       } else {
-        // No token — redirect back to login
         window.location.href = '/';
       }
     };
