@@ -1,65 +1,29 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
-import { loginWithMicrosoft } from '../../services/loginApi';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
-import { msalInstance, MICROSOFT_REDIRECT_URI, msalReady} from '../../services/msalinstance';
+import { msalInstance, MICROSOFT_REDIRECT_URI, msalReady } from '../../services/msalinstance';
 
 const loginRequest: PopupRequest = {
   scopes: ['User.Read', 'openid', 'profile', 'email'],
 };
 
 const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
-  onMicrosoftSuccess,
   onError,
   disabled = false,
 }) => {
-  const initializedRef = useRef(false);
-
-  useEffect(() => {
-    const initMsal = async () => {
-      if (initializedRef.current) return;
-      await msalReady; // ← use shared initializer
-      initializedRef.current = true;
-    };
-    initMsal();
-  }, []);
-
   const handleMicrosoftLogin = useCallback(async () => {
     try {
-      const response = await msalInstance.loginPopup({
+      await msalReady;
+      await msalInstance.loginRedirect({
         ...loginRequest,
         prompt: 'select_account',
         redirectUri: MICROSOFT_REDIRECT_URI,
       });
-      const data = await loginWithMicrosoft(response.accessToken);
-      onMicrosoftSuccess(data);
     } catch (error: any) {
-      if (
-        error?.errorCode === 'user_cancelled' ||
-        error?.errorCode === 'timed_out' ||
-        error?.errorCode === 'block_nested_popups' ||
-        error?.message?.includes('timed_out') ||
-        error?.message?.includes('user_cancelled')
-      ) {
-        return;
-      }
-      // If popup is blocked, fall back to redirect
-      if (
-        error?.errorCode === 'popup_window_error' ||
-        error?.errorCode === 'empty_window_error' ||
-        error?.message?.includes('popup')
-      ) {
-        await msalInstance.loginRedirect({
-          ...loginRequest,
-          prompt: 'select_account',
-          redirectUri: MICROSOFT_REDIRECT_URI,
-        });
-        return;
-      }
       onError(error?.message || 'Microsoft login failed');
     }
-  }, [onMicrosoftSuccess, onError]);
+  }, [onError]);
 
   return (
     <button
