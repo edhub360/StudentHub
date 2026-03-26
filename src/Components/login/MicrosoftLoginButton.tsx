@@ -2,28 +2,37 @@ import React, { useCallback } from 'react';
 import { PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
-import { msalInstance, MICROSOFT_REDIRECT_URI, msalReady } from '../../services/msalinstance';
+import { msalInstance, msalReady } from '../../services/msalinstance';
+import { loginWithMicrosoft } from '../../services/loginApi';
 
 const loginRequest: PopupRequest = {
   scopes: ['User.Read', 'openid', 'profile', 'email'],
 };
 
 const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
+  onMicrosoftSuccess,
   onError,
   disabled = false,
 }) => {
   const handleMicrosoftLogin = useCallback(async () => {
     try {
       await msalReady;
-      await msalInstance.loginRedirect({
+      const response = await msalInstance.loginPopup({
         ...loginRequest,
         prompt: 'select_account',
-        redirectUri: MICROSOFT_REDIRECT_URI,
+        redirectUri: `${window.location.origin}/auth-redirect.html`,
       });
+      const data = await loginWithMicrosoft(response.accessToken);
+      onMicrosoftSuccess(data);
     } catch (error: any) {
+      if (
+        error?.errorCode === 'user_cancelled' ||
+        error?.errorCode === 'timed_out' ||
+        error?.message?.includes('user_cancelled')
+      ) return;
       onError(error?.message || 'Microsoft login failed');
     }
-  }, [onError]);
+  }, [onMicrosoftSuccess, onError]);
 
   return (
     <button
