@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { loginWithMicrosoft } from '../../services/loginApi';
 import { msalInstance, msalReady } from '../../services/msalinstance';
+import { setTokens } from '../../services/TokenManager';
 
 export default function MicrosoftCallback() {
   const hasRun = useRef(false);
@@ -10,27 +11,30 @@ export default function MicrosoftCallback() {
     hasRun.current = true;
 
     const handle = async () => {
-      await msalReady;
-      // If loaded inside a popup, MSAL handles it automatically — just return
-      if (window.opener) {
-        await msalInstance.handleRedirectPromise();
-        return; // popup closes itself, parent gets the token ✅
-      }
-      // Redirect flow (Edge/Safari)
-      const result = await msalInstance.handleRedirectPromise();
-      if (result?.accessToken) {
-        try {
+      try {
+        await msalReady;
+        const result = await msalInstance.handleRedirectPromise();
+        if (result?.accessToken) {
           const data = await loginWithMicrosoft(result.accessToken);
+          // Save tokens exactly like Google/Facebook do
+          setTokens(data);
+          localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('access_token', data.access_token);
-          localStorage.setItem('refresh_token', data.refresh_token);
+          if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('subscription_tier', data.user.subscription_tier || '');
+          localStorage.setItem('user_id', data.user.user_id);
+          localStorage.setItem('userEmail', data.user.email);
+          localStorage.setItem('userName', data.user.name || '');
           window.location.href = '/';
-        } catch {
-          window.location.href = '/?error=microsoft_login_failed';
+        } else {
+          window.location.href = '/';
         }
-      } else {
-        window.location.href = '/';
+      } catch {
+        window.location.href = '/?error=microsoft_login_failed';
       }
     };
+
     handle();
   }, []);
 
