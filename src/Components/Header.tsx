@@ -9,6 +9,7 @@ interface HeaderProps {
   activeTab: TabId;
   onLogout: () => void;
   setActiveTab: (tab: TabId) => void;
+  userTier: string | null; 
 }
 
 export default function Header({
@@ -18,6 +19,7 @@ export default function Header({
   activeTab,
   onLogout,
   setActiveTab,
+  userTier,
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -27,18 +29,15 @@ export default function Header({
   const userName  = localStorage.getItem('userName')  || 'Guest User';
 
   // ── Subscription badge ───────────────────────────────────────────────────
-  const subscriptionTier   = localStorage.getItem('subscription_tier')   || '';
-  const subscriptionStatus = localStorage.getItem('subscription_status') || '';
-
   const tierBadge: Record<string, { label: string; className: string }> = {
     'free':    { label: 'Free',    className: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-blue-900 font-bold' },
     'pro':     { label: 'Pro',     className: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-blue-900 font-bold' },
     'pro max': { label: 'Pro Max', className: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-blue-900 font-bold' },
   };
-
+  const subscriptionTier = userTier?.toLowerCase() || '';
   const validTiers     = ['free', 'pro', 'pro max'];
   const isValidTier    = validTiers.includes(subscriptionTier.toLowerCase());
-  const isActiveStatus = subscriptionStatus.toLowerCase() === 'active';
+  const isActiveStatus = !!userTier && userTier !== 'expired';
   const showBadge      = isValidTier && isActiveStatus;
   const badge          = tierBadge[subscriptionTier.toLowerCase()];
 
