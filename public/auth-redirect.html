@@ -1,11 +1,22 @@
 <!DOCTYPE html>
 <html>
-<head><title>Redirecting...</title></head>
+<head><title>Auth Redirect</title></head>
 <body>
-  <script type="text/javascript">
-    // DO NOT call window.close() manually.
-    // MSAL reads the auth code/token from the URL hash,
-    // posts it back to the parent window, then closes this popup itself.
+  <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
+  <script>
+    const pca = new msal.PublicClientApplication({
+      auth: {
+        clientId: '11fad16e-2c09-4d98-bdc5-e6eed5d204e8',
+        authority: 'https://login.microsoftonline.com/common',
+        redirectUri: window.location.origin + '/auth-redirect.html',
+      },
+      cache: {
+        cacheLocation: 'sessionStorage',  // ← must match msalInstance.ts
+      }
+    });
+    pca.initialize().then(() => {
+      pca.handleRedirectPromise().catch(console.error);
+    });
   </script>
 </body>
 </html>
