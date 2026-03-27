@@ -1,22 +1,10 @@
 <!DOCTYPE html>
 <html>
-<head><title>Auth Redirect</title></head>
+<head><title>Redirect</title></head>
 <body>
-  <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
+  <script src="/msal-redirect-bridge.min.js"></script>
   <script>
-    const pca = new msal.PublicClientApplication({
-      auth: {
-        clientId: '11fad16e-2c09-4d98-bdc5-e6eed5d204e8',
-        authority: 'https://login.microsoftonline.com/common',
-        redirectUri: window.location.origin + '/auth-redirect.html',
-      },
-      cache: {
-        cacheLocation: 'sessionStorage',  // ← must match msalInstance.ts
-      }
-    });
-    pca.initialize().then(() => {
-      pca.handleRedirectPromise().catch(console.error);
-    });
+    msalRedirectBridge.broadcastResponseToMainFrame().catch(console.error);
   </script>
 </body>
 </html>
