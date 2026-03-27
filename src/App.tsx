@@ -463,6 +463,7 @@ const App: React.FC = () => {
           activeTab={activeTab}
           onLogout={handleLogout}
           setActiveTab={setActiveTab} 
+          userTier={userTier}
         />
 
         <main className="flex-1 overflow-y-auto">
