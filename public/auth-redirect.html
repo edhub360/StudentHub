@@ -2,8 +2,10 @@
 <html>
 <head><title>Redirecting...</title></head>
 <body>
-<script>
-  window.close();
-</script>
+  <script type="text/javascript">
+    // DO NOT call window.close() manually.
+    // MSAL reads the auth code/token from the URL hash,
+    // posts it back to the parent window, then closes this popup itself.
+  </script>
 </body>
 </html>
