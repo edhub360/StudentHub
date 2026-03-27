@@ -17,14 +17,22 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
   const handleMicrosoftLogin = useCallback(async () => {
     try {
       await msalReady;
+      console.log('🔵 Starting Microsoft login popup...');
+      
       const response = await msalInstance.loginPopup({
         ...loginRequest,
         prompt: 'select_account',
         redirectUri: `${window.location.origin}/auth-redirect.html`,
       });
+      
+      console.log('🟢 Popup success, accessToken:', response.accessToken ? 'EXISTS' : 'MISSING');
+      
       const data = await loginWithMicrosoft(response.accessToken);
+      console.log('🟢 Backend success:', data);
       onMicrosoftSuccess(data);
+      
     } catch (error: any) {
+      console.log('🔴 Error:', error?.errorCode, error?.message);
       if (
         error?.errorCode === 'user_cancelled' ||
         error?.errorCode === 'timed_out' ||
