@@ -104,8 +104,9 @@ const App: React.FC = () => {
         console.log('📦 Keys:', Object.keys(subscription || {}));
         console.log('📦 plan_name:', subscription?.plan_name);
         console.log('📦 status:', subscription?.status);
+        
         if (subscription && subscription.status === 'active') {
-          const tierValue = subscription.plan_name?.toLowerCase().trim() || 'free';
+          const tierValue = subscription.plan?.toLowerCase().trim();
           setUserTier(tierValue as SubscriptionTier);
           localStorage.setItem('subscription_tier', tierValue);
           localStorage.setItem('subscription_status', 'active');
