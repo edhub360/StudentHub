@@ -100,6 +100,10 @@ const App: React.FC = () => {
       try {
         const subscription = await getUserSubscription();
 
+        console.log('📦 Full subscription response:', subscription);
+        console.log('📦 Keys:', Object.keys(subscription || {}));
+        console.log('📦 plan_name:', subscription?.plan_name);
+        console.log('📦 status:', subscription?.status);
         if (subscription && subscription.status === 'active') {
           const tierValue = subscription.plan_name?.toLowerCase().trim() || 'free';
           setUserTier(tierValue as SubscriptionTier);
