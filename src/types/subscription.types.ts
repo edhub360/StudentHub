@@ -24,6 +24,7 @@ export interface Subscription {
   id: string;
   customer_id: string;
   plan_id: string;
+  plan: string; // e.g., "Free", "Pro", "Pro Max"
   plan_name: string;
   status: 'active' | 'cancelled' | 'expired' | 'past_due' | 'trialing' | 'paused';
   stripe_subscription_id: string;
