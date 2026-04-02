@@ -18,21 +18,44 @@
     
 #      args: ['rsync', '-r', 'build/*', 'gs://arctic-sentry-467317-s7-vertex-ai/']
       #arctic-sentry-467317-s7-studenthub-frontend']
+
+      # ─── DAST Security Scan (StackHawk) ───────────────────────────────────────
+    - name: 'gcr.io/cloud-builders/docker'
+      id: 'dast-scan'
+      entrypoint: 'bash'
+      args:
+        - '-c'
+        - |
+          docker pull stackhawk/hawkscan:latest
+          docker run --rm \
+            -v $(pwd):/hawk \
+            -e HAWK_API_KEY=$$HAWK_API_KEY \
+            -e HAWK_APP_ID=$$HAWK_APP_ID \
+            -e DAST_TEST_EMAIL=$$DAST_TEST_EMAIL \
+            -e DAST_TEST_PASSWORD=$$DAST_TEST_PASSWORD \
+            stackhawk/hawkscan:latest
+      secretEnv:
+        - 'HAWK_API_KEY'
+        - 'HAWK_APP_ID'
+        - 'DAST_TEST_EMAIL'
+        - 'DAST_TEST_PASSWORD'
+
+  # ─── Secrets from Google Secret Manager ──────────────────────────────────────
+  availableSecrets:
+    secretManager:
+      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_KEY/versions/latest
+        env: HAWK_API_KEY
+
+      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_APP_ID/versions/latest
+        env: HAWK_APP_ID
+
+      - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_EMAIL/versions/latest
+        env: DAST_TEST_EMAIL
+
+      - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_PASSWORD/versions/latest
+        env: DAST_TEST_PASSWORD
+
   options: 
     logging: CLOUD_LOGGING_ONLY # This is commented out.
     defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET    
-      #env:
-      #  - 'NODE_ENV=production' # Ensure a production build
-#  artifacts:
-    #- repository: 'https://LOCATION-npm.pkg.dev/PROJECT-ID/REPOSITORY_NAME'
- #   - repository: 'https://us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo'
-  #    packagePath: '.'
-    # 1. Build Docker Image for Studhub Frontend
-    #- name: 'gcr.io/cloud-builders/docker'
-    #  args: ['build', '-t', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}', '.']
-    #- name: 'gcr.io/cloud-builders/docker'
-    #  args: ['push', 'us-central1-docker.pkg.dev/arctic-sentry-467317-s7/student-hub-repo/studenthub-service:${SHORT_SHA}-${BUILD_ID}']
-      # Optional: If you want to deploy to Google Cloud Storage
-  options: 
-    logging: CLOUD_LOGGING_ONLY # This is commented out.
-    defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+      

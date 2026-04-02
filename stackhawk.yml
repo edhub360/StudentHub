@@ -1,0 +1,36 @@
+# stackhawk.yml — DAST config for Edhub360
+# Place in repo root alongside cloudbuild.yaml
+
+app:
+  applicationId: ${HAWK_APP_ID}
+  env: Production
+  host: https://app.edhub360.com
+
+  # FastAPI auto-generates this at /openapi.json
+  openApiConf:
+    path: /openapi.json
+
+  # JWT Authentication — scans protected routes too
+  authentication:
+    loggedInIndicator: "\\Qaccess_token\\E"
+    loggedOutIndicator: "\\Qdetail\\E"
+    usernamePassword:
+      type: json
+      loginPath: /api/v1/auth/login
+      loginRequestTemplate: '{"email":"${DAST_TEST_EMAIL}","password":"${DAST_TEST_PASSWORD}"}'
+    testCredentials:
+      username: ${DAST_TEST_EMAIL}
+      password: ${DAST_TEST_PASSWORD}
+
+  # Skip payment & webhook routes to avoid triggering live transactions
+  excludePaths:
+    - /api/v1/webhooks/.*
+    - /api/v1/payments/.*
+    - /docs
+    - /redoc
+
+hawk:
+  spider:
+    base: true
+    maxDuration: 5
+  failureThreshold: high        # Fails build on HIGH/CRITICAL findings
