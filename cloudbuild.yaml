@@ -30,13 +30,13 @@
           docker run --rm \
             -v $(pwd):/hawk \
             -e HAWK_API_KEY=$$HAWK_API_KEY \
-            -e HAWK_APP_ID=$$HAWK_APP_ID \
+            -e HAWK_APP_ID=$$HAWK_API_ID \
             -e DAST_TEST_EMAIL=$$DAST_TEST_EMAIL \
             -e DAST_TEST_PASSWORD=$$DAST_TEST_PASSWORD \
             stackhawk/hawkscan:latest
       secretEnv:
         - 'HAWK_API_KEY'
-        - 'HAWK_APP_ID'
+        - 'HAWK_API_ID'
         - 'DAST_TEST_EMAIL'
         - 'DAST_TEST_PASSWORD'
 
@@ -46,8 +46,8 @@
       - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_KEY/versions/latest
         env: HAWK_API_KEY
 
-      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_APP_ID/versions/latest
-        env: HAWK_APP_ID
+      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_ID/versions/latest
+        env: HAWK_API_ID
 
       - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_EMAIL/versions/latest
         env: DAST_TEST_EMAIL
