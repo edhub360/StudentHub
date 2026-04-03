@@ -1,58 +1,55 @@
-  steps:
-    - id: 'Install Dependencies and Build React App'
-      name: 'gcr.io/cloud-builders/npm'
-      args: ['install']
-      #dir: '.' # Assuming your React app is in the root directory
-    - id: 'Build React App'
-      name: 'gcr.io/cloud-builders/npm'
-      env:
-        - 'VITE_QUIZ_API_URL =https://quiz-backend-91248372939.us-central1.run.app'
-        - 'VITE_FLASHCARD_API_URL=https://flashcard-backend-91248372939.us-central1.run.app'
-        - 'VITE_AICHAT_API_URL=https://ai-chat-service-91248372939.us-central1.run.app'
-        - 'VITE_NOTES_API_URL=https://notebook-service-91248372939.us-central1.run.app/api'
-        - 'VITE_API_BASE_URL=https://login-service-91248372939.us-central1.run.app'
-      args: ['run', 'build']
-      dir: '.' # Assuming your React app is in the root directory
-    - name: 'gcr.io/cloud-builders/gsutil'
-      args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
+steps:
+  - id: 'Install Dependencies and Build React App'
+    name: 'gcr.io/cloud-builders/npm'
+    args: ['install']
 
-      # ─── DAST Security Scan (StackHawk) ───────────────────────────────────────
-    - name: 'gcr.io/cloud-builders/docker'
-      id: 'dast-scan'
-      entrypoint: 'bash'
-      args:
-        - '-c'
-        - |
-          docker pull stackhawk/hawkscan:latest
-          docker run --rm \
-            -v $(pwd):/hawk \
-            -e HAWK_API_KEY=$$HAWK_API_KEY \
-            -e HAWK_APP_ID=$$HAWK_API_ID \
-            -e DAST_TEST_EMAIL=$$DAST_TEST_EMAIL \
-            -e DAST_TEST_PASSWORD=$$DAST_TEST_PASSWORD \
-            stackhawk/hawkscan:latest
-      secretEnv:
-        - 'HAWK_API_KEY'
-        - 'HAWK_API_ID'
-        - 'DAST_TEST_EMAIL'
-        - 'DAST_TEST_PASSWORD'
+  - id: 'Build React App'
+    name: 'gcr.io/cloud-builders/npm'
+    env:
+      - 'VITE_QUIZ_API_URL=https://quiz-backend-91248372939.us-central1.run.app'
+      - 'VITE_FLASHCARD_API_URL=https://flashcard-backend-91248372939.us-central1.run.app'
+      - 'VITE_AICHAT_API_URL=https://ai-chat-service-91248372939.us-central1.run.app'
+      - 'VITE_NOTES_API_URL=https://notebook-service-91248372939.us-central1.run.app/api'
+      - 'VITE_API_BASE_URL=https://login-service-91248372939.us-central1.run.app'
+    args: ['run', 'build']
+    dir: '.'
 
-  # ─── Secrets from Google Secret Manager ──────────────────────────────────────
-  availableSecrets:
-    secretManager:
-      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_KEY/versions/latest
-        env: HAWK_API_KEY
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
 
-      - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_ID/versions/latest
-        env: HAWK_API_ID
+  # ─── DAST Security Scan (StackHawk) ─────────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'dast-scan'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull stackhawk/hawkscan:latest
+        docker run --rm \
+          -v $$(pwd):/hawk \
+          -e HAWK_API_KEY="$$HAWK_API_KEY" \
+          -e HAWK_APP_ID="$$HAWK_API_ID" \
+          -e DAST_TEST_EMAIL="$$DAST_TEST_EMAIL" \
+          -e DAST_TEST_PASSWORD="$$DAST_TEST_PASSWORD" \
+          stackhawk/hawkscan:latest
+    secretEnv:
+      - 'HAWK_API_KEY'
+      - 'HAWK_API_ID'
+      - 'DAST_TEST_EMAIL'
+      - 'DAST_TEST_PASSWORD'
 
-      - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_EMAIL/versions/latest
-        env: DAST_TEST_EMAIL
+# ─── Secrets from Google Secret Manager ────────────────────────────────────────
+availableSecrets:
+  secretManager:
+    - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_KEY/versions/latest
+      env: HAWK_API_KEY
+    - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_ID/versions/latest
+      env: HAWK_API_ID
+    - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_EMAIL/versions/latest
+      env: DAST_TEST_EMAIL
+    - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_PASSWORD/versions/latest
+      env: DAST_TEST_PASSWORD
 
-      - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_PASSWORD/versions/latest
-        env: DAST_TEST_PASSWORD
-
-  options: 
-    logging: CLOUD_LOGGING_ONLY # This is commented out.
-    defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET    
-      
+options:
+  logging: CLOUD_LOGGING_ONLY
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
