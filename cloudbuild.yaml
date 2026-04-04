@@ -18,8 +18,20 @@ steps:
     args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
 
   # ─── DAST Security Scan (StackHawk) ─────────────────────────────────────────
-  - name: 'stackhawk/hawkscan:latest'
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'dast-scan'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull stackhawk/hawkscan:latest
+        docker run --rm \
+          -v $$(pwd):/hawk \
+          -e API_KEY="$$HAWK_API_KEY" \
+          -e HAWK_APP_ID="$$HAWK_APP_ID" \
+          -e DAST_TEST_EMAIL="$$DAST_TEST_EMAIL" \
+          -e DAST_TEST_PASSWORD="$$DAST_TEST_PASSWORD" \
+          stackhawk/hawkscan:latest
     secretEnv:
       - 'HAWK_API_KEY'
       - 'HAWK_APP_ID'
