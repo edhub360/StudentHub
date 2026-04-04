@@ -1,28 +1,37 @@
-# stackhawk.yml — DAST config for Edhub360
-# Place in repo root alongside cloudbuild.yaml
-
 app:
   applicationId: ${HAWK_APP_ID}
   env: Production
   host: https://app.edhub360.com
 
-  # FastAPI auto-generates this at /openapi.json
   openApiConf:
     path: /openapi.json
 
-  # JWT Authentication — scans protected routes too
   authentication:
     loggedInIndicator: "\\Qaccess_token\\E"
     loggedOutIndicator: "\\Qdetail\\E"
-    usernamePassword:
-      type: json
-      loginPath: /api/v1/auth/login
-      loginRequestTemplate: '{"email":"${DAST_TEST_EMAIL}","password":"${DAST_TEST_PASSWORD}"}'
-    testCredentials:
-      username: ${DAST_TEST_EMAIL}
-      password: ${DAST_TEST_PASSWORD}
 
-  # Skip payment & webhook routes to avoid triggering live transactions
+    usernamePassword:
+      type: JSON                              # must be UPPERCASE
+      loginPath: /api/v1/auth/login
+      usernameField: email                    # JSON field name in request body
+      passwordField: password                 # JSON field name in request body
+      scanUsername: ${DAST_TEST_EMAIL}        # value to use
+      scanPassword: ${DAST_TEST_PASSWORD}     # value to use
+
+    tokenExtraction:
+      type: TOKEN_PATH
+      value: access_token                     # extracts token from JSON response
+
+    tokenAuthorization:
+      type: HEADER
+      value: Authorization
+      tokenType: Bearer
+
+    testPath:
+      path: /api/v1/auth/me                   # a protected route only logged-in users can hit
+      type: HEADER
+      success: ".*200.*"
+
   excludePaths:
     - /api/v1/webhooks/.*
     - /api/v1/payments/.*
@@ -33,4 +42,4 @@ hawk:
   spider:
     base: true
     maxDuration: 5
-  failureThreshold: high        # Fails build on HIGH/CRITICAL findings
+  failureThreshold: high
