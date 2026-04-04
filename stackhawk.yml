@@ -3,9 +3,6 @@ app:
   env: Production
   host: https://app.edhub360.com
 
-  openApiConf:
-    path: /openapi.json
-
   authentication:
     loggedInIndicator: "\\Qaccess_token\\E"
     loggedOutIndicator: "\\Qdetail\\E"
