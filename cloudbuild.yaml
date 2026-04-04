@@ -17,40 +17,22 @@ steps:
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
 
-  - name: 'gcr.io/cloud-builders/docker'
+  # ─── DAST Security Scan (StackHawk) ─────────────────────────────────────────
+  - name: 'stackhawk/hawkscan:latest'
     id: 'dast-scan'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "HAWK_API_KEY length: ${#HAWK_API_KEY}"
-        echo "HAWK_API_ID length: ${#HAWK_API_ID}"
-        echo "DAST_TEST_EMAIL: $$DAST_TEST_EMAIL"
-        if [ -z "$$HAWK_API_KEY" ]; then
-          echo "ERROR: HAWK_API_KEY is empty!"
-          exit 1
-        fi
-        docker pull stackhawk/hawkscan:latest
-        docker run --rm \
-          -v $$(pwd):/hawk \
-          -e HAWK_API_KEY="$$HAWK_API_KEY" \
-          -e HAWK_APP_ID="$$HAWK_API_ID" \
-          -e DAST_TEST_EMAIL="$$DAST_TEST_EMAIL" \
-          -e DAST_TEST_PASSWORD="$$DAST_TEST_PASSWORD" \
-          stackhawk/hawkscan:latest
     secretEnv:
       - 'HAWK_API_KEY'
-      - 'HAWK_API_ID'
+      - 'HAWK_APP_ID'
       - 'DAST_TEST_EMAIL'
       - 'DAST_TEST_PASSWORD'
 
-# ─── Secrets from Google Secret Manager ────────────────────────────────────────
+# ─── Secrets from Google Secret Manager ──────────────────────────────────────
 availableSecrets:
   secretManager:
     - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_KEY/versions/latest
       env: HAWK_API_KEY
     - versionName: projects/arctic-sentry-467317-s7/secrets/HAWK_API_ID/versions/latest
-      env: HAWK_API_ID
+      env: HAWK_APP_ID
     - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_EMAIL/versions/latest
       env: DAST_TEST_EMAIL
     - versionName: projects/arctic-sentry-467317-s7/secrets/DAST_TEST_PASSWORD/versions/latest
