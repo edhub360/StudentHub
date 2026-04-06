@@ -8,7 +8,7 @@ app:
     loggedOutIndicator: "\\Qdetail\\E"
 
     usernamePassword:
-      type: JSON                              # must be UPPERCASE
+      type: JSON                              # must be UPPERCASE...
       loginPath: /api/v1/auth/login
       usernameField: email                    # JSON field name in request body
       passwordField: password                 # JSON field name in request body
