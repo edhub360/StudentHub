@@ -1,8 +1,8 @@
 name: "CodeQL SAST Scan"
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * *"   # Runs nightly at 2 AM
+ # schedule:
+ #   - cron: "0 2 * * *"   # Runs nightly at 2 AM
 jobs:
   analyze:
     runs-on: ubuntu-latest
