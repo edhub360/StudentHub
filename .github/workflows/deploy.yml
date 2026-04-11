@@ -4,7 +4,7 @@ on:
   push:
     branches: [Develop]
   schedule:
-    - cron: "0 2 * * *"   # Runs nightly at 2 AM
+    - cron: "0 2 * * 3"   # Runs nightly at 2 AM
 permissions:
   contents: write
   pages: write
