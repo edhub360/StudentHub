@@ -1,10 +1,12 @@
 steps:
-  - id: 'Install Dependencies and Build React App'
-    name: 'gcr.io/cloud-builders/npm'
+  - id: 'Install Dependencies'
+    name: 'node:20-slim'
+    entrypoint: 'npm'
     args: ['install']
 
   - id: 'Build React App'
-    name: 'gcr.io/cloud-builders/npm'
+    name: 'node:20-slim'
+    entrypoint: 'npm'
     env:
       - 'VITE_QUIZ_API_URL=https://quiz-backend-91248372939.us-central1.run.app'
       - 'VITE_FLASHCARD_API_URL=https://flashcard-backend-91248372939.us-central1.run.app'
@@ -17,22 +19,6 @@ steps:
   - id: 'Upload Frontend to GCS'
     name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
-
-  # ─── Security Headers on GCS Static Files ────────────────────────────────
-  - id: 'Set Security Headers on GCS Objects'
-    name: 'gcr.io/cloud-builders/gsutil'
-    args:
-      - '-m'
-      - 'setmeta'
-      - '-h'
-      - 'Strict-Transport-Security:max-age=31536000; includeSubDomains'
-      - '-h'
-      - 'X-Frame-Options:DENY'
-      - '-h'
-      - 'X-Content-Type-Options:nosniff'
-      - '-h'
-      - 'Referrer-Policy:strict-origin-when-cross-origin'
-      - 'gs://arctic-sentry-467317-s7-studenthub-frontend/**'
 
   # ─── DAST Security Scan (StackHawk) ─────────────────────────────────────────
   - name: 'gcr.io/cloud-builders/docker'
