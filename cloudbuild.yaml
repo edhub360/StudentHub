@@ -14,8 +14,25 @@ steps:
     args: ['run', 'build']
     dir: '.'
 
-  - name: 'gcr.io/cloud-builders/gsutil'
+  - id: 'Upload Frontend to GCS'
+    name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'rsync', '-r', 'dist', 'gs://arctic-sentry-467317-s7-studenthub-frontend']
+
+  # ─── Security Headers on GCS Static Files ────────────────────────────────
+  - id: 'Set Security Headers on GCS Objects'
+    name: 'gcr.io/cloud-builders/gsutil'
+    args:
+      - '-m'
+      - 'setmeta'
+      - '-h'
+      - 'Strict-Transport-Security:max-age=31536000; includeSubDomains'
+      - '-h'
+      - 'X-Frame-Options:DENY'
+      - '-h'
+      - 'X-Content-Type-Options:nosniff'
+      - '-h'
+      - 'Referrer-Policy:strict-origin-when-cross-origin'
+      - 'gs://arctic-sentry-467317-s7-studenthub-frontend/**'
 
   # ─── DAST Security Scan (StackHawk) ─────────────────────────────────────────
   - name: 'gcr.io/cloud-builders/docker'
