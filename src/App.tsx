@@ -97,48 +97,52 @@ const App: React.FC = () => {
     if (!isLoggedIn || !userId) return;
 
     const checkSubscription = async () => {
-      try {
-        const subscription = await getUserSubscription();
+    try {
+      const subscription = await getUserSubscription();
 
-        console.log('📦 Full subscription response:', subscription);
-        console.log('📦 Keys:', Object.keys(subscription || {}));
-        console.log('📦 plan_name:', subscription?.plan_name);
-        console.log('📦 status:', subscription?.status);
-        
-        if (subscription && subscription.status === 'active') {
-          const tierValue = subscription.plan?.toLowerCase().trim();
-          setUserTier(tierValue as SubscriptionTier);
-          localStorage.setItem('subscription_tier', tierValue);
-          localStorage.setItem('subscription_status', 'active');
-          setShowSubscriptionPage(false);
-          setUserStatus({
-            has_seen_subscription: true,
-            has_active_subscription: true,
-            subscription: { plan_id: tierValue, status: 'active' },
-          });
-        } else {
-          // No active subscription — show subscription page
-          setUserTier('expired');
-          localStorage.removeItem('subscription_tier');
-          localStorage.removeItem('subscription_status');
-          setShowSubscriptionPage(true);
-          setUserStatus({
-            has_seen_subscription: false,
-            has_active_subscription: false,
-            subscription: null,
-          });
-        }
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          // No subscription at all
-          setUserTier('expired');
-          setShowSubscriptionPage(true);
-        }
-      } finally {
-        setIsSubscriptionLoading(false);
+      console.log('📦 Full subscription response:', subscription);
+      console.log('📦 Keys:', Object.keys(subscription || {}));
+      console.log('📦 plan_name:', subscription?.plan_name);
+      console.log('📦 status:', subscription?.status);
+
+      if (subscription && subscription.status === 'active') {
+        // Fix: use plan_name not plan
+        const tierValue = subscription.plan_name?.toLowerCase().trim() as SubscriptionTier;
+        setUserTier(tierValue);
+        localStorage.setItem('subscription_tier', tierValue ?? '');
+        localStorage.setItem('subscription_status', 'active');
+        setShowSubscriptionPage(false);
+        setUserStatus({
+          has_seen_subscription: true,
+          has_active_subscription: true,
+          subscription: { plan_id: tierValue, status: 'active' },
+        });
+      } else {
+        // Sub exists but status is expired/cancelled — lock features
+        setUserTier('expired');
+        localStorage.removeItem('subscription_tier');
+        localStorage.removeItem('subscription_status');
+        setShowSubscriptionPage(true);
+        setUserStatus({
+          has_seen_subscription: false,
+          has_active_subscription: false,
+          subscription: null,
+        });
       }
-    };
-
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        // Never subscribed — show plans, null tier
+        setUserTier(null);
+        localStorage.removeItem('subscription_tier');
+        localStorage.removeItem('subscription_status');
+        setShowSubscriptionPage(true);
+      }
+      // For other errors (network etc.) keep existing cached tier
+      // so user isn't unnecessarily locked out
+    } finally {
+      setIsSubscriptionLoading(false);
+    }
+  };
     checkSubscription();
   }, [isLoggedIn, userId]); 
 
