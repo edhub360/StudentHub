@@ -76,8 +76,9 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = () => {
   const isFreePlan = (plan: Plan): boolean =>
     plan.name.toLowerCase() === 'free' || plan.prices.every(p => p.amount === 0);
 
+  // CORRECT — API returns plan_name
   const isCurrentPlan = (plan: Plan): boolean =>
-    activeSubscription?.plan_id === plan.id;
+    activeSubscription?.plan_name?.toLowerCase() === plan.name.toLowerCase();
 
 
   // Sort: free first, then paid by cheapest monthly price

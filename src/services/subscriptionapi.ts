@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getValidAccessToken, getUserId } from './TokenManager';
+import type { SubscriptionTier } from '../utils/featureAccess';
 import type {
   Plan,
   Subscription,
@@ -98,14 +99,30 @@ export const getPriceByPeriod = (plan: Plan, period: BillingPeriod) => {
 };
 
 // Rewritten — derives everything from Stripe subscription only
+// ADD this import at the top if not already there
+
+
+// REPLACE getSubscriptionStatus with this:
 export const getSubscriptionStatus = async () => {
   const subscription = await getUserSubscription();
+
+  const isActive = !!subscription && subscription.status === 'active';
   const isFreePlan = subscription?.plan_name?.toLowerCase() === 'free';
 
+  // Derive tier for featureAccess
+  let tier: SubscriptionTier = null;
+  if (isActive && subscription?.plan_name) {
+    tier = subscription.plan_name.toLowerCase().trim() as SubscriptionTier;
+  } else if (subscription && !isActive) {
+    tier = 'expired';  // sub exists but not active
+  }
+  // else null = never subscribed
+
   return {
-    subscription,                                         // full subscription object
-    hasAccess: !!subscription && subscription.status === 'active',
+    subscription,
+    hasAccess: isActive,
     isFreePlan,
-    isFreePlanEligible: !subscription,                   // eligible only if never subscribed
+    isFreePlanEligible: !subscription,
+    tier,
   };
 };

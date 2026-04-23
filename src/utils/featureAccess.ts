@@ -43,11 +43,12 @@ const FEATURE_MATRIX: Record<string, FeatureAccess> = {
     screenshot: true,
     studyPlanner: true,
     courses: true,
-  }
+  },
 };
 
+// No subscription at all — expired, logged out, or NULL tier
 const DEFAULT_ACCESS: FeatureAccess = {
-  dashboard: true,
+  dashboard: true,   // always accessible
   aiChat: false,
   flashcard: false,
   quiz: false,
@@ -61,29 +62,37 @@ const DEFAULT_ACCESS: FeatureAccess = {
  * Get feature access permissions for a subscription tier
  */
 export function getFeatureAccess(tier: SubscriptionTier): FeatureAccess {
-  if (tier === null) return DEFAULT_ACCESS;      // ✅ logged out
-  if (tier === 'expired') return DEFAULT_ACCESS; // ✅ no active subscription
+  if (tier === null) return DEFAULT_ACCESS;       // logged out or no subscription
+  if (tier === 'expired') return DEFAULT_ACCESS;  // subscription expired
 
-  // Normalize: Convert to lowercase and remove extra spaces
   const normalizedTier = tier.toLowerCase().trim().replace(/\s+/g, ' ');
-
-  return FEATURE_MATRIX[normalizedTier] || DEFAULT_ACCESS;
+  return FEATURE_MATRIX[normalizedTier] ?? DEFAULT_ACCESS;
 }
 
 /**
  * Check if a specific feature is accessible for a tier
  */
 export function hasFeatureAccess(
-  tier: SubscriptionTier, 
+  tier: SubscriptionTier,
   feature: keyof FeatureAccess
 ): boolean {
-  const access = getFeatureAccess(tier);
-  return access[feature];
+  return getFeatureAccess(tier)[feature];
 }
 
 /**
  * Get upgrade message for locked features
  */
 export function getUpgradeMessage(feature: string): string {
-  return `${feature} is only available for Pro Max subscribers. Upgrade your plan to unlock this feature!`;
+  const proMaxFeatures = ['Screenshot', 'Study Planner'];
+  if (proMaxFeatures.includes(feature)) {
+    return `${feature} is only available on the Pro Max plan. Upgrade to unlock this feature!`;
+  }
+  return `${feature} requires an active subscription. Subscribe to a plan to unlock this feature!`;
+}
+
+/**
+ * Check if the user has any active subscription (any paid tier)
+ */
+export function hasActiveSubscription(tier: SubscriptionTier): boolean {
+  return tier !== null && tier !== 'expired';
 }
