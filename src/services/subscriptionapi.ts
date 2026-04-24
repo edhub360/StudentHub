@@ -107,12 +107,13 @@ export const getSubscriptionStatus = async () => {
   const subscription = await getUserSubscription();
 
   const isActive = !!subscription && subscription.status === 'active';
-  const isFreePlan = subscription?.plan_name?.toLowerCase() === 'free';
+  const isFreePlan = subscription?.plan?.toLowerCase() === 'free';
+
 
   // Derive tier for featureAccess
   let tier: SubscriptionTier = null;
-  if (isActive && subscription?.plan_name) {
-    tier = subscription.plan_name.toLowerCase().trim() as SubscriptionTier;
+  if (isActive && subscription?.plan) {
+    tier = subscription.plan.toLowerCase().trim() as SubscriptionTier;
   } else if (subscription && !isActive) {
     tier = 'expired';  // sub exists but not active
   }

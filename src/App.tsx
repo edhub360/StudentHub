@@ -107,7 +107,7 @@ const App: React.FC = () => {
 
       if (subscription && subscription.status === 'active') {
         // Fix: use plan_name not plan
-        const tierValue = subscription.plan_name?.toLowerCase().trim() as SubscriptionTier;
+        const tierValue = subscription.plan?.toLowerCase().trim() as SubscriptionTier;
         setUserTier(tierValue);
         localStorage.setItem('subscription_tier', tierValue ?? '');
         localStorage.setItem('subscription_status', 'active');
