@@ -1,44 +1,61 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { PopupRequest } from '@azure/msal-browser';
 import { FaMicrosoft } from 'react-icons/fa';
 import { MicrosoftLoginButtonProps } from '../../types/login.types';
-import { msalInstance, msalReady } from '../../services/msalinstance';
+import { msalInstance, msalReady, MICROSOFT_REDIRECT_URI } from '../../services/msalinstance';
 import { loginWithMicrosoft } from '../../services/loginApi';
 
 const loginRequest: PopupRequest = {
   scopes: ['User.Read', 'openid', 'profile', 'email'],
 };
 
+// Clears stale MSAL interaction state left behind by closed/failed popups.
+// Without this, re-clicking after a dismissed popup throws interaction_in_progress.
+function clearMsalInteractionState() {
+  Object.keys(sessionStorage)
+    .filter(key => key.includes('interaction.status'))
+    .forEach(key => sessionStorage.removeItem(key));
+}
+
 const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
   onMicrosoftSuccess,
   onError,
   disabled = false,
 }) => {
+  const inProgress = useRef(false);
+
   const handleMicrosoftLogin = useCallback(async () => {
+    if (inProgress.current) return;
+    inProgress.current = true;
+
     try {
       await msalReady;
+      clearMsalInteractionState();
       console.log('🔵 Starting Microsoft login popup...');
-      
+
       const response = await msalInstance.loginPopup({
         ...loginRequest,
         prompt: 'select_account',
-        redirectUri: `${window.location.origin}/auth-redirect.html`,
+        redirectUri: MICROSOFT_REDIRECT_URI,
       });
-      
+
       console.log('🟢 Popup success, accessToken:', response.accessToken ? 'EXISTS' : 'MISSING');
-      
+
       const data = await loginWithMicrosoft(response.accessToken);
       console.log('🟢 Backend success:', data);
       onMicrosoftSuccess(data);
-      
+
     } catch (error: any) {
       console.log('🔴 Error:', error?.errorCode, error?.message);
+      clearMsalInteractionState();
       if (
         error?.errorCode === 'user_cancelled' ||
         error?.errorCode === 'timed_out' ||
         error?.message?.includes('user_cancelled')
       ) return;
       onError(error?.message || 'Microsoft login failed');
+    } finally {
+      inProgress.current = false;
     }
   }, [onMicrosoftSuccess, onError]);
 

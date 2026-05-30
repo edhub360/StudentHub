@@ -1,10 +1,10 @@
 export const LOGIN_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-export const GOOGLE_CLIENT_ID = '91248372939-g3jbh33msjjdbd3drp84lvaioukm9c3l.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '893537616314-97642jlmosf6n5e2kddvq79sktuk3gss.apps.googleusercontent.com';
 
 export const MICROSOFT_CLIENT_ID = import.meta.env.VITE_MICROSOFT_CLIENT_ID || '11fad16e-2c09-4d98-bdc5-e6eed5d204e8';
 
-export const FACEBOOK_APP_ID = '4104383749853654';
+export const FACEBOOK_APP_ID = '1499902025253531';
 
 export const LOGIN_ERROR_MESSAGES = {
   missingCredentials: 'Please enter email and password',

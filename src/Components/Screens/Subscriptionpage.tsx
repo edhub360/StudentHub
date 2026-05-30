@@ -15,10 +15,11 @@ interface SubscriptionPageProps {
   userId?: string;
   onSelectPlan?: (planId: string) => void;
   onComplete?: () => void;
+  onLogout?: () => void;
 }
 
 
-const SubscriptionPage: React.FC<SubscriptionPageProps> = () => {
+const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -139,14 +140,24 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
 
-      {/* Back Button */}
-      <button
-        onClick={() => navigate('/login')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back to Login</span>
-      </button>
+      {/* Top bar: back button + logout */}
+      <div className="flex items-center justify-between mb-8">
+        <button
+          onClick={() => onLogout ? onLogout() : navigate('/')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back to Login</span>
+        </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="text-sm text-red-500 hover:text-red-700 transition font-medium"
+          >
+            Log out
+          </button>
+        )}
+      </div>
 
       {/* Header */}
       <div className="text-center mb-12">

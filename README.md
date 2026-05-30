@@ -1,397 +1,111 @@
-# StudentHub - EdHub360 Educational Platform Frontend
+# StudentHub — EdHub360 Frontend
 
-A modern, feature-rich frontend platform providing an integrated learning experience with AI-powered features, interactive tools, and comprehensive educational content management.
+React + TypeScript frontend for the EdHub360 AI-powered learning platform.
 
-## Overview
+## Tech Stack
 
-StudentHub is the user-facing interface for the EdHub360 educational platform. It hosts multiple interconnected pages and modules designed to facilitate comprehensive learning through various modalities including interactive dashboards, AI chat, problem-solving tools, flashcards, video content, and more.
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 |
+| Styling | Tailwind CSS |
+| Routing | React Router v6 |
+| Data fetching | TanStack Query v5 |
+| Auth | Google Identity Services, MSAL (Microsoft), Facebook JS SDK |
+| Payments | Stripe |
 
-## Technology Stack
+## Features
 
-- **Primary Language**: TypeScript (60.5%)
-- **Markup**: HTML (39.4%)
-- **Other**: (0.1%)
+- **Dashboard** — personalised study overview and progress tracking
+- **AI Chat** — conversational learning assistant
+- **Flashcards** — spaced-repetition card decks
+- **Quiz Mode** — AI-generated quizzes
+- **Courses** — structured curriculum browser
+- **Study Planner** — schedule and goal tracking
+- **Notebook** — rich-text notes
+- **Screenshot Solve** — upload images for AI-powered problem solving
+- **Social login** — Google, Microsoft, Facebook OAuth
 
-**Frontend Framework**: [React/Vue/Angular - specify your framework]
-**Styling**: [Tailwind CSS/Bootstrap/CSS-in-JS - specify your approach]
-**Build Tool**: [Webpack/Vite - specify your tool]
-
-## Core Features
-
-### 1. **Dashboard**
-   - Personalized student dashboard
-   - Quick access to all learning modules
-   - Overview of progress and activities
-   - Performance metrics and statistics
-
-### 2. **Progress Tracking**
-   - Real-time progress visualization
-   - Learning analytics and insights
-   - Achievement and milestone tracking
-   - Performance comparison and goals
-
-### 3. **AI-Chat**
-   - AI-powered conversational learning
-   - Instant homework help and explanations
-   - Natural language query processing
-   - Context-aware responses
-
-### 4. **Solve**
-   - Problem-solving module
-   - Step-by-step solution guidance
-   - Interactive problem editor
-   - Multiple problem formats support
-
-### 5. **FlashCards**
-   - Digital flashcard system
-   - Spaced repetition algorithm
-   - Custom deck creation
-   - Study progress tracking
-
-### 6. **Courses**
-   - Structured course catalog
-   - Course enrollment and management
-   - Curriculum organization
-   - Course progression tracking
-
-### 7. **Audio-Video Overview**
-   - Multimedia content library
-   - Video player with controls
-   - Audio content management
-   - Transcript and subtitle support
-
-### 8. **Summary**
-   - Automated content summarization
-   - Key points extraction
-   - Study guide generation
-   - Multiple format exports
-
-### 9. **Interactive BOT**
-   - Chatbot-based learning support
-   - FAQ automation
-   - 24/7 learning assistance
-   - Personalized recommendations
-
-## Project Structure
-
-```
-StudentHub/
-├── src/
-│   ├── components/
-│   │   ├── Dashboard/
-│   │   ├── Progress/
-│   │   ├── Chat/
-│   │   ├── Solve/
-│   │   ├── FlashCards/
-│   │   ├── Courses/
-│   │   ├── Media/
-│   │   ├── Summary/
-│   │   └── Bot/
-│   ├── pages/
-│   ├── services/
-│   ├── hooks/
-│   ├── utils/
-│   ├── styles/
-│   ├── types/
-│   └── App.tsx
-├── public/
-├── tests/
-├── .env.example
-├── tsconfig.json
-├── package.json
-└── README.md
-```
-
-## Getting Started
+## Local Development
 
 ### Prerequisites
+- Node.js 20+
+- Backend services running (see `Backend/`)
 
-- Node.js 16.x or higher
-- npm 8.x or yarn 3.x
-- Git
+### Setup
 
-### Installation
+```bash
+cd StudentHub
+npm install
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/edhub360/StudentHub.git
-   cd StudentHub
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your configuration
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm start
-   # or
-   yarn start
-   ```
-
-   The application will open at `http://localhost:3000`
-
-## Environment Configuration
-
-Create a `.env.local` file with the following variables:
+Create `.env` (never commit this):
 
 ```env
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_AI_CHAT_API=http://localhost:8000/api/chat
-REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
-REACT_APP_ENVIRONMENT=development
+VITE_API_BASE_URL=          # leave empty — Vite proxy routes /auth to localhost:8001
+VITE_MICROSOFT_CLIENT_ID=11fad16e-2c09-4d98-bdc5-e6eed5d204e8
 ```
 
-## Building for Production
+### Run
 
 ```bash
+npm run dev
+```
+
+The dev server starts on **https://localhost:5173** (HTTPS required for Facebook OAuth).
+
+> **First run:** accept the self-signed certificate warning in the browser once.
+
+### Why HTTPS in dev?
+
+Facebook's SDK blocks `FB.login()` on HTTP pages (enforced since 2018). The Vite dev server uses `@vitejs/plugin-basic-ssl` to serve over HTTPS. All API calls go through the Vite proxy so there is no mixed-content issue.
+
+### Vite Dev Proxy
+
+| Path prefix | Forwards to |
+|---|---|
+| `/auth/*` | `http://localhost:8001` (login service) |
+| `/health` | `http://localhost:8001` |
+| `/subscription-api/*` | `https://subscription-service-*.run.app` |
+
+## Build
+
+```bash
+# Production build (deploys to app.edhub360.com)
 npm run build
-# or
-yarn build
-```
 
-This creates an optimized production build in the `build/` directory.
+# GitHub Pages staging build
+npm run build:github
 
-## Development
-
-### Running Tests
-
-```bash
-npm test
-# or
-yarn test
-```
-
-### Linting
-
-```bash
-npm run lint
-# or
-yarn lint
-```
-
-### Code Formatting
-
-```bash
-npm run format
-# or
-yarn format
-```
-
-## API Integration
-
-StudentHub connects to the EdHub360 Backend API:
-
-- **Base URL**: Configured via `REACT_APP_API_URL`
-- **Authentication**: JWT tokens (stored securely)
-- **Endpoints**:
-  - `/api/auth/` - Authentication services
-  - `/api/chat/` - AI chat services
-  - `/api/courses/` - Course management
-  - `/api/progress/` - Progress tracking
-  - `/api/user/` - User profile
-
-## Features in Detail
-
-### Responsive Design
-- Mobile-first approach
-- Tablet and desktop optimization
-- Touch-friendly interfaces
-- Cross-browser compatibility
-
-### Accessibility (A11y)
-- WCAG 2.1 compliance
-- Screen reader support
-- Keyboard navigation
-- High contrast options
-
-### Performance
-- Code splitting and lazy loading
-- Image optimization
-- Caching strategies
-- Minimal bundle size
-
-### Security
-- Secure authentication flow
-- XSS protection
-- CSRF token validation
-- Secure credential storage
-
-## Module Details
-
-### Dashboard
-- User profile quick view
-- Recent activity feed
-- Upcoming deadlines
-- Quick action buttons
-
-### AI-Chat
-- Real-time messaging interface
-- Conversation history
-- Typing indicators
-- Markdown support for responses
-
-### Solve
-- Code editor integration
-- Multiple language support
-- Test case visualization
-- Solution comparison
-
-### FlashCards
-- Deck management
-- Study modes (learn, test, review)
-- Progress metrics
-- Difficulty adjustment
-
-### Courses
-- Course listing with filters
-- Curriculum overview
-- Resource management
-- Progress indicators
-
-### Media Player
-- Video playback controls
-- Subtitle/caption support
-- Playback speed adjustment
-- Offline download (if available)
-
-### Summary Generator
-- Document upload
-- AI-powered summarization
-- Key points extraction
-- Export to multiple formats
-
-### Interactive BOT
-- Natural language understanding
-- Context-aware responses
-- Learning recommendations
-- Issue resolution
-
-## Deployment
-
-### Vercel (Recommended)
-```bash
-npm install -g vercel
-vercel
-```
-
-### Netlify
-```bash
-npm run build
-# Connect repository to Netlify
-```
-
-### GitHub Pages
-```bash
-npm run build
+# Deploy to GitHub Pages
 npm run deploy
 ```
 
-### Docker
-```bash
-docker build -t edhub360-studenthub .
-docker run -p 3000:3000 edhub360-studenthub
-```
+## Environment Variables (production / CI)
 
-## Troubleshooting
+Set these in Cloud Build / GitHub Actions — do **not** commit them:
 
-### API Connection Issues
-- Verify `REACT_APP_API_URL` is correct
-- Ensure backend server is running
-- Check CORS configuration
-- Review network tab in DevTools
+| Variable | Description |
+|---|---|
+| `VITE_API_BASE_URL` | Login service URL |
+| `VITE_AICHAT_API_URL` | AI Chat service URL |
+| `VITE_NOTES_API_BASE_URL` | Notebook service URL |
+| `VITE_CSBOT_API_URL` | CS Bot service URL |
+| `VITE_MICROSOFT_CLIENT_ID` | Azure app registration client ID |
 
-### Authentication Problems
-- Clear browser cookies and cache
-- Check JWT token expiration
-- Verify Google OAuth credentials
-- Review authentication logs
+## OAuth Setup
 
-### Build Errors
-- Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
-- Clear build cache: `npm run clean`
-- Check Node version compatibility
+### Google
+- Console: Google Cloud → APIs & Services → Credentials
+- Add `https://localhost:5173` to **Authorized JavaScript origins**
 
-### Performance Issues
-- Analyze bundle size: `npm run analyze`
-- Check for memory leaks in DevTools
-- Review network waterfall in Performance tab
-- Consider code splitting opportunities
+### Microsoft
+- Console: Azure Portal → App registrations → Authentication
+- Add `https://localhost:5173/auth-redirect.html` as a **SPA redirect URI**
+- Supported account types: **Multitenant + personal Microsoft accounts**
 
-## Contributing
-
-1. Create a feature branch from `main`
-2. Implement your changes
-3. Write/update tests for new functionality
-4. Run linting and tests: `npm run lint && npm test`
-5. Create a pull request with detailed description
-
-## Code Standards
-
-- Use TypeScript for type safety
-- Follow ESLint/Prettier configuration
-- Write meaningful commit messages
-- Add JSDoc comments for complex functions
-- Keep components modular and reusable
-
-## CI/CD Pipeline
-
-Automated workflows for:
-- Testing on push and PRs
-- Code quality checks
-- Build verification
-- Automated deployment to staging/production
-
-## Related Repositories
-
-- [Backend](https://github.com/edhub360/Backend) - AI chat backend services
-
-## Performance Metrics
-
-- Lighthouse Score: [Target score]
-- Page Load Time: < 3 seconds
-- Time to Interactive: < 5 seconds
-- Bundle Size: < 500KB (gzipped)
-
-## Browser Support
-
-- Chrome (latest 2 versions)
-- Firefox (latest 2 versions)
-- Safari (latest 2 versions)
-- Edge (latest 2 versions)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## License
-
-[Your License Here]
-
-## Support
-
-For issues and questions:
-1. Check existing GitHub issues
-2. Create a new issue with steps to reproduce
-3. Include browser and OS information
-4. Attach screenshots or videos if applicable
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
-
-## Team
-
-- **Frontend Lead**: [Name/Contact]
-- **UI/UX Designer**: [Name/Contact]
-- **QA**: [Name/Contact]
-
----
-
-**Happy Learning! 🎓**
+### Facebook
+- Console: developers.facebook.com → your app → Use cases → Facebook Login
+- Add `email` permission
+- Set Site URL to `https://localhost:5173`
+- App must be in **Development mode** for localhost testing

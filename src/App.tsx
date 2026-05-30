@@ -130,15 +130,22 @@ const App: React.FC = () => {
         });
       }
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err.response?.status === 404 || err?.status === 404) {
         // Never subscribed — show plans, null tier
         setUserTier(null);
         localStorage.removeItem('subscription_tier');
         localStorage.removeItem('subscription_status');
         setShowSubscriptionPage(true);
+      } else {
+        // Network/CORS/server error — don't lock the user out.
+        // If they have a cached tier, trust it and send them to dashboard.
+        const cachedTier = localStorage.getItem('subscription_tier') as SubscriptionTier;
+        if (cachedTier) {
+          setUserTier(cachedTier);
+          setShowSubscriptionPage(false);
+        }
+        // If no cached tier either, leave showSubscriptionPage as-is (login set it)
       }
-      // For other errors (network etc.) keep existing cached tier
-      // so user isn't unnecessarily locked out
     } finally {
       setIsSubscriptionLoading(false);
     }
@@ -418,13 +425,13 @@ const App: React.FC = () => {
   }
 
   if (pathname === '/subscription' && isLoggedIn) {
-    return <SubscriptionWrapper />;
+    return <SubscriptionWrapper onLogout={handleLogout} />;
   }
 
   // Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage) {
-  return <SubscriptionWrapper />;
-}
+    return <SubscriptionWrapper onLogout={handleLogout} />;
+  }
 
   if (!isLoggedIn) {
     if (showRegister) {

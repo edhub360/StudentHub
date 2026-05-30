@@ -2,7 +2,7 @@
 import { PublicClientApplication } from '@azure/msal-browser';
 import { MICROSOFT_CLIENT_ID } from '../constants/login.constants';
 
-export const MICROSOFT_REDIRECT_URI = `${window.location.origin}/auth-redirect.html`;
+export const MICROSOFT_REDIRECT_URI = `${window.location.origin}${import.meta.env.BASE_URL}auth-redirect.html`;
 
 export const msalInstance = new PublicClientApplication({
   auth: {
