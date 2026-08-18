@@ -2,8 +2,8 @@
 
 import { getValidAccessToken, getUserId } from '../services/TokenManager';
 
-const AUTH_API_BASE = 'https://login-service-91248372939.us-central1.run.app';
-const SUB_API_BASE  = 'https://subscription-service-91248372939.us-central1.run.app';
+const AUTH_API_BASE = import.meta.env.DEV ? '' : 'https://login-service-91248372939.us-central1.run.app';
+const SUB_API_BASE  = import.meta.env.DEV ? '/subscription-api' : 'https://subscription-service-91248372939.us-central1.run.app';
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
   const token = await getValidAccessToken();

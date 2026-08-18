@@ -1,6 +1,8 @@
 import { RecommendedCourse, EdhubCourse } from '../types/course.types';
 
-export const API_BASE_URL = 'https://courses-backend-91248372939.us-central1.run.app';
+export const API_BASE_URL = import.meta.env.DEV
+  ? '/courses-api'
+  : 'https://courses-backend-91248372939.us-central1.run.app';
 
 export const COMPLEXITY_OPTIONS = [
   { label: 'All Levels', value: '' },

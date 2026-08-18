@@ -1,6 +1,8 @@
 // src/constants/quiz.constants.ts
 
-export const API_BASE_URL = 'https://quiz-backend-91248372939.us-central1.run.app';
+export const API_BASE_URL = import.meta.env.DEV
+  ? '/quiz-api'
+  : 'https://quiz-backend-91248372939.us-central1.run.app';
 
 export const QUESTION_TIMER_SECONDS = 30;
 

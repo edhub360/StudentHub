@@ -13,7 +13,9 @@ import { getValidAccessToken } from './TokenManager';
 // Standardizing to CamelCase to resolve naming conflicts
 import { MOCK_REQUIREMENT_CATEGORIES } from '../constants/studyPlan.constants';
 
-const API_BASE = 'https://study-plan-service-91248372939.us-central1.run.app/api/v1';
+const API_BASE = import.meta.env.DEV
+  ? '/study-plan-api/api/v1'
+  : 'https://study-plan-service-91248372939.us-central1.run.app/api/v1';
 
 /* ================================
    Utilities

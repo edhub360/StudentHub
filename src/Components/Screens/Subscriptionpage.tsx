@@ -15,10 +15,11 @@ interface SubscriptionPageProps {
   userId?: string;
   onSelectPlan?: (planId: string) => void;
   onComplete?: () => void;
+  onDismiss?: () => void;
 }
 
 
-const SubscriptionPage: React.FC<SubscriptionPageProps> = () => {
+const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ onDismiss }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -141,11 +142,11 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = () => {
 
       {/* Back Button */}
       <button
-        onClick={() => navigate('/login')}
+        onClick={() => (onDismiss ? onDismiss() : navigate('/login'))}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span>Back to Login</span>
+        <span>{onDismiss ? 'Skip for now' : 'Back to Login'}</span>
       </button>
 
       {/* Header */}

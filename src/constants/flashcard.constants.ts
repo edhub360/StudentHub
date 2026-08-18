@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'https://flashcard-backend-91248372939.us-central1.run.app';
+export const API_BASE_URL = import.meta.env.DEV
+  ? '/flashcard-api'
+  : 'https://flashcard-backend-91248372939.us-central1.run.app';
 
 export const COLORS = {
   primary: '#06b6d4', // Cyan-500

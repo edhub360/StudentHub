@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   MessageCircle,
@@ -64,6 +64,7 @@ interface UserStatus {
 
 const App: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('home');
   // Authentication & Subscription States
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -417,14 +418,19 @@ const App: React.FC = () => {
     return <SubscriptionCancel />;
   }
 
+  const dismissSubscriptionPage = () => {
+    setShowSubscriptionPage(false);
+    navigate('/');
+  };
+
   if (pathname === '/subscription' && isLoggedIn) {
-    return <SubscriptionWrapper />;
+    return <SubscriptionWrapper onDismiss={dismissSubscriptionPage} />;
   }
 
   // Show Subscription Page (First-Time or No Active Subscription)
   if (isLoggedIn && showSubscriptionPage) {
-  return <SubscriptionWrapper />;
-}
+    return <SubscriptionWrapper onDismiss={dismissSubscriptionPage} />;
+  }
 
   if (!isLoggedIn) {
     if (showRegister) {

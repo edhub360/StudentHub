@@ -1,6 +1,8 @@
 import { QuizDashboardSummary, WeeklyActivityResponse } from '../types/dashboard.types';
 
-const API_BASE_URL = 'https://quiz-backend-91248372939.us-central1.run.app'; // Adjust as needed for your backend environment
+const API_BASE_URL = import.meta.env.DEV
+  ? '/quiz-api'
+  : 'https://quiz-backend-91248372939.us-central1.run.app';
 
 export async function fetchDashboardSummary(userId: string): Promise<QuizDashboardSummary> {
   try {
