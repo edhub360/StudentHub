@@ -8,11 +8,11 @@ import type {
   BillingPeriod,
 } from '../types/subscription.types';
 
-const API_BASE_URL = 'https://subscription-service-91248372939.us-central1.run.app';
+const API_BASE_URL = import.meta.env.DEV
+  ? '/subscription-api'
+  : 'https://subscription-service-91248372939.us-central1.run.app';
 
-const BASE_URL = import.meta.env.MODE === 'production'
-  ? 'https://app.edhub360.com'
-  : 'https://edhub360.github.io/StudentHub';
+const BASE_URL = window.location.origin;
 
 // ========== API FUNCTIONS ==========
 
