@@ -20,19 +20,29 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
   // Step 1: Load Google GSI script
   useEffect(() => {
-    const existingScript = document.getElementById('google-client-script');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.id = 'google-client-script';
-      script.onload = () => setGoogleLoaded(true);
-      script.onerror = () => onError(LOGIN_ERROR_MESSAGES.googleInitFailed);
-      document.body.appendChild(script);
-    } else {
-      setGoogleLoaded(true);
+    const markLoaded = () => setGoogleLoaded(true);
+
+    const existingScript = document.getElementById('google-client-script') as HTMLScriptElement | null;
+    if (existingScript) {
+      // Script tag already present (e.g. StrictMode's double-invoke remount) —
+      // don't assume it finished loading, since it may still be in flight.
+      if (window.google?.accounts?.oauth2) {
+        markLoaded();
+      } else {
+        existingScript.addEventListener('load', markLoaded);
+        return () => existingScript.removeEventListener('load', markLoaded);
+      }
+      return;
     }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.id = 'google-client-script';
+    script.onload = markLoaded;
+    script.onerror = () => onError(LOGIN_ERROR_MESSAGES.googleInitFailed);
+    document.body.appendChild(script);
   }, []);
 
   // Step 2: Initialize OAuth2 token client ONCE after script loads

@@ -22,29 +22,40 @@ const FacebookLoginButton: React.FC<FacebookLoginButtonProps> = ({
   // Step 1: Load Facebook SDK script
   useEffect(() => {
     const existingScript = document.getElementById('facebook-jssdk');
-    if (!existingScript) {
-      window.fbAsyncInit = () => {
-        window.FB?.init({
-          appId: FACEBOOK_APP_ID,
-          cookie: true,
-          xfbml: false,
-          version: 'v25.0',
-        });
-        sdkInitialized.current = true;
+    if (existingScript) {
+      // Script tag already present (e.g. StrictMode's double-invoke remount) —
+      // don't assume init already ran, since it may still be in flight.
+      if (window.FB && sdkInitialized.current) {
         setFbLoaded(true);
-      };
-
-      const script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/en_US/sdk.js';
-      script.async = true;
-      script.defer = true;
-      script.id = 'facebook-jssdk';
-      script.onerror = () => onError(LOGIN_ERROR_MESSAGES.facebookInitFailed);
-      document.body.appendChild(script);
-    } else {
-      // Script already loaded (e.g. re-render)
-      setFbLoaded(true);
+      } else {
+        const priorInit = window.fbAsyncInit;
+        window.fbAsyncInit = () => {
+          priorInit?.();
+          sdkInitialized.current = true;
+          setFbLoaded(true);
+        };
+      }
+      return;
     }
+
+    window.fbAsyncInit = () => {
+      window.FB?.init({
+        appId: FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: false,
+        version: 'v25.0',
+      });
+      sdkInitialized.current = true;
+      setFbLoaded(true);
+    };
+
+    const script = document.createElement('script');
+    script.src = 'https://connect.facebook.net/en_US/sdk.js';
+    script.async = true;
+    script.defer = true;
+    script.id = 'facebook-jssdk';
+    script.onerror = () => onError(LOGIN_ERROR_MESSAGES.facebookInitFailed);
+    document.body.appendChild(script);
   }, []);
 
   // Step 2: Trigger Facebook login popup on button click
