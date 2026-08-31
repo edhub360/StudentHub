@@ -38,6 +38,17 @@ const MicrosoftLoginButton: React.FC<MicrosoftLoginButtonProps> = ({
         error?.errorCode === 'timed_out' ||
         error?.message?.includes('user_cancelled')
       ) return;
+
+      if (error?.errorCode === 'interaction_in_progress') {
+        // Closing the popup without finishing (or a page refresh mid-login)
+        // leaves MSAL's interaction flag stuck in sessionStorage, which
+        // blocks every future attempt with this same error forever.
+        Object.keys(sessionStorage)
+          .filter((key) => key.includes('interaction.status'))
+          .forEach((key) => sessionStorage.removeItem(key));
+        return;
+      }
+
       onError(error?.message || 'Microsoft login failed');
     }
   }, [onMicrosoftSuccess, onError]);
